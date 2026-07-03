@@ -1,10 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { TeamDetailPage } from '@/pages/team-detail/ui/TeamDetailPage';
 
-export const Route = createFileRoute('/teams/$ownerId')({
-  component: () => (
-    <div className="pageEnter">
-      <EmptyState title="Under construction">The team dossier arrives in a later phase.</EmptyState>
-    </div>
-  ),
-});
+export const Route = createFileRoute('/teams/$ownerId')({ component: TeamDetailPage });

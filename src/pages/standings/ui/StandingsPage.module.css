@@ -1,0 +1,199 @@
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.note {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.tableWrap {
+  margin-top: 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  overflow-x: auto;
+}
+
+.table {
+  min-width: 760px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+}
+
+.row {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-decoration: none;
+}
+
+.row:hover {
+  background: rgba(143, 163, 205, 0.08);
+}
+
+.rowChamp {
+  background: var(--red-tint-08);
+}
+
+.rowSacko {
+  background: rgba(230, 12, 26, 0.05);
+}
+
+.rk {
+  width: 26px;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.rkHot {
+  color: var(--red);
+}
+
+.rkCold {
+  color: var(--text-muted);
+}
+
+.teamCell {
+  flex: 1.6;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.teamStack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.teamName {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ownerName {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+}
+
+.wl {
+  width: 64px;
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.barTrack {
+  width: 150px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(143, 163, 205, 0.14);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+}
+
+.barHot {
+  background: var(--red);
+}
+
+.barCold {
+  background: var(--text-muted);
+}
+
+.pf,
+.pa,
+.diff {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf {
+  width: 76px;
+  color: var(--text-body);
+}
+
+.pa {
+  width: 76px;
+  color: var(--text-muted);
+}
+
+.diff {
+  width: 70px;
+}
+
+.diffUp {
+  color: var(--win);
+}
+
+.diffDown {
+  color: var(--loss);
+}
+
+.statusCell {
+  width: 104px;
+  text-align: right;
+}
+
+.badge {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+
+.badgeChamp {
+  color: var(--text-primary);
+  background: var(--red);
+}
+
+.badgeSacko {
+  color: var(--loss);
+  background: rgba(230, 12, 26, 0.16);
+}
+
+.badgePlayoffs {
+  color: var(--text-body);
+  background: rgba(143, 163, 205, 0.14);
+}
+
+.badgeNone {
+  color: var(--text-dim);
+  background: transparent;
+}

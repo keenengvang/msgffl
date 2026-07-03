@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { MatchupsPage } from '@/pages/matchups/ui/MatchupsPage';
 
 export interface MatchupsSearch {
   week?: number;
@@ -10,9 +10,5 @@ export const Route = createFileRoute('/matchups')({
     const w = Number(search.week);
     return { week: Number.isInteger(w) && w >= 1 && w <= 17 ? w : undefined };
   },
-  component: () => (
-    <div className="pageEnter">
-      <EmptyState title="Under construction">The matchups page arrives in a later phase.</EmptyState>
-    </div>
-  ),
+  component: MatchupsPage,
 });
