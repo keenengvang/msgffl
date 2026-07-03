@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useSavage } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { ptsKey } from '@/entities/league/lib/ptsKey';
@@ -31,6 +32,26 @@ export function DraftPage() {
   const rounds: Record<number, typeof picks> = {};
   picks.forEach((p) => (rounds[p.round] ??= []).push(p));
 
+  // Snake columns: one per draft slot, headed by the drafting manager.
+  // Slot → user comes from draft_order, with round-1 picks as fallback.
+  const slotCount = Math.max(14, ...picks.map((p) => p.draft_slot || 0));
+  const slotUser: Record<number, string> = {};
+  Object.entries(d?.draft_order ?? {}).forEach(([userId, slot]) => (slotUser[slot] = userId));
+  picks.forEach((p) => {
+    if (p.round === 1 && p.draft_slot && !slotUser[p.draft_slot]) slotUser[p.draft_slot] = p.picked_by;
+  });
+  const byOwner: Record<string, (typeof standings)[number]> = {};
+  standings.forEach((r) => (byOwner[r.ownerId] = r));
+  const slots = Array.from({ length: slotCount }, (_, i) => {
+    const userId = slotUser[i + 1];
+    const row = userId ? byOwner[userId] : undefined;
+    return {
+      slot: i + 1,
+      team: row?.team ?? (userId ? (usersById?.[userId]?.display_name ?? `Slot ${i + 1}`) : `Slot ${i + 1}`),
+      owner: row?.owner ?? usersById?.[slotUser[i + 1] ?? '']?.display_name ?? '—',
+    };
+  });
+
   const pk = ptsKey(league);
   const ranked = dReady && stats.data ? rankDraftClasses(picks, stats.data, pk) : [];
   const blurbs = GRADE_BLURBS[savage ? 'savage' : 'polite'];
@@ -53,21 +74,35 @@ export function DraftPage() {
       {dReady && (
         <>
           <div className={styles.boardWrap}>
-            <div className={styles.board}>
+            <div className={styles.board} style={{ '--slots': slotCount } as CSSProperties}>
+              <div className={styles.slotGrid}>
+                <div />
+                {slots.map((s) => (
+                  <div key={s.slot} className={styles.headCell} style={{ gridColumn: s.slot + 1 }}>
+                    <span className={styles.headTeam}>{s.team}</span>
+                    <span className={styles.headOwner}>{s.owner}</span>
+                  </div>
+                ))}
+              </div>
               {Object.keys(rounds)
                 .sort((a, b) => Number(a) - Number(b))
                 .map((rd) => (
-                  <div key={rd} className={styles.roundRow}>
-                    <div className={styles.roundNum}>{rd}</div>
-                    {rounds[Number(rd)]!.sort((a, b) => a.pick_no - b.pick_no).map((p) => {
+                  <div key={rd} className={styles.slotGrid}>
+                    <div className={styles.roundNum}>
+                      {rd}
+                      {/* snake: odd rounds pick left→right, even rounds right→left */}
+                      <span className={styles.snakeDir}>{Number(rd) % 2 === 1 ? '→' : '←'}</span>
+                    </div>
+                    {rounds[Number(rd)]!.map((p) => {
                       const md = p.metadata ?? {};
                       const posCol = POS_COLORS[md.position as Position] ?? 'var(--pos-def)';
-                      const owner = usersById?.[p.picked_by];
                       return (
-                        <div key={p.pick_no} className={styles.pick} style={{ borderTopColor: posCol }}>
-                          <span className={styles.pickNo}>
-                            {String(p.pick_no).padStart(3, '0')} · {(owner?.display_name ?? '?').slice(0, 10)}
-                          </span>
+                        <div
+                          key={p.pick_no}
+                          className={styles.pick}
+                          style={{ borderTopColor: posCol, gridColumn: (p.draft_slot || 1) + 1 }}
+                        >
+                          <span className={styles.pickNo}>{String(p.pick_no).padStart(3, '0')}</span>
                           <span className={styles.pickName}>
                             {md.first_name ?? ''} {md.last_name ?? ''}
                           </span>

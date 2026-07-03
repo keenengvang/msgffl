@@ -34,18 +34,58 @@
   gap: 6px;
 }
 
-.roundRow {
-  display: flex;
+/* Every row (header + rounds) shares this grid so the snake columns align:
+   round cell + one fixed column per draft slot. --slots is set inline. */
+.slotGrid {
+  display: grid;
+  grid-template-columns: 34px repeat(var(--slots), 126px);
   gap: 6px;
   align-items: stretch;
 }
 
-.roundNum {
-  flex: none;
-  width: 34px;
+/* Snake order walks columns right-to-left on even rounds; without an explicit
+   row, grid auto-placement would wrap each such pick onto a new row. */
+.slotGrid > * {
+  grid-row: 1;
+}
+
+.headCell {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  background: var(--bg-deep);
+  border-bottom: 2px solid var(--red-border-35);
+  border-radius: var(--r-cell) var(--r-cell) 0 0;
+  min-width: 0;
+}
+
+.headTeam {
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headOwner {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roundNum {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1px;
   font-family: var(--font-cond);
   font-weight: 800;
   font-size: 15px;
@@ -54,9 +94,15 @@
   border-radius: var(--r-cell);
 }
 
+.snakeDir {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-deepest);
+  line-height: 1;
+}
+
 .pick {
-  flex: none;
-  width: 126px;
+  min-width: 0;
   background: rgba(143, 163, 205, 0.07);
   border-top: 3px solid var(--pos-def);
   border-radius: var(--r-cell);

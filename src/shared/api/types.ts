@@ -71,6 +71,8 @@ export interface DraftPick {
   picked_by: string;
   round: number;
   pick_no: number;
+  /** Snake column (1..N): the drafting manager's slot in the draft order. */
+  draft_slot: number;
   metadata?: {
     first_name?: string;
     last_name?: string;
