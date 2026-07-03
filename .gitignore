@@ -6,3 +6,4 @@ dist
 .netlify
 test-results
 playwright-report
+.claude/worktrees
