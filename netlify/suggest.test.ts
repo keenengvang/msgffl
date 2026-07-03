@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import handler from './suggest';
+import handler from './functions/suggest';
 
 const post = (body: unknown, ip = '1.2.3.4') =>
   new Request('http://local/.netlify/functions/suggest', {
