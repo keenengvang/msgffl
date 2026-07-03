@@ -61,6 +61,8 @@ export interface Draft {
   draft_id: string;
   status: string;
   season: string;
+  /** Scheduled draft start, ms epoch — null until the commish sets it. */
+  start_time?: number | null;
   settings?: { rounds?: number };
   draft_order?: Record<string, number> | null;
 }

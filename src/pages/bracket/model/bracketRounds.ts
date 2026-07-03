@@ -1,5 +1,6 @@
-import type { BracketGame } from '@/shared/api/types';
+import type { BracketGame, SeasonWeeks } from '@/shared/api/types';
 import type { StandingRow } from '@/entities/team/model/types';
+import { fmt } from '@/shared/lib/format';
 
 export interface BracketSide {
   name: string;
@@ -24,8 +25,16 @@ function rosterOf(t: BracketGame['t1']): number | null {
   return typeof t === 'number' ? t : null;
 }
 
-/** Shape the winners bracket into titled rounds with TBD / WINNER G# resolution. */
-export function bracketRounds(winners: BracketGame[], names: Record<number, StandingRow>): BracketRound[] {
+/** Shape the winners bracket into titled rounds with TBD / WINNER G# resolution.
+    Decided games tag each side `W · pts` / `L · pts` from that round's week
+    (round N plays week pws + N - 1); without scores they fall back to W / seed
+    record, and undecided games preview the seed record. */
+export function bracketRounds(
+  winners: BracketGame[],
+  names: Record<number, StandingRow>,
+  weeks?: SeasonWeeks,
+  pws = 15,
+): BracketRound[] {
   const maxR = Math.max(...winners.map((g) => g.r));
   const rTitle = (r: number) => (r === maxR ? 'CHAMPIONSHIP' : r === maxR - 1 ? 'SEMIFINALS' : `ROUND ${r}`);
   const nameOf = (t: BracketGame['t1'], from?: { w?: number; l?: number }) => {
@@ -39,6 +48,20 @@ export function bracketRounds(winners: BracketGame[], names: Record<number, Stan
     const rid = rosterOf(t);
     return rid != null && names[rid] ? `${names[rid].w}–${names[rid].l}` : '';
   };
+  const ptsOf = (t: BracketGame['t1'], round: number): number | null => {
+    const rid = rosterOf(t);
+    if (rid == null) return null;
+    const p = (weeks?.[pws + round - 1] ?? []).find((e) => e.r === rid)?.p ?? 0;
+    return p > 0 ? p : null;
+  };
+  const tagOf = (t: BracketGame['t1'], win: boolean, decided: boolean, round: number) => {
+    if (decided) {
+      const p = ptsOf(t, round);
+      if (p != null) return `${win ? 'W' : 'L'} · ${fmt(p)}`;
+      if (win) return 'W';
+    }
+    return recOf(t);
+  };
 
   const grouped: Record<number, BracketGame[]> = {};
   winners.forEach((g) => (grouped[g.r] ??= []).push(g));
@@ -50,13 +73,14 @@ export function bracketRounds(winners: BracketGame[], names: Record<number, Stan
       games: grouped[Number(r)]!
         .sort((a, b) => (a.p || 99) - (b.p || 99) || a.m - b.m)
         .map((g) => {
+          const decided = g.w != null;
           const aWin = !!g.w && g.w === rosterOf(g.t1);
           const bWin = !!g.w && g.w === rosterOf(g.t2);
           const champName = g.w != null && names[g.w] ? names[g.w]!.team.toUpperCase() : '';
           return {
             key: `${r}-${g.m}`,
-            a: { name: nameOf(g.t1, g.t1_from), tag: aWin ? 'W' : recOf(g.t1), win: aWin },
-            b: { name: nameOf(g.t2, g.t2_from), tag: bWin ? 'W' : recOf(g.t2), win: bWin },
+            a: { name: nameOf(g.t1, g.t1_from), tag: tagOf(g.t1, aWin, decided, Number(r)), win: aWin },
+            b: { name: nameOf(g.t2, g.t2_from), tag: tagOf(g.t2, bWin, decided, Number(r)), win: bWin },
             isTitle: g.p === 1,
             label:
               g.p === 1

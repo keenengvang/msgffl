@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useSavage, useVibes } from '@/shared/lib/vibes';
 import { useNflState } from '@/entities/league/api/useNflState';
 import { useSeason } from '@/entities/league/api/useSeason';
+import { newestLeague } from '@/entities/league/lib/activeLeague';
 import type { NflState } from '@/shared/api/types';
 import { CURRENT_SLEEPER_LEAGUE_ID, SLEEPER_LEAGUE_URL } from '@/shared/config/constants';
 import styles from './Header.module.css';
@@ -14,10 +15,10 @@ const NAV: Array<[to: string, label: string]> = [
   ['/draft', 'DRAFT'],
   ['/players', 'PLAYERS'],
   ['/power', 'POWER'],
-  ['/bracket', 'BRACKET'],
-  ['/history', 'HISTORY'],
+  ['/bracket', 'PLAYOFFS'],
+  ['/history', 'RECORDS'],
   ['/rules', 'RULE BOOK'],
-  ['/suggest', 'SUGGEST'],
+  ['/suggest', 'SUGGESTION BOX'],
 ];
 
 function countdown(ns: NflState | null | undefined): string {
@@ -40,11 +41,7 @@ export function Header() {
   const navigate = useNavigate();
 
   // Sleeper mints a new league_id per season — always deep-link the newest one.
-  const newestLeagueId = (chain ?? []).reduce<{ season: string; league_id: string } | undefined>(
-    (best, l) => (!best || Number(l.season) > Number(best.season) ? l : best),
-    undefined,
-  )?.league_id;
-  const sleeperUrl = `${SLEEPER_LEAGUE_URL}/${newestLeagueId ?? CURRENT_SLEEPER_LEAGUE_ID}`;
+  const sleeperUrl = `${SLEEPER_LEAGUE_URL}/${newestLeague(chain)?.league_id ?? CURRENT_SLEEPER_LEAGUE_ID}`;
 
   return (
     <header className={styles.header}>
