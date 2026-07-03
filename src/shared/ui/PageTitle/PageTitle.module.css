@@ -1,0 +1,21 @@
+.title {
+  font-family: var(--font-display);
+  font-size: 34px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.suffix {
+  color: var(--red);
+}
+
+.kicker {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}

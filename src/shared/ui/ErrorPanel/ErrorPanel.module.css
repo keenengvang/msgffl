@@ -1,0 +1,42 @@
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--red-border-35);
+  border-radius: var(--r-card);
+  padding: 24px 22px;
+  text-align: center;
+  max-width: 520px;
+  margin: 60px auto;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.detail {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--loss);
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+
+.retry {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: var(--red);
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 9px 22px;
+}
+
+.retry:hover {
+  filter: brightness(1.08);
+}

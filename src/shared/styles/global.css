@@ -1,0 +1,40 @@
+html {
+  scrollbar-color: var(--scrollbar-thumb) var(--bg-page);
+}
+
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-bright);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ── shared text utilities (documented DRY exception to modules-only) ── */
+
+/* Panel label: Barlow Condensed 700, tracked uppercase. Tracking belongs
+   ONLY on uppercase condensed labels like this — never on body or mono. */
+.uLabel {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Mono data: all numerals render in mono for column alignment. 11px floor. */
+.uMono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

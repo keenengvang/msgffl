@@ -1,0 +1,27 @@
+.pill {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--text-nav);
+  background: transparent;
+  border: 1px solid var(--border-18);
+  border-radius: var(--r-pill);
+  padding: 4px 12px;
+  line-height: 1.3;
+}
+
+.pill:hover {
+  border-color: var(--red-border-50);
+}
+
+.active {
+  color: var(--text-primary);
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.active:hover {
+  border-color: var(--red);
+  filter: brightness(1.08);
+}

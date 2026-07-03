@@ -1,0 +1,23 @@
+.card {
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-cell);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--text-primary);
+  line-height: 1.05;
+}
+
+.sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}

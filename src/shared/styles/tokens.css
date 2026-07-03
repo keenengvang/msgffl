@@ -1,0 +1,66 @@
+/* Design tokens — single source of truth, mirrors design/DESIGN-SYSTEM.md.
+   Hard rule: no raw hex anywhere else; every .module.css consumes these. */
+:root {
+  /* backgrounds */
+  --bg-page: #070d20;
+  --bg-header-a: #0a1533;
+  --bg-header-b: #081128;
+  --bg-panel: #0d1b40;
+  --bg-deep: #0a1533;
+  --bg-trophy-a: #122457;
+  --bg-trophy-b: #0d1b40;
+
+  /* brand red */
+  --red: #e60c1a;
+  --red-deep: #b30916;
+  --red-tint-08: rgba(230, 12, 26, 0.08);
+  --red-tint-12: rgba(230, 12, 26, 0.12);
+  --red-tint-20: rgba(230, 12, 26, 0.2);
+  --red-border-35: rgba(230, 12, 26, 0.35);
+  --red-border-50: rgba(230, 12, 26, 0.5);
+  --red-border-60: rgba(230, 12, 26, 0.6);
+
+  /* text on dark */
+  --text-primary: #ffffff;
+  --text-bright: #f5f7fc;
+  --text-body: #d6e0f5;
+  --text-secondary: #b5c3e4;
+  --text-muted: #a7b8de;
+  --text-dim: #8194c4; /* 11px minimum at this color */
+  --text-deepest: #5e719f; /* decorative only */
+  --text-nav: #c3cee9;
+
+  /* semantic */
+  --win: #7ee2a8;
+  --loss: #ff9aa2;
+  --sacko: #dfa0aa;
+
+  /* hairlines & borders */
+  --hairline: rgba(255, 255, 255, 0.09);
+  --border-14: rgba(255, 255, 255, 0.14);
+  --border-18: rgba(255, 255, 255, 0.18);
+
+  /* position colors */
+  --pos-qb: #ff4d6d;
+  --pos-rb: #00ceb8;
+  --pos-wr: #58a7ff;
+  --pos-te: #ffae58;
+  --pos-k: #c58fff;
+  --pos-def: #9aa7c7;
+
+  /* typography */
+  --font-display: 'Archivo Black', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* layout */
+  --max-w: 1380px;
+  --gutter: 26px;
+  --r-card: 10px;
+  --r-cell: 6px;
+  --r-pill: 5px;
+
+  /* misc */
+  --scrollbar-thumb: #22315e;
+}

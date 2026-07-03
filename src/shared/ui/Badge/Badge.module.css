@@ -1,0 +1,35 @@
+.badge {
+  display: inline-block;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+  line-height: 1.5;
+}
+
+.red {
+  color: var(--red);
+  background: var(--red-tint-12);
+  border: 1px solid var(--red-border-35);
+}
+
+.win {
+  color: var(--win);
+  background: rgba(126, 226, 168, 0.1);
+  border: 1px solid rgba(126, 226, 168, 0.35);
+}
+
+.shame {
+  color: var(--sacko);
+  background: rgba(223, 160, 170, 0.1);
+  border: 1px solid rgba(223, 160, 170, 0.35);
+}
+
+.neutral {
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-14);
+}

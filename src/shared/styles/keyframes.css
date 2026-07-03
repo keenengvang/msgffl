@@ -1,0 +1,30 @@
+/* Entrance animation is TRANSFORM-ONLY by design: animating opacity from 0
+   on page containers blanks thumbnails, PDF export, and background-tab
+   first paint. Do not add an opacity keyframe here. */
+@keyframes msgUp {
+  from { transform: translateY(10px); }
+  to { transform: translateY(0); }
+}
+
+/* Ticker marquee — content is duplicated 2x for a seamless loop. */
+@keyframes msgMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Radar conic-gradient sweep. */
+@keyframes msgSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Live-status dots, cursor blocks. */
+@keyframes msgPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.22; }
+}
+
+@keyframes msgShimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}

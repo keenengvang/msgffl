@@ -1,0 +1,21 @@
+.empty {
+  border: 1px dashed var(--border-14);
+  border-radius: var(--r-card);
+  padding: 26px 22px;
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.copy {
+  font-size: 14px;
+  color: var(--text-dim);
+}
