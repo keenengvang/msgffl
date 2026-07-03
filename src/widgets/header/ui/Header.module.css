@@ -109,6 +109,79 @@
   border-color: var(--red);
 }
 
+.sleeperCta {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--red), var(--red-deep));
+  border: 1px solid var(--red-border-60);
+  border-radius: var(--r-pill);
+  padding: 6px 13px 5px;
+  box-shadow: 0 0 14px var(--red-tint-20), 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sleeperCta:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 0 22px var(--red-border-35), 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.sleeperArrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0;
+  transition: transform 0.15s ease;
+}
+
+.sleeperCta:hover .sleeperArrow {
+  transform: translate(1px, -1px);
+}
+
+/* periodic sheen sweep — transform-only, keyframes module-owned (CSS Modules
+   scopes animation names), gated by the vibes motion toggle and the OS setting */
+.sleeperCta::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -50%;
+  width: 45%;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: skewX(-18deg) translateX(0);
+  animation: msgSheen 4.5s ease-in-out infinite;
+}
+
+@keyframes msgSheen {
+  0% {
+    transform: skewX(-18deg) translateX(0);
+  }
+  16%,
+  100% {
+    transform: skewX(-18deg) translateX(440%);
+  }
+}
+
+[data-motion='off'] .sleeperCta::after {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sleeperCta::after {
+    animation: none;
+  }
+}
+
 .navRow {
   max-width: var(--max-w);
   margin: 0 auto;
