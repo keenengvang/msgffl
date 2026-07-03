@@ -1,4 +1,6 @@
 import { Link, getRouteApi } from '@tanstack/react-router';
+import { useSavage } from '@/shared/lib/vibes';
+import { useSeasonBundles } from '@/features/league-history/api/useSeasonBundles';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { ptsKey } from '@/entities/league/lib/ptsKey';
 import { useLeagueUsers, useRosters, useStandings } from '@/entities/team/api/useStandings';
@@ -18,6 +20,8 @@ const route = getRouteApi('/teams/$ownerId');
 
 export function TeamDetailPage() {
   const { ownerId } = route.useParams();
+  const savage = useSavage();
+  const history = useSeasonBundles();
   const { season, league } = useSeason();
   const { standings, isLoading, error } = useStandings(league);
   const rosters = useRosters(league);
@@ -89,15 +93,79 @@ export function TeamDetailPage() {
           <div className={styles.cardHead}>
             <span className={styles.cardTitle}>CAREER LEDGER</span>
           </div>
-          {/* Fed by the league-history feature (Phase 5). */}
-          <div className={styles.loadingLine}>digging through the archives…</div>
+          {history.bundles ? (
+            history.bundles.map((b) => {
+              const idx = b.standings.findIndex((r) => r.ownerId === ownerId);
+              if (idx === -1) return null;
+              const s = b.standings[idx]!;
+              const isCh = b.champ?.ownerId === ownerId;
+              const isSk = b.sacko?.ownerId === ownerId;
+              return (
+                <div key={b.season} className={styles.seasonRow}>
+                  <span className={styles.seasonYear}>{b.season}</span>
+                  <span className={styles.seasonTeam}>{s.team}</span>
+                  <span className={styles.seasonRec}>
+                    {s.w}–{s.l}
+                  </span>
+                  <span
+                    className={styles.seasonFinish}
+                    style={{
+                      color: isCh ? 'var(--red)' : isSk ? 'var(--loss)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {isCh ? '★ CHAMPION' : isSk ? 'SACKO' : `${ord(idx + 1)} PLACE`}
+                  </span>
+                </div>
+              );
+            })
+          ) : (
+            <div className={styles.loadingLine}>digging through the archives…</div>
+          )}
         </div>
 
         <div className={styles.card}>
           <div className={styles.cardHead}>
             <span className={styles.cardTitle}>RIVALRY LEDGER — ALL TIME</span>
           </div>
-          <div className={styles.loadingLine}>digging through the archives…</div>
+          {history.derived ? (
+            <div className={styles.scroll}>
+              {Object.entries(history.derived.h2h[ownerId] ?? {})
+                .map(([k, rec]) => ({ k, rec, meta: history.derived!.ownerMeta[k], games: rec.w + rec.l }))
+                .sort((a, b) => b.games - a.games)
+                .map(({ k, rec, meta }) => {
+                  const edge =
+                    rec.w > rec.l
+                      ? savage
+                        ? 'OWNS THEM'
+                        : 'EDGE'
+                      : rec.w < rec.l
+                        ? savage
+                          ? 'OWNED'
+                          : 'TRAILS'
+                        : 'DEAD EVEN';
+                  return (
+                    <div key={k} className={styles.h2hRow}>
+                      <TeamAvatar src={meta?.av ?? ''} size={24} />
+                      <span className={styles.h2hOpp}>{meta?.team ?? meta?.owner ?? '?'}</span>
+                      <span className={styles.h2hRec}>
+                        {rec.w}–{rec.l}
+                      </span>
+                      <span
+                        className={styles.h2hEdge}
+                        style={{
+                          color:
+                            rec.w > rec.l ? 'var(--win)' : rec.w < rec.l ? 'var(--loss)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {edge}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          ) : (
+            <div className={styles.loadingLine}>digging through the archives…</div>
+          )}
         </div>
 
         <div className={styles.card}>
