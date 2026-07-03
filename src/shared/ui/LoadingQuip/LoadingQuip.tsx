@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { QUIPS } from '@/shared/config/constants';
+import { QUIPS } from '@/shared/config/banter';
 import styles from './LoadingQuip.module.css';
 
 interface LoadingQuipProps {

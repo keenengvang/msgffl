@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
-import { useSavage } from '@/shared/lib/vibes';
+import { useVibes } from '@/shared/lib/vibes';
+import { GRADE_BANTER, pickBanter } from '@/shared/config/banter';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { ptsKey } from '@/entities/league/lib/ptsKey';
 import { useStandings } from '@/entities/team/api/useStandings';
@@ -10,11 +11,11 @@ import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
 import { POS_COLORS, type Position } from '@/shared/config/constants';
 import { fmt } from '@/shared/lib/format';
-import { GRADE_BLURBS, gradeColor, gradeFor, rankDraftClasses } from '../model/draftGrades';
+import { gradeColor, gradeFor, rankDraftClasses } from '../model/draftGrades';
 import styles from './DraftPage.module.css';
 
 export function DraftPage() {
-  const savage = useSavage();
+  const { snark } = useVibes();
   const { season, league } = useSeason();
   const { standings, usersById, isLoading, error } = useStandings(league);
   const draft = useDraft(league);
@@ -54,7 +55,6 @@ export function DraftPage() {
 
   const pk = ptsKey(league);
   const ranked = dReady && stats.data ? rankDraftClasses(picks, stats.data, pk) : [];
-  const blurbs = GRADE_BLURBS[savage ? 'savage' : 'polite'];
 
   return (
     <div className="pageEnter">
@@ -126,21 +126,26 @@ export function DraftPage() {
             </span>
           </div>
           <div className={styles.gradeGrid}>
-            {ranked.map((e, i) => {
-              const g = gradeFor(i);
-              return (
-                <div key={e.rid} className={styles.gradeCard}>
-                  <span className={styles.gradeTile} style={{ color: gradeColor(g) }}>
-                    {g}
-                  </span>
-                  <div className={styles.gradeStack}>
-                    <span className={styles.gradeTeam}>{names[e.rid]?.team ?? `Roster ${e.rid}`}</span>
-                    <span className={styles.gradeBlurb}>{blurbs[g]}</span>
-                    <span className={styles.gradeTotal}>{fmt(e.total)} PTS FROM DRAFTED PLAYERS</span>
+            {(() => {
+              const usedLines = new Set<string>();
+              return ranked.map((e, i) => {
+                const g = gradeFor(i);
+                return (
+                  <div key={e.rid} className={styles.gradeCard}>
+                    <span className={styles.gradeTile} style={{ color: gradeColor(g) }}>
+                      {g}
+                    </span>
+                    <div className={styles.gradeStack}>
+                      <span className={styles.gradeTeam}>{names[e.rid]?.team ?? `Roster ${e.rid}`}</span>
+                      <span className={styles.gradeBlurb}>
+                        {pickBanter(GRADE_BANTER[g], snark, `${season}-${e.rid}`, usedLines)}
+                      </span>
+                      <span className={styles.gradeTotal}>{fmt(e.total)} PTS FROM DRAFTED PLAYERS</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </>
       )}

@@ -13,12 +13,4 @@ export const POS_COLORS: Record<Position, string> = {
   DEF: '#9aa7c7',
 };
 
-export const QUIPS = [
-  'bribing the refs…',
-  'counting rings…',
-  'waking up the interns…',
-  'auditing the box scores…',
-  'consulting the algorithm…',
-];
-
 export type Snark = 'savage' | 'polite';

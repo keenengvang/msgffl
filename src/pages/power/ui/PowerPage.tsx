@@ -1,4 +1,5 @@
-import { useSavage } from '@/shared/lib/vibes';
+import { useVibes } from '@/shared/lib/vibes';
+import { POWER_BANTER, pickBanter } from '@/shared/config/banter';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { useStandings } from '@/entities/team/api/useStandings';
 import { useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
@@ -12,7 +13,7 @@ import { powerIndex } from '../model/powerIndex';
 import styles from './PowerPage.module.css';
 
 export function PowerPage() {
-  const savage = useSavage();
+  const { snark } = useVibes();
   const { season, league } = useSeason();
   const { standings, isLoading, error } = useStandings(league);
   const weeks = useSeasonWeeks(league);
@@ -32,21 +33,26 @@ export function PowerPage() {
   const rows = powerIndex(standings, weeks.data, pws);
   const maxIdx = Math.max(1, ...rows.map((e) => e.idx));
 
-  const blurbFor = (r: (typeof standings)[number], i: number): string => {
-    if (champRoster != null && r.rosterId === champRoster)
-      return savage ? 'Has the belt. Insufferable about it.' : 'The reigning champion.';
-    if (pfKing && r.rosterId === pfKing.rosterId)
-      return savage ? 'Scoreboard bully. Points hog. Menace.' : "The league's top scorer.";
-    if (paMax && r.rosterId === paMax.rosterId)
-      return savage ? 'Plays defense like a screen door.' : 'Took some tough beats on points against.';
-    if (sacko && r.rosterId === sacko.rosterId && complete)
-      return savage ? 'Punishment loading. Thoughts and prayers.' : 'A rebuilding year.';
-    if (r.w === r.l) return savage ? 'Aggressively mediocre. The .500 lifestyle.' : 'Right in the middle of the pack.';
-    if (r.pf > maxPf * 0.9 && r.w < r.l)
-      return savage ? 'Great team. Tragic scheduling. Cursed.' : 'Better than the record shows.';
-    return savage
-      ? ['One hot week away from being a problem.', 'The group chat remains unthreatened.', 'Vibes: fine. Ceiling: debatable.'][i % 3]!
-      : ['Trending in the right direction.', 'A steady season.', 'Plenty left to prove.'][i % 3]!;
+  // Pool picked by condition, line picked deterministically per team+season —
+  // stable across renders, fresh every year. Pools live in shared/config/banter.ts.
+  const usedLines = new Set<string>();
+  const blurbFor = (r: (typeof standings)[number]): string => {
+    const seed = `${season}-${r.rosterId}`;
+    const pool =
+      champRoster != null && r.rosterId === champRoster
+        ? POWER_BANTER.champ
+        : pfKing && r.rosterId === pfKing.rosterId
+          ? POWER_BANTER.pfKing
+          : paMax && r.rosterId === paMax.rosterId
+            ? POWER_BANTER.paMax
+            : sacko && r.rosterId === sacko.rosterId && complete
+              ? POWER_BANTER.sacko
+              : r.w === r.l
+                ? POWER_BANTER.fiveHundred
+                : r.pf > maxPf * 0.9 && r.w < r.l
+                  ? POWER_BANTER.cursed
+                  : POWER_BANTER.generic;
+    return pickBanter(pool, snark, seed, usedLines);
   };
 
   return (
@@ -69,7 +75,7 @@ export function PowerPage() {
                   {e.r.w}–{e.r.l} · {e.l5.length ? `L5: ${e.l5w}–${e.l5.length - e.l5w}` : 'L5: …'}
                 </span>
               </div>
-              <span className={styles.blurb}>{blurbFor(e.r, i)}</span>
+              <span className={styles.blurb}>{blurbFor(e.r)}</span>
             </div>
             <div className={styles.meter}>
               <span className={styles.idx}>IDX {e.idx.toFixed(1)}</span>
