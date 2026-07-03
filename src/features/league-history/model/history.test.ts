@@ -80,6 +80,50 @@ describe('recordBook', () => {
   });
 });
 
+describe('recordBook — extended records', () => {
+  // a beats b wk1–2 (regular season), then again wk15 (playoffs, pws 15).
+  const standings = [row(1, 'a', 8, 1500), row(2, 'b', 6, 1400, 1600)];
+  const weeks: SeasonBundle['weeks'] = Array.from({ length: 17 }, () => []);
+  weeks[0] = [e(1, 1, 120), e(1, 2, 100)];
+  weeks[1] = [e(1, 1, 110), e(1, 2, 90)];
+  weeks[14] = [e(1, 1, 150), e(1, 2, 60)];
+  const rc = recordBook([bundle('2024', standings, weeks)]);
+
+  it('finds highest combined game, best loss, worst win (playoffs included)', () => {
+    expect(rc.shootout).toMatchObject({ val: 220, who: 'Team a vs Team b' });
+    expect(rc.shootout!.sub).toContain('WK 1 · 2024');
+    expect(rc.bestLoss).toMatchObject({ val: 100, who: 'Team b (b)' });
+    expect(rc.worstWin).toMatchObject({ val: 110, who: 'Team a (a)' });
+  });
+
+  it('streaks count regular season only — the wk15 playoff win does not extend', () => {
+    expect(rc.streakW).toMatchObject({ val: 2, who: 'Team a (a)' });
+    expect(rc.streakW!.sub).toContain('WK 1–2');
+    expect(rc.streakL).toMatchObject({ val: 2, who: 'Team b (b)' });
+  });
+
+  it('best record and lowest PF come from complete seasons only', () => {
+    expect(rc.bestRec).toMatchObject({ val: 8, who: 'Team a (a)' });
+    expect(rc.bestRec!.sub).toContain('8–6');
+    expect(rc.loPF).toMatchObject({ val: 1400, who: 'Team b (b)' });
+    // an in-progress season with a tiny partial PF must not steal the record
+    const partial = { ...bundle('2025', [row(1, 'c', 2, 200)], []), status: 'in_season' as const };
+    const rc2 = recordBook([bundle('2024', standings, weeks), partial]);
+    expect(rc2.loPF).toMatchObject({ val: 1400, who: 'Team b (b)' });
+    expect(rc2.bestRec).toMatchObject({ val: 8, who: 'Team a (a)' });
+  });
+
+  it('a tie snaps both streaks', () => {
+    const w2: SeasonBundle['weeks'] = [
+      [e(1, 1, 120), e(1, 2, 100)], // a W1
+      [e(1, 1, 100), e(1, 2, 100)], // tie — both reset
+      [e(1, 1, 130), e(1, 2, 90)], // a W1 again
+    ];
+    const r2 = recordBook([bundle('2024', standings, w2)]);
+    expect(r2.streakW!.val).toBe(1);
+  });
+});
+
 describe('h2h', () => {
   it('counts regular-season wins only; playoff weeks and ties are excluded', () => {
     const standings = [row(1, 'a', 8, 1500), row(2, 'b', 6, 1400)];

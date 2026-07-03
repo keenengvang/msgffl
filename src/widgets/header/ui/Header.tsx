@@ -14,10 +14,10 @@ const NAV: Array<[to: string, label: string]> = [
   ['/draft', 'DRAFT'],
   ['/players', 'PLAYERS'],
   ['/power', 'POWER'],
-  ['/bracket', 'BRACKET'],
-  ['/history', 'HISTORY'],
+  ['/bracket', 'PLAYOFFS'],
+  ['/history', 'RECORDS'],
   ['/rules', 'RULE BOOK'],
-  ['/suggest', 'SUGGEST'],
+  ['/suggest', 'SUGGESTION BOX'],
 ];
 
 function countdown(ns: NflState | null | undefined): string {

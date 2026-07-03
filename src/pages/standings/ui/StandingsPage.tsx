@@ -35,7 +35,7 @@ export function StandingsPage() {
         <div className={styles.table}>
           <div className={styles.head}>
             <span style={{ width: 26 }}>RK</span>
-            <span style={{ flex: 1.6 }}>TEAM</span>
+            <span style={{ flex: 1.6, minWidth: 220 }}>TEAM</span>
             <span style={{ width: 64 }}>W–L</span>
             <span style={{ width: 150 }}>SEASON</span>
             <span style={{ width: 76, textAlign: 'right' }}>PF</span>

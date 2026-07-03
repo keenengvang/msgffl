@@ -26,7 +26,14 @@ export function HistoryPage() {
     push(savage ? 'CRIME SCENE' : 'LOWEST WEEK', rc.loWk, (v) => `${fmt(v)} PTS`);
     push(savage ? 'THE MASSACRE' : 'BIGGEST BLOWOUT', rc.blow, (v) => `+${fmt(v)}`);
     push(savage ? 'HEARTBREAKER' : 'CLOSEST GAME', rc.close, (v) => `+${fmt(v)}`);
+    push(savage ? 'ARMS RACE' : 'HIGHEST-SCORING GAME', rc.shootout, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'ROBBED IN BROAD DAYLIGHT' : 'MOST POINTS IN A LOSS', rc.bestLoss, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'GRAND THEFT VICTORY' : 'FEWEST POINTS IN A WIN', rc.worstWin, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'THE HEATER' : 'LONGEST WIN STREAK', rc.streakW, (v) => `${v} STRAIGHT`);
+    push(savage ? 'THE DEATH SPIRAL' : 'LONGEST LOSING STREAK', rc.streakL, (v) => `${v} STRAIGHT`);
+    push(savage ? 'REGULAR SEASON TYRANT' : 'BEST SEASON RECORD', rc.bestRec, (v) => `${v} WINS`);
     push(savage ? 'FLAMETHROWER SEASON' : 'MOST PF, SEASON', rc.hiPF, (v) => `${fmt(v)} PF`);
+    push(savage ? 'OFFENSE OPTIONAL' : 'FEWEST PF, SEASON', rc.loPF, (v) => `${fmt(v)} PF`);
     push(savage ? 'HUMAN TURNSTILE' : 'MOST PA, SEASON', rc.hiPA, (v) => `${fmt(v)} PA`);
   }
 

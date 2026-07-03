@@ -20,7 +20,7 @@
 }
 
 .table {
-  min-width: 760px;
+  min-width: 920px;
 }
 
 .head {
@@ -75,7 +75,7 @@
 
 .teamCell {
   flex: 1.6;
-  min-width: 0;
+  min-width: 220px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -103,6 +103,9 @@
   font-size: 12px;
   letter-spacing: 0.14em;
   color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wl {
