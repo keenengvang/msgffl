@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { PlayersPage } from '@/pages/players/ui/PlayersPage';
 
 const POS_FILTERS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K', 'DEF'] as const;
 export type PosFilter = (typeof POS_FILTERS)[number];
@@ -14,9 +14,5 @@ export const Route = createFileRoute('/players')({
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     pos: POS_FILTERS.includes(search.pos as PosFilter) && search.pos !== 'ALL' ? (search.pos as PosFilter) : undefined,
   }),
-  component: () => (
-    <div className="pageEnter">
-      <EmptyState title="Under construction">The players page arrives in a later phase.</EmptyState>
-    </div>
-  ),
+  component: PlayersPage,
 });

@@ -1,10 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { BracketPage } from '@/pages/bracket/ui/BracketPage';
 
-export const Route = createFileRoute('/bracket')({
-  component: () => (
-    <div className="pageEnter">
-      <EmptyState title="Under construction">The bracket page arrives in a later phase.</EmptyState>
-    </div>
-  ),
-});
+export const Route = createFileRoute('/bracket')({ component: BracketPage });

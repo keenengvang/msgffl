@@ -68,6 +68,7 @@ export interface Draft {
 export interface DraftPick {
   player_id: string;
   roster_id: number;
+  picked_by: string;
   round: number;
   pick_no: number;
   metadata?: {

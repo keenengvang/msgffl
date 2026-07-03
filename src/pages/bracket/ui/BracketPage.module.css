@@ -1,0 +1,126 @@
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.note {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.rounds {
+  display: flex;
+  gap: 26px;
+  margin-top: 24px;
+  overflow-x: auto;
+  align-items: stretch;
+  padding-bottom: 8px;
+}
+
+.round {
+  flex: none;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roundTitle {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+}
+
+.games {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: space-around;
+}
+
+.game {
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
+
+.gameTitle {
+  border-color: rgba(230, 12, 26, 0.55);
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 13px;
+}
+
+.sideTop {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sideName {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-cond);
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sideTag {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  padding: 5px 13px;
+  background: rgba(230, 12, 26, 0.14);
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--loss);
+}
+
+.cellar {
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: var(--red-tint-08);
+  border: 1px solid var(--red-border-35);
+  border-radius: var(--r-card);
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.cellarLabel {
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  color: var(--loss);
+}
+
+.cellarLine {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.loading {
+  margin-top: 24px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}

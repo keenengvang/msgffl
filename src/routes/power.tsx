@@ -1,10 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { PowerPage } from '@/pages/power/ui/PowerPage';
 
-export const Route = createFileRoute('/power')({
-  component: () => (
-    <div className="pageEnter">
-      <EmptyState title="Under construction">The power page arrives in a later phase.</EmptyState>
-    </div>
-  ),
-});
+export const Route = createFileRoute('/power')({ component: PowerPage });

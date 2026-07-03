@@ -1,0 +1,173 @@
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.note {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.empty {
+  margin-top: 26px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.boardWrap {
+  margin-top: 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  overflow-x: auto;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  min-width: max-content;
+  padding: 14px;
+  gap: 6px;
+}
+
+.roundRow {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.roundNum {
+  flex: none;
+  width: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text-dim);
+  background: rgba(143, 163, 205, 0.08);
+  border-radius: var(--r-cell);
+}
+
+.pick {
+  flex: none;
+  width: 126px;
+  background: rgba(143, 163, 205, 0.07);
+  border-top: 3px solid var(--pos-def);
+  border-radius: var(--r-cell);
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pickNo {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.pickName {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pickPos {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.gradesHead {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 30px;
+}
+
+.gradesTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.gradesNote {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.gradeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.gradeCard {
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gradeTile {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 21px;
+  background: rgba(143, 163, 205, 0.1);
+  border-radius: 8px;
+}
+
+.gradeStack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gradeTeam {
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gradeBlurb {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.gradeTotal {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
