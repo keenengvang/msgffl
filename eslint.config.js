@@ -31,9 +31,20 @@ const fsdZones = Object.entries(forbidden).map(([layer, uppers]) => ({
 export default tseslint.config(
   { ignores: ['dist', 'legacy', 'src/routeTree.gen.ts'] },
   {
+    files: ['e2e/**/*.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: { ecmaVersion: 2022, globals: globals.node },
+  },
+  {
     files: ['src/**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended, reactHooks.configs.flat['recommended-latest']],
     languageOptions: { ecmaVersion: 2022, globals: globals.browser },
+  },
+  // Netlify Functions: server-side, node globals, no React
+  {
+    files: ['netlify/**/*.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: { ecmaVersion: 2022, globals: globals.node },
   },
   ...fsdZones,
 );

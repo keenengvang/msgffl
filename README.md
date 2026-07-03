@@ -26,9 +26,10 @@ Other scripts: `build`, `preview`, `typecheck`, `lint`, `test`.
 `netlify.toml` is checked in: build `npm run build`, publish `dist/`, SPA redirect
 included. Connect the repo in the Netlify UI (or `netlify deploy --prod`) and it ships.
 
-Planned follow-up: the Suggestion Box submits tickets to a Notion database via a Netlify
-Function (`NOTION_TOKEN` lives in Netlify env vars, never in the repo). Until then the
-docket is per-device with a COPY ALL export.
+The Suggestion Box files GitHub issues on this repo via a Netlify Function — set
+`GITHUB_TOKEN` (fine-grained PAT, this repo only, Issues read/write) in the Netlify env
+vars. Notion's GitHub connector can mirror the issues into a synced database. Without
+the token, submissions still save per-device with the COPY ALL export.
 
 ## What's in here
 
@@ -58,7 +59,6 @@ All read-only, no auth.
 
 ## Known limitations
 
-- **Suggestion Box saves per-device** until the Notion endpoint ships.
 - **Constitution articles VI (dues) & VII (punishment history)** are placeholders —
   edit with the real numbers and lore.
 - Player stats are Sleeper's regular-season totals for the selected year.

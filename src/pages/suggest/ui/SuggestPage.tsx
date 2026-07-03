@@ -1,23 +1,43 @@
 import { useState } from 'react';
+import { useSavage } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { useStandings } from '@/entities/team/api/useStandings';
 import { useSuggestions } from '@/entities/suggestion/model/useSuggestions';
+import { useSubmitSuggestion } from '@/entities/suggestion/api/submitSuggestion';
 import { PageTitle } from '@/shared/ui/PageTitle/PageTitle';
 import { ago } from '@/shared/lib/format';
 import styles from './SuggestPage.module.css';
 
 export function SuggestPage() {
+  const savage = useSavage();
   const { league } = useSeason();
   const { standings } = useStandings(league);
   const { suggestions, add, remove, copyAll, copied } = useSuggestions();
+  const remote = useSubmitSuggestion();
   const [who, setWho] = useState('');
   const [text, setText] = useState('');
 
   const names = (standings ?? []).map((r) => r.owner).sort();
 
   const submit = () => {
-    if (add(who, text)) setText('');
+    const t = text.trim();
+    // local docket first (offline fallback), then transmit to league HQ
+    if (!add(who, t)) return;
+    remote.mutate({ who: who || 'ANONYMOUS COWARD', text: t });
+    setText('');
   };
+
+  const status = remote.isPending
+    ? 'transmitting…'
+    : remote.isSuccess
+      ? savage
+        ? `FILED AS ISSUE #${remote.data.number}. NO TAKEBACKS.`
+        : `Submitted to the league — issue #${remote.data.number}.`
+      : remote.isError
+        ? savage
+          ? 'HQ UNREACHABLE. LOGGED LOCALLY — HIT COPY ALL AND HARASS THE COMMISH DIRECTLY.'
+          : "Couldn't reach HQ — saved on this device instead."
+        : null;
 
   return (
     <div className="pageEnter">
@@ -47,8 +67,13 @@ export function SuggestPage() {
             <button type="button" className={styles.submit} onClick={submit}>
               SUBMIT TO LEAGUE ⏎
             </button>
-            <span className={styles.hint}>SAVES ON THIS DEVICE — USE COPY ALL TO SHARE WITH THE COMMISH</span>
+            <span className={styles.hint}>FILES A LEAGUE HQ TICKET + SAVES ON THIS DEVICE</span>
           </div>
+          {status && (
+            <span className={styles.status} style={remote.isError ? { color: 'var(--loss)' } : undefined}>
+              {status}
+            </span>
+          )}
         </div>
 
         <div className={styles.docket}>

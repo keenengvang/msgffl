@@ -144,6 +144,15 @@ clear keys this app didn't write.**
 ## Deploy
 
 Netlify: `netlify.toml` builds `npm run build`, publishes `dist/`, SPA redirect
-`/* → /index.html 200`. Planned follow-up: suggestions → Notion Tickets database via a
-Netlify Function (`netlify/functions/suggest.ts`) holding `NOTION_TOKEN` — env vars in
-the Netlify UI, never in the repo.
+`/* → /index.html 200`.
+
+**Suggestion box backend**: `netlify/functions/suggest.ts` — POST `{who, text}` creates
+a `suggestion`-labeled GitHub issue on this repo (Notion mirrors them via its GitHub
+connector; that synced database is read-only in Notion). Requires `GITHUB_TOKEN` in the
+Netlify UI env vars: a fine-grained PAT scoped to ONLY this repo with Issues read/write
+(these expire — max 1 year — renew when it lapses). Optional `GITHUB_REPO` overrides the
+default `keenengvang/msgffl`. Validation: text ≤ 1000 chars, best-effort 5/hour/IP rate
+limit. The client (`entities/suggestion/api/submitSuggestion.ts`) always writes the
+localStorage docket first, so failures degrade to the per-device + COPY ALL flow. The
+function is a plain `Request → Response` handler, unit-tested in vitest with a mocked
+fetch — no Netlify CLI needed for tests.

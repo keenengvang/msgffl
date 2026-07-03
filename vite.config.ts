@@ -14,6 +14,6 @@ export default defineConfig({
   },
   test: {
     // unit tests only — e2e/ belongs to Playwright
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'netlify/**/*.test.ts'],
   },
 });
