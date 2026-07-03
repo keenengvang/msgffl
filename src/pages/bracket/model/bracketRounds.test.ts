@@ -43,6 +43,36 @@ describe('bracketRounds', () => {
     expect(rounds[1]!.games[1]!.label).toBe('BRONZE — NOBODY BRAGS ABOUT THIS');
   });
 
+  it('tags decided games W/L with that week points when season weeks are provided', () => {
+    // pws 15: round 1 = week 15, round 2 = week 16
+    const weeks = {
+      15: [
+        { m: 1, r: 1, p: 132.46 },
+        { m: 1, r: 2, p: 101.1 },
+        { m: 2, r: 3, p: 120, },
+        { m: 2, r: 4, p: 95 },
+      ],
+      16: [
+        { m: 1, r: 1, p: 140.02 },
+        { m: 1, r: 3, p: 90.55 },
+      ],
+    };
+    const rounds = bracketRounds(winners, names, weeks, 15);
+    expect(rounds[0]!.games[0]!.a.tag).toBe('W · 132.46');
+    expect(rounds[0]!.games[0]!.b.tag).toBe('L · 101.10');
+    const title = rounds[1]!.games[0]!;
+    expect(title.a.tag).toBe('W · 140.02');
+    expect(title.b.tag).toBe('L · 90.55');
+    // undecided bronze game still previews seed records
+    expect(rounds[1]!.games[1]!.a.tag).toBe('8–6');
+  });
+
+  it('falls back to W / record when the week has no points for a decided game', () => {
+    const rounds = bracketRounds(winners, names, { 15: [], 16: [] }, 15);
+    expect(rounds[0]!.games[0]!.a.tag).toBe('W');
+    expect(rounds[0]!.games[0]!.b.tag).toBe('8–6');
+  });
+
   it('resolves undecided slots to TBD / WINNER-LOSER G#', () => {
     const pending: BracketGame[] = [{ r: 1, m: 9, t1: null, t2: null, t1_from: { w: 5 }, t2_from: {} }];
     const rounds = bracketRounds(pending, names);

@@ -1,6 +1,7 @@
 import { useSavage } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { useStandings } from '@/entities/team/api/useStandings';
+import { useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
 import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
 import { PageTitle } from '@/shared/ui/PageTitle/PageTitle';
@@ -13,6 +14,7 @@ export function BracketPage() {
   const { season, league } = useSeason();
   const { standings, error } = useStandings(league);
   const brackets = useBrackets(league);
+  const weeks = useSeasonWeeks(league);
 
   if (error) return <ErrorPanel error={error} />;
 
@@ -26,7 +28,9 @@ export function BracketPage() {
   const champ = champRoster != null ? names[champRoster] : undefined;
   const sacko = standings?.[standings.length - 1];
 
-  const rounds = ready ? bracketRounds(winners, names) : [];
+  const rounds = ready
+    ? bracketRounds(winners, names, weeks.data, league?.settings?.playoff_week_start ?? 15)
+    : [];
 
   return (
     <div className="pageEnter">

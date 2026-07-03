@@ -16,25 +16,25 @@ export function HistoryPage() {
   const seasons = (bundles ?? []).map((b) => b.season);
   const span = seasons.length ? `${seasons[seasons.length - 1]}–${seasons[0]}` : '…';
 
-  const records: Array<{ label: string; value: string; holder: string; sub: string }> = [];
+  const records: Array<{ label: string; hint: string; value: string; holder: string; sub: string }> = [];
   if (derived) {
-    const push = (label: string, e: RecordEntry | null, valFmt: (v: number) => string) => {
-      if (e) records.push({ label, value: valFmt(e.val), holder: e.who, sub: e.sub });
+    const push = (label: string, hint: string, e: RecordEntry | null, valFmt: (v: number) => string) => {
+      if (e) records.push({ label, hint, value: valFmt(e.val), holder: e.who, sub: e.sub });
     };
     const rc = derived.recs;
-    push(savage ? 'NUCLEAR WEEK' : 'HIGHEST WEEK', rc.hiWk, (v) => `${fmt(v)} PTS`);
-    push(savage ? 'CRIME SCENE' : 'LOWEST WEEK', rc.loWk, (v) => `${fmt(v)} PTS`);
-    push(savage ? 'THE MASSACRE' : 'BIGGEST BLOWOUT', rc.blow, (v) => `+${fmt(v)}`);
-    push(savage ? 'HEARTBREAKER' : 'CLOSEST GAME', rc.close, (v) => `+${fmt(v)}`);
-    push(savage ? 'ARMS RACE' : 'HIGHEST-SCORING GAME', rc.shootout, (v) => `${fmt(v)} PTS`);
-    push(savage ? 'ROBBED IN BROAD DAYLIGHT' : 'MOST POINTS IN A LOSS', rc.bestLoss, (v) => `${fmt(v)} PTS`);
-    push(savage ? 'GRAND THEFT VICTORY' : 'FEWEST POINTS IN A WIN', rc.worstWin, (v) => `${fmt(v)} PTS`);
-    push(savage ? 'THE HEATER' : 'LONGEST WIN STREAK', rc.streakW, (v) => `${v} STRAIGHT`);
-    push(savage ? 'THE DEATH SPIRAL' : 'LONGEST LOSING STREAK', rc.streakL, (v) => `${v} STRAIGHT`);
-    push(savage ? 'REGULAR SEASON TYRANT' : 'BEST SEASON RECORD', rc.bestRec, (v) => `${v} WINS`);
-    push(savage ? 'FLAMETHROWER SEASON' : 'MOST PF, SEASON', rc.hiPF, (v) => `${fmt(v)} PF`);
-    push(savage ? 'OFFENSE OPTIONAL' : 'FEWEST PF, SEASON', rc.loPF, (v) => `${fmt(v)} PF`);
-    push(savage ? 'HUMAN TURNSTILE' : 'MOST PA, SEASON', rc.hiPA, (v) => `${fmt(v)} PA`);
+    push(savage ? 'NUCLEAR WEEK' : 'HIGHEST WEEK', 'most points in a single week', rc.hiWk, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'CRIME SCENE' : 'LOWEST WEEK', 'fewest points in a single week', rc.loWk, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'THE MASSACRE' : 'BIGGEST BLOWOUT', 'largest margin of victory', rc.blow, (v) => `+${fmt(v)}`);
+    push(savage ? 'HEARTBREAKER' : 'CLOSEST GAME', 'smallest margin of victory', rc.close, (v) => `+${fmt(v)}`);
+    push(savage ? 'ARMS RACE' : 'HIGHEST-SCORING GAME', 'most combined points in one game', rc.shootout, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'ROBBED IN BROAD DAYLIGHT' : 'MOST POINTS IN A LOSS', 'best score that still lost', rc.bestLoss, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'GRAND THEFT VICTORY' : 'FEWEST POINTS IN A WIN', 'worst score that still won', rc.worstWin, (v) => `${fmt(v)} PTS`);
+    push(savage ? 'THE HEATER' : 'LONGEST WIN STREAK', 'most consecutive wins, one season', rc.streakW, (v) => `${v} STRAIGHT`);
+    push(savage ? 'THE DEATH SPIRAL' : 'LONGEST LOSING STREAK', 'most consecutive losses, one season', rc.streakL, (v) => `${v} STRAIGHT`);
+    push(savage ? 'REGULAR SEASON TYRANT' : 'BEST SEASON RECORD', 'best regular-season record', rc.bestRec, (v) => `${v} WINS`);
+    push(savage ? 'FLAMETHROWER SEASON' : 'MOST PF, SEASON', 'most points scored in a season', rc.hiPF, (v) => `${fmt(v)} PF`);
+    push(savage ? 'OFFENSE OPTIONAL' : 'FEWEST PF, SEASON', 'fewest points scored in a season', rc.loPF, (v) => `${fmt(v)} PF`);
+    push(savage ? 'HUMAN TURNSTILE' : 'MOST PA, SEASON', 'most points allowed in a season', rc.hiPA, (v) => `${fmt(v)} PA`);
   }
 
   const allTime = derived
@@ -98,6 +98,7 @@ export function HistoryPage() {
             {records.map((rc) => (
               <div key={rc.label} className={styles.record}>
                 <span className={styles.recordLabel}>{rc.label}</span>
+                <span className={styles.recordHint}>{rc.hint}</span>
                 <span className={styles.recordValue}>{rc.value}</span>
                 <span className={styles.recordHolder}>{rc.holder}</span>
                 <span className={styles.recordSub}>{rc.sub}</span>
