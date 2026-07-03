@@ -61,7 +61,7 @@ export function SuggestPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={4}
-            placeholder="e.g. 'two flex spots', 'punishment should be public', 'ban whoever keeps vetoing trades'…"
+            placeholder="e.g. 'two flex spots', 'punishment should be public', 'ban whoever keeps vetoing trades'… feature requests and cool ideas for the site land here too."
             className={styles.textarea}
           />
           <div className={styles.actions}>
