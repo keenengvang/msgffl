@@ -1,10 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { RulesPage } from '@/pages/rules/ui/RulesPage';
 
-export const Route = createFileRoute('/rules')({
-  component: () => (
-    <div className="pageEnter">
-      <EmptyState title="Under construction">The rules page arrives in a later phase.</EmptyState>
-    </div>
-  ),
-});
+export const Route = createFileRoute('/rules')({ component: RulesPage });
