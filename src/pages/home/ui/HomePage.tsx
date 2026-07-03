@@ -1,13 +1,16 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useSavage, useVibes } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
+import { newestLeague } from '@/entities/league/lib/activeLeague';
 import { useStandings } from '@/entities/team/api/useStandings';
 import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
+import { useDraft } from '@/entities/draft/api/useDraft';
+import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
-import { fmt } from '@/shared/lib/format';
+import { fmt, fmtEventDate } from '@/shared/lib/format';
 import { heroCopy } from '../model/heroCopy';
 import styles from './HomePage.module.css';
 
@@ -17,6 +20,9 @@ export function HomePage() {
   const { season, league, chain } = useSeason();
   const { standings, isLoading, error } = useStandings(league);
   const brackets = useBrackets(league);
+  // The upcoming draft lives on the chain's newest league, not the viewed season.
+  const newest = newestLeague(chain);
+  const newestDraft = useDraft(newest);
   const navigate = useNavigate();
 
   if (error) return <ErrorPanel error={error} />;
@@ -26,7 +32,9 @@ export function HomePage() {
   const complete = league?.status === 'complete';
   const preDraft = league?.status === 'pre_draft' || league?.status === 'drafting';
   const pws = league?.settings?.playoff_week_start ?? 15;
-  const nextDraftYear = preDraft ? Number(season) : Number(season) + 1;
+  const nextDraft = newestDraft.data ? nextDraftInfo(newest?.season, newestDraft.data.draft) : null;
+  const nextDraftYear = nextDraft ? Number(nextDraft.season) : preDraft ? Number(season) : Number(season) + 1;
+  const draftDate = nextDraft?.startTime ? fmtEventDate(nextDraft.startTime) : null;
 
   const { champRoster, ruRoster } = titleGame(brackets.data?.winners);
   const champ = stand.find((r) => r.rosterId === champRoster);
@@ -51,7 +59,11 @@ export function HomePage() {
   if (sacko && complete) intel.push({ p1: 'punishment_locked: ', hi: sacko.team, hiCol: 'var(--loss)', p2: savage ? ' — lawyer up' : '' });
   if (paMax && paMax.pa > 0) intel.push({ p1: `${paMax.team} allowed `, hi: fmt(paMax.pa), hiCol: 'var(--text-primary)', p2: savage ? ' pts. brutal.' : ' pts.' });
   if (preDraft) intel.push({ p1: 'rosters: ', hi: 'empty', hiCol: 'var(--text-muted)', p2: ' · trash_talk: already flowing' });
-  intel.push({ p1: `draft_${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' });
+  intel.push(
+    draftDate
+      ? { p1: `draft_${nextDraftYear}: `, hi: draftDate.toLowerCase(), hiCol: 'var(--text-primary)', p2: ' █' }
+      : { p1: `draft_${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' },
+  );
 
   return (
     <div className="pageEnter">
@@ -107,7 +119,9 @@ export function HomePage() {
           </div>
           <div className={styles.snapFoot}>
             <span className={styles.snapLabel}>Next event</span>
-            <span className={styles.nextEvent}>DRAFT {nextDraftYear} — TBD</span>
+            <span className={styles.nextEvent}>
+              DRAFT {nextDraftYear} — {draftDate ?? 'TBD'}
+            </span>
           </div>
         </div>
       </div>

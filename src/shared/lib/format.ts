@@ -18,6 +18,14 @@ export function ord(n: number): string {
   return n + (s[(v - 20) % 10] ?? s[v] ?? 'th');
 }
 
+/** AUG 24 · 4:00 PM — viewer's local timezone. */
+export function fmtEventDate(ms: number): string {
+  const d = new Date(ms);
+  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toUpperCase();
+  return `${date} · ${time}`;
+}
+
 /** today / yesterday / Nd ago */
 export function ago(ts: number): string {
   const d = Math.floor((Date.now() - ts) / 864e5);
