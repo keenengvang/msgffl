@@ -10,7 +10,8 @@
     "typecheck": "tsc -b",
     "lint": "eslint src",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/query-sync-storage-persister": "^5.101.2",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@tanstack/router-plugin": "^1.168.19",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",

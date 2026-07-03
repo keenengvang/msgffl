@@ -15,7 +15,13 @@ npm run preview    # serve the production build
 npm run typecheck  # tsc -b
 npm run lint       # eslint src (includes FSD import-boundary rules)
 npm run test       # vitest run (unit tests for pure model/lib functions)
+npm run test:e2e   # playwright smoke: builds, previews, hits every route (live API, system Chrome)
 ```
+
+Testing philosophy: the league math (record book, H2H, power index, grades, standings)
+lives in pure functions and is unit-tested — a silent wrong number is this site's worst
+bug. E2E is ONE smoke spec (`e2e/smoke.spec.ts`) asserting every route renders real
+content with no error panel; don't grow it into per-page assertions.
 
 ## Architecture — Feature-Sliced Design
 

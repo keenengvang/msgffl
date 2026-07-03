@@ -4,3 +4,5 @@ dist
 *.local
 *.tsbuildinfo
 .netlify
+test-results
+playwright-report
