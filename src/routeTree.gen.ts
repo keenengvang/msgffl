@@ -9,38 +9,248 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuggestRouteImport } from './routes/suggest'
+import { Route as StandingsRouteImport } from './routes/standings'
+import { Route as RulesRouteImport } from './routes/rules'
+import { Route as PowerRouteImport } from './routes/power'
+import { Route as PlayersRouteImport } from './routes/players'
+import { Route as MatchupsRouteImport } from './routes/matchups'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as DraftRouteImport } from './routes/draft'
+import { Route as BracketRouteImport } from './routes/bracket'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TeamsIndexRouteImport } from './routes/teams.index'
+import { Route as TeamsOwnerIdRouteImport } from './routes/teams.$ownerId'
 
+const SuggestRoute = SuggestRouteImport.update({
+  id: '/suggest',
+  path: '/suggest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StandingsRoute = StandingsRouteImport.update({
+  id: '/standings',
+  path: '/standings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RulesRoute = RulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PowerRoute = PowerRouteImport.update({
+  id: '/power',
+  path: '/power',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersRoute = PlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchupsRoute = MatchupsRouteImport.update({
+  id: '/matchups',
+  path: '/matchups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DraftRoute = DraftRouteImport.update({
+  id: '/draft',
+  path: '/draft',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BracketRoute = BracketRouteImport.update({
+  id: '/bracket',
+  path: '/bracket',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamsIndexRoute = TeamsIndexRouteImport.update({
+  id: '/teams/',
+  path: '/teams/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamsOwnerIdRoute = TeamsOwnerIdRouteImport.update({
+  id: '/teams/$ownerId',
+  path: '/teams/$ownerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bracket': typeof BracketRoute
+  '/draft': typeof DraftRoute
+  '/history': typeof HistoryRoute
+  '/matchups': typeof MatchupsRoute
+  '/players': typeof PlayersRoute
+  '/power': typeof PowerRoute
+  '/rules': typeof RulesRoute
+  '/standings': typeof StandingsRoute
+  '/suggest': typeof SuggestRoute
+  '/teams/$ownerId': typeof TeamsOwnerIdRoute
+  '/teams/': typeof TeamsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bracket': typeof BracketRoute
+  '/draft': typeof DraftRoute
+  '/history': typeof HistoryRoute
+  '/matchups': typeof MatchupsRoute
+  '/players': typeof PlayersRoute
+  '/power': typeof PowerRoute
+  '/rules': typeof RulesRoute
+  '/standings': typeof StandingsRoute
+  '/suggest': typeof SuggestRoute
+  '/teams/$ownerId': typeof TeamsOwnerIdRoute
+  '/teams': typeof TeamsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/bracket': typeof BracketRoute
+  '/draft': typeof DraftRoute
+  '/history': typeof HistoryRoute
+  '/matchups': typeof MatchupsRoute
+  '/players': typeof PlayersRoute
+  '/power': typeof PowerRoute
+  '/rules': typeof RulesRoute
+  '/standings': typeof StandingsRoute
+  '/suggest': typeof SuggestRoute
+  '/teams/$ownerId': typeof TeamsOwnerIdRoute
+  '/teams/': typeof TeamsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/bracket'
+    | '/draft'
+    | '/history'
+    | '/matchups'
+    | '/players'
+    | '/power'
+    | '/rules'
+    | '/standings'
+    | '/suggest'
+    | '/teams/$ownerId'
+    | '/teams/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/bracket'
+    | '/draft'
+    | '/history'
+    | '/matchups'
+    | '/players'
+    | '/power'
+    | '/rules'
+    | '/standings'
+    | '/suggest'
+    | '/teams/$ownerId'
+    | '/teams'
+  id:
+    | '__root__'
+    | '/'
+    | '/bracket'
+    | '/draft'
+    | '/history'
+    | '/matchups'
+    | '/players'
+    | '/power'
+    | '/rules'
+    | '/standings'
+    | '/suggest'
+    | '/teams/$ownerId'
+    | '/teams/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BracketRoute: typeof BracketRoute
+  DraftRoute: typeof DraftRoute
+  HistoryRoute: typeof HistoryRoute
+  MatchupsRoute: typeof MatchupsRoute
+  PlayersRoute: typeof PlayersRoute
+  PowerRoute: typeof PowerRoute
+  RulesRoute: typeof RulesRoute
+  StandingsRoute: typeof StandingsRoute
+  SuggestRoute: typeof SuggestRoute
+  TeamsOwnerIdRoute: typeof TeamsOwnerIdRoute
+  TeamsIndexRoute: typeof TeamsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/suggest': {
+      id: '/suggest'
+      path: '/suggest'
+      fullPath: '/suggest'
+      preLoaderRoute: typeof SuggestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/standings': {
+      id: '/standings'
+      path: '/standings'
+      fullPath: '/standings'
+      preLoaderRoute: typeof StandingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rules': {
+      id: '/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof RulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/power': {
+      id: '/power'
+      path: '/power'
+      fullPath: '/power'
+      preLoaderRoute: typeof PowerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players': {
+      id: '/players'
+      path: '/players'
+      fullPath: '/players'
+      preLoaderRoute: typeof PlayersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/matchups': {
+      id: '/matchups'
+      path: '/matchups'
+      fullPath: '/matchups'
+      preLoaderRoute: typeof MatchupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/draft': {
+      id: '/draft'
+      path: '/draft'
+      fullPath: '/draft'
+      preLoaderRoute: typeof DraftRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bracket': {
+      id: '/bracket'
+      path: '/bracket'
+      fullPath: '/bracket'
+      preLoaderRoute: typeof BracketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +258,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/teams/': {
+      id: '/teams/'
+      path: '/teams'
+      fullPath: '/teams/'
+      preLoaderRoute: typeof TeamsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/teams/$ownerId': {
+      id: '/teams/$ownerId'
+      path: '/teams/$ownerId'
+      fullPath: '/teams/$ownerId'
+      preLoaderRoute: typeof TeamsOwnerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BracketRoute: BracketRoute,
+  DraftRoute: DraftRoute,
+  HistoryRoute: HistoryRoute,
+  MatchupsRoute: MatchupsRoute,
+  PlayersRoute: PlayersRoute,
+  PowerRoute: PowerRoute,
+  RulesRoute: RulesRoute,
+  StandingsRoute: StandingsRoute,
+  SuggestRoute: SuggestRoute,
+  TeamsOwnerIdRoute: TeamsOwnerIdRoute,
+  TeamsIndexRoute: TeamsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

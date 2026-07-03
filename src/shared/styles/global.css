@@ -38,3 +38,26 @@ button {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Main content column. */
+.pageWrap {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: var(--gutter) var(--gutter) 10px;
+}
+
+/* Page-enter animation — transform-only by design (see keyframes.css).
+   Gated by the VibesProvider motion toggle via data-motion on the app root. */
+.pageEnter {
+  animation: msgUp 0.45s ease;
+}
+
+[data-motion='off'] .pageEnter {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pageEnter {
+    animation: none;
+  }
+}

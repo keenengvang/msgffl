@@ -1,0 +1,10 @@
+import { createFileRoute } from '@tanstack/react-router';
+import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+
+export const Route = createFileRoute('/history')({
+  component: () => (
+    <div className="pageEnter">
+      <EmptyState title="Under construction">The history page arrives in a later phase.</EmptyState>
+    </div>
+  ),
+});

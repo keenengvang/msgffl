@@ -1,0 +1,50 @@
+.bar {
+  display: flex;
+  align-items: center;
+  background: var(--red);
+  overflow: hidden;
+}
+
+.tag {
+  flex: none;
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  padding: 7px 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.viewport {
+  flex: 1;
+  overflow: hidden;
+  padding: 7px 0;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+}
+
+.animated {
+  animation: msgMarquee 32s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated {
+    animation: none;
+  }
+}
+
+.text {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  padding-right: 70px;
+}

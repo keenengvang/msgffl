@@ -1,0 +1,134 @@
+.header {
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(180deg, var(--bg-header-a), var(--bg-header-b));
+}
+
+.topRow {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 14px var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.5));
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  margin-right: 8px;
+}
+
+.title {
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 23px;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.tagline {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.32em;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.liveChip {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 8px rgba(230, 12, 26, 0.9);
+}
+
+.pulsing {
+  animation: msgPulse 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulsing {
+    animation: none;
+  }
+}
+
+.pills {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.pill {
+  cursor: pointer;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--text-nav);
+  background: transparent;
+  border: 1px solid var(--border-18);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+}
+
+.pill:hover {
+  border-color: var(--red);
+  color: var(--text-primary);
+}
+
+.pillActive {
+  color: var(--text-primary);
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.navRow {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.navLink {
+  flex: none;
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 14.5px;
+  letter-spacing: 0.13em;
+  color: var(--text-nav);
+  padding: 11px 13px 9px;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+}
+
+.navLink:hover {
+  color: var(--text-primary);
+}
+
+.navActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--red);
+}
