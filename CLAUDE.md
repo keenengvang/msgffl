@@ -129,6 +129,8 @@ variants — savage and polite — switched by `useSavage()` / `useVibes().snark
 - Sacko badge only when `status === 'complete'`.
 - H2H rivalry counts **regular season only** (weeks < `playoff_week_start`); record
   scans skip 0–0 unplayed pairs.
+- Record book: win/loss streaks count **regular season only**; fewest-PF and
+  best-record records only consider **complete** seasons (a partial year would steal them).
 - Matchup tag precedence: WEEK'S NUKE > MASSACRE > PHOTO FINISH.
 - Constitution articles VI (dues) and VII (punishments) are intentional commish
   placeholders — don't invent numbers.
