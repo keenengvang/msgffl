@@ -1,8 +1,9 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useVibes } from '@/shared/lib/vibes';
+import { useSavage, useVibes } from '@/shared/lib/vibes';
 import { useNflState } from '@/entities/league/api/useNflState';
 import { useSeason } from '@/entities/league/api/useSeason';
 import type { NflState } from '@/shared/api/types';
+import { CURRENT_SLEEPER_LEAGUE_ID, SLEEPER_LEAGUE_URL } from '@/shared/config/constants';
 import styles from './Header.module.css';
 
 const NAV: Array<[to: string, label: string]> = [
@@ -33,9 +34,17 @@ function countdown(ns: NflState | null | undefined): string {
 
 export function Header() {
   const { motion } = useVibes();
+  const savage = useSavage();
   const nflState = useNflState();
   const { season, chain } = useSeason();
   const navigate = useNavigate();
+
+  // Sleeper mints a new league_id per season — always deep-link the newest one.
+  const newestLeagueId = (chain ?? []).reduce<{ season: string; league_id: string } | undefined>(
+    (best, l) => (!best || Number(l.season) > Number(best.season) ? l : best),
+    undefined,
+  )?.league_id;
+  const sleeperUrl = `${SLEEPER_LEAGUE_URL}/${newestLeagueId ?? CURRENT_SLEEPER_LEAGUE_ID}`;
 
   return (
     <header className={styles.header}>
@@ -61,6 +70,18 @@ export function Header() {
             </button>
           ))}
         </div>
+        <a
+          href={sleeperUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.sleeperCta}
+          aria-label="Open the league on Sleeper (opens in a new tab)"
+        >
+          {savage ? 'SETTLE IT ON SLEEPER' : 'OPEN IN SLEEPER'}
+          <span className={styles.sleeperArrow} aria-hidden="true">
+            ↗
+          </span>
+        </a>
       </div>
       {/* season is carried across pages by the root retainSearchParams middleware */}
       <nav className={styles.navRow}>
