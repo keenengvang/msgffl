@@ -137,8 +137,8 @@ variants — savage and polite — switched by `useSavage()` / `useVibes().snark
 
 ## localStorage
 
-Owned keys: `msgffl-query-cache` (persister), `msg_suggestions_v1` (suggestion docket),
-`msg_vibes_v1` (motion/snark). The legacy site's `msg1_*` keys are abandoned — **never
+Owned keys: `msgffl-query-cache` (persister), `msg_vibes_v1` (motion/snark). The legacy
+site's `msg1_*` keys and the old `msg_suggestions_v1` docket are abandoned — **never
 clear keys this app didn't write.**
 
 ## Deploy
@@ -152,7 +152,9 @@ connector; that synced database is read-only in Notion). Requires `GITHUB_TOKEN`
 Netlify UI env vars: a fine-grained PAT scoped to ONLY this repo with Issues read/write
 (these expire — max 1 year — renew when it lapses). Optional `GITHUB_REPO` overrides the
 default `keenengvang/msgffl`. Validation: text ≤ 1000 chars, best-effort 5/hour/IP rate
-limit. The client (`entities/suggestion/api/submitSuggestion.ts`) always writes the
-localStorage docket first, so failures degrade to the per-device + COPY ALL flow. The
-function is a plain `Request → Response` handler, unit-tested in vitest with a mocked
-fetch — no Netlify CLI needed for tests.
+limit. The client (`entities/suggestion/api/submitSuggestion.ts`) submits via mutation;
+on failure the text stays in the form (nothing is lost), on success the page links to
+the created issue. The old localStorage docket is retired — GitHub *is* the docket
+(`SUGGESTIONS_URL` in shared/config/constants). The function is a plain
+`Request → Response` handler, unit-tested in vitest with a mocked fetch — no Netlify
+CLI needed for tests.

@@ -13,11 +13,13 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 22px;
   margin-top: 22px;
+  align-items: start;
 }
 
+/* ── transmit form ── */
 .form {
   background: var(--bg-panel);
   border: 1px solid var(--red-border-35);
@@ -26,7 +28,6 @@
   display: flex;
   flex-direction: column;
   gap: 13px;
-  align-self: start;
 }
 
 .formLabel {
@@ -49,10 +50,22 @@
   outline: none;
 }
 
+/* custom caret: the native one hugs the edge — draw our own with room */
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a7b8de' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+}
+
 .textarea {
   line-height: 1.6;
   padding: 11px 12px;
   resize: vertical;
+  min-height: 96px;
 }
 
 .select:focus-visible,
@@ -62,7 +75,7 @@
 
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -84,6 +97,11 @@
   filter: brightness(1.12);
 }
 
+.submit:disabled {
+  filter: saturate(0.4) brightness(0.8);
+  cursor: default;
+}
+
 .hint {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -93,101 +111,94 @@
 .status {
   font-family: var(--font-mono);
   font-size: 11.5px;
+  line-height: 1.6;
   color: var(--win);
   overflow-wrap: anywhere;
 }
 
-.docket {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.docketHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.copyBtn {
-  cursor: pointer;
-  font-family: var(--font-cond);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  color: var(--text-primary);
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--r-pill);
-  padding: 5px 12px;
-}
-
-.copyBtn:hover {
-  border-color: var(--red);
-}
-
-.empty {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-dim);
-  padding: 18px;
-  border: 1px dashed rgba(143, 163, 205, 0.3);
-  border-radius: var(--r-card);
-}
-
-.card {
-  background: var(--bg-panel);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-card);
-  padding: 13px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cardHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.who {
-  font-family: var(--font-cond);
-  font-weight: 800;
-  font-size: 14.5px;
-  color: var(--red);
-}
-
-.meta {
-  display: flex;
-  gap: 12px;
-  align-items: baseline;
-}
-
-.when {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.del {
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-dim);
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-.del:hover {
+.statusError {
   color: var(--loss);
 }
 
-.text {
-  font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-body);
+.issueLink {
+  color: var(--win);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.issueLink:hover {
+  color: var(--text-primary);
+}
+
+/* ── side column ── */
+.sideCol {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.intelCard {
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 16px 18px;
+}
+
+.intelTitle {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--text-primary);
+}
+
+.intelLines {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.intelLine {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 2.1;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prompt {
+  color: var(--red);
+}
+
+.docketCta {
+  cursor: pointer;
+  background: linear-gradient(140deg, var(--red-deep), var(--red));
+  border-radius: var(--r-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.docketCta:hover {
+  filter: brightness(1.08);
+}
+
+.docketLabel {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.docketTitle {
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--text-primary);
+  line-height: 1.12;
 }

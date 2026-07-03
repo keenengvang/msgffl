@@ -2,17 +2,15 @@ import { useState } from 'react';
 import { useSavage } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { useStandings } from '@/entities/team/api/useStandings';
-import { useSuggestions } from '@/entities/suggestion/model/useSuggestions';
 import { useSubmitSuggestion } from '@/entities/suggestion/api/submitSuggestion';
 import { PageTitle } from '@/shared/ui/PageTitle/PageTitle';
-import { ago } from '@/shared/lib/format';
+import { SUGGESTIONS_URL } from '@/shared/config/constants';
 import styles from './SuggestPage.module.css';
 
 export function SuggestPage() {
   const savage = useSavage();
   const { league } = useSeason();
   const { standings } = useStandings(league);
-  const { suggestions, add, remove, copyAll, copied } = useSuggestions();
   const remote = useSubmitSuggestion();
   const [who, setWho] = useState('');
   const [text, setText] = useState('');
@@ -21,23 +19,26 @@ export function SuggestPage() {
 
   const submit = () => {
     const t = text.trim();
-    // local docket first (offline fallback), then transmit to league HQ
-    if (!add(who, t)) return;
-    remote.mutate({ who: who || 'ANONYMOUS COWARD', text: t });
-    setText('');
+    if (!t || remote.isPending) return;
+    remote.mutate(
+      { who: who || 'ANONYMOUS COWARD', text: t },
+      { onSuccess: () => setText('') }, // keep the text on failure so nothing is lost
+    );
   };
 
-  const status = remote.isPending
-    ? 'transmitting…'
-    : remote.isSuccess
-      ? savage
-        ? `FILED AS ISSUE #${remote.data.number}. NO TAKEBACKS.`
-        : `Submitted to the league — issue #${remote.data.number}.`
-      : remote.isError
-        ? savage
-          ? 'HQ UNREACHABLE. LOGGED LOCALLY — HIT COPY ALL AND HARASS THE COMMISH DIRECTLY.'
-          : "Couldn't reach HQ — saved on this device instead."
-        : null;
+  const intel = savage
+    ? [
+        'proposal transmitted straight to league HQ',
+        'filed as a public ticket — the league can pile on',
+        'the commish triages. the veto looms.',
+        'anonymity honored. cowardice noted.',
+      ]
+    : [
+        'your proposal is sent to league HQ',
+        'it becomes a public ticket the league can discuss',
+        'the commissioner reviews every submission',
+        'submitting anonymously is perfectly fine',
+      ];
 
   return (
     <div className="pageEnter">
@@ -64,44 +65,58 @@ export function SuggestPage() {
             className={styles.textarea}
           />
           <div className={styles.actions}>
-            <button type="button" className={styles.submit} onClick={submit}>
-              SUBMIT TO LEAGUE ⏎
+            <button type="button" className={styles.submit} onClick={submit} disabled={remote.isPending || !text.trim()}>
+              {remote.isPending ? 'TRANSMITTING…' : 'SUBMIT TO LEAGUE ⏎'}
             </button>
-            <span className={styles.hint}>FILES A LEAGUE HQ TICKET + SAVES ON THIS DEVICE</span>
+            <span className={styles.hint}>FILES STRAIGHT INTO LEAGUE HQ. THE COMMISH SEES EVERYTHING.</span>
           </div>
-          {status && (
-            <span className={styles.status} style={remote.isError ? { color: 'var(--loss)' } : undefined}>
-              {status}
+          {remote.isSuccess && (
+            <span className={styles.status}>
+              {savage ? `FILED AS TICKET #${remote.data.number}. NO TAKEBACKS. ` : `Submitted — ticket #${remote.data.number}. `}
+              <a href={remote.data.url} target="_blank" rel="noopener noreferrer" className={styles.issueLink}>
+                {savage ? 'FOLLOW THE BEEF ↗' : 'view it ↗'}
+              </a>
+            </span>
+          )}
+          {remote.isError && (
+            <span className={`${styles.status} ${styles.statusError}`}>
+              {savage
+                ? 'HQ UNREACHABLE. YOUR GRIEVANCE SURVIVES IN THE BOX ABOVE — TRY AGAIN IN A MINUTE.'
+                : "Couldn't reach HQ — your text is safe above. Try again shortly."}
             </span>
           )}
         </div>
 
-        <div className={styles.docket}>
-          <div className={styles.docketHead}>
-            <span className="uLabel">THE DOCKET</span>
-            <button type="button" className={styles.copyBtn} onClick={copyAll}>
-              {copied ? 'COPIED ✓' : 'COPY ALL'}
-            </button>
-          </div>
-          {suggestions.length === 0 && (
-            <div className={styles.empty}>
-              docket's empty. either the league is perfect or you're all cowards.
-            </div>
-          )}
-          {suggestions.map((s, i) => (
-            <div key={s.ts} className={styles.card}>
-              <div className={styles.cardHead}>
-                <span className={styles.who}>{s.who}</span>
-                <div className={styles.meta}>
-                  <span className={styles.when}>{ago(s.ts)}</span>
-                  <button type="button" className={styles.del} onClick={() => remove(i)} aria-label="delete">
-                    ✕
-                  </button>
+        <div className={styles.sideCol}>
+          <div className={styles.intelCard}>
+            <span className={styles.intelTitle}>HOW THIS WORKS</span>
+            <div className={styles.intelLines}>
+              {intel.map((line) => (
+                <div key={line} className={styles.intelLine}>
+                  <span className={styles.prompt}>&gt;</span> {line}
                 </div>
-              </div>
-              <span className={styles.text}>{s.text}</span>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <a href={SUGGESTIONS_URL} target="_blank" rel="noopener noreferrer" className={styles.docketCta}>
+            <span className={styles.docketLabel}>THE PUBLIC DOCKET</span>
+            <span className={styles.docketTitle}>
+              {savage ? (
+                <>
+                  READ EVERY GRIEVANCE
+                  <br />
+                  EVER FILED ↗
+                </>
+              ) : (
+                <>
+                  BROWSE ALL
+                  <br />
+                  SUBMISSIONS ↗
+                </>
+              )}
+            </span>
+          </a>
         </div>
       </div>
     </div>

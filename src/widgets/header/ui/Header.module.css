@@ -129,12 +129,16 @@
   font-weight: 800;
   font-size: 13px;
   letter-spacing: 0.14em;
+  line-height: 1;
   color: var(--text-primary);
   text-decoration: none;
   background: linear-gradient(135deg, var(--red), var(--red-deep));
   border: 1px solid var(--red-border-60);
   border-radius: var(--r-pill);
-  padding: 6px 13px 5px;
+  /* fixed height matching the season pills; 1px top pad optically centers
+     the all-caps condensed face (no descenders → caps read high otherwise) */
+  height: 29px;
+  padding: 1px 13px 0;
   box-shadow: 0 0 14px var(--red-tint-20), 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
@@ -149,6 +153,7 @@
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0;
+  line-height: 1;
   transition: transform 0.15s ease;
 }
 

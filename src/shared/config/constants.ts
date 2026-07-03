@@ -7,6 +7,9 @@ export const SLEEPER_API = 'https://api.sleeper.app/v1';
 export const SLEEPER_LEAGUE_URL = 'https://sleeper.com/leagues';
 export const CURRENT_SLEEPER_LEAGUE_ID = '1355188234203701248';
 
+/* Where suggestion-box submissions land (GitHub issues, mirrored to Notion). */
+export const SUGGESTIONS_URL = 'https://github.com/keenengvang/msgffl/issues?q=is%3Aissue%20label%3Asuggestion';
+
 export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K' | 'DEF';
 
 export const POS_COLORS: Record<Position, string> = {
