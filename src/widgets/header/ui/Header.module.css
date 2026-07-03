@@ -55,6 +55,15 @@
   color: var(--text-muted);
 }
 
+/* on narrow screens the top row wraps; keep the status chip left-aligned
+   on its own line instead of letting margin-left: auto push it right */
+@media (max-width: 740px) {
+  .liveChip {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+
 .liveDot {
   width: 8px;
   height: 8px;
