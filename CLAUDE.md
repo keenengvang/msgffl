@@ -103,6 +103,9 @@ never hand-edited). Client state lives in the URL:
 - **All numerals in mono** with `font-variant-numeric: tabular-nums`.
 - **Entrance animations are transform-only** (`msgUp`). Never animate opacity from 0 on
   page containers — it blanks thumbnails, PDF export, and background-tab first paint.
+- **Keyframes used in a `.module.css` must be defined in that same module** — CSS Modules
+  scopes animation names, so referencing a keyframe from the global `keyframes.css`
+  silently resolves to nothing. Global keyframes are only for global classes (`.pageEnter`).
 - All motion is gated twice: the `useVibes().motion` toggle (`data-motion` attribute on
   the app root) and `prefers-reduced-motion`.
 - Hovers: borders → red, cards lift `translateY(-2px)`, CTAs `brightness(1.08)`.

@@ -400,6 +400,12 @@
   background: conic-gradient(rgba(230, 12, 26, 0.5), transparent 70deg);
 }
 
+/* module-owned keyframes: CSS Modules scopes animation names */
+@keyframes msgSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .sweeping {
   animation: msgSweep 4.5s linear infinite;
 }

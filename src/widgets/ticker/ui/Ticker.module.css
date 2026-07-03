@@ -29,6 +29,13 @@
   width: max-content;
 }
 
+/* Defined here (not keyframes.css): CSS Modules scopes animation names,
+   so a module must own the keyframes it references. */
+@keyframes msgMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 .animated {
   animation: msgMarquee 32s linear infinite;
 }

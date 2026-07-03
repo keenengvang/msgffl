@@ -13,6 +13,12 @@
   background: var(--red);
 }
 
+/* module-owned keyframes: CSS Modules scopes animation names */
+@keyframes msgPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.22; }
+}
+
 .pulsing {
   animation: msgPulse 1.6s infinite;
 }

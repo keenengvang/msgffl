@@ -1,27 +1,15 @@
-/* Entrance animation is TRANSFORM-ONLY by design: animating opacity from 0
+/* GLOBAL keyframes — only for animations referenced from global CSS.
+   Keyframes used inside a *.module.css must be defined in that module:
+   CSS Modules scopes animation names, so a module referencing a global
+   keyframe silently resolves to nothing. (msgMarquee/msgSweep/msgPulse
+   live in their components' modules for exactly this reason.)
+
+   Entrance animation is TRANSFORM-ONLY by design: animating opacity from 0
    on page containers blanks thumbnails, PDF export, and background-tab
-   first paint. Do not add an opacity keyframe here. */
+   first paint. Do not add an opacity keyframe to msgUp. */
 @keyframes msgUp {
   from { transform: translateY(10px); }
   to { transform: translateY(0); }
-}
-
-/* Ticker marquee — content is duplicated 2x for a seamless loop. */
-@keyframes msgMarquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-/* Radar conic-gradient sweep. */
-@keyframes msgSweep {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Live-status dots, cursor blocks. */
-@keyframes msgPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.22; }
 }
 
 @keyframes msgShimmer {
