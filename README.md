@@ -28,8 +28,8 @@ included. Connect the repo in the Netlify UI (or `netlify deploy --prod`) and it
 
 The Suggestion Box files GitHub issues on this repo via a Netlify Function — set
 `GITHUB_TOKEN` (fine-grained PAT, this repo only, Issues read/write) in the Netlify env
-vars. Notion's GitHub connector can mirror the issues into a synced database. Without
-the token, submissions still save per-device with the COPY ALL export.
+vars. Notion's GitHub connector can mirror the issues into a synced database. If a
+submission fails (missing/expired token), the text stays in the form — nothing is lost.
 
 ## What's in here
 
