@@ -1,0 +1,192 @@
+/* floating launcher, pinned to the viewport corner */
+.launcher {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 50;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--red), var(--red-deep));
+  border: 1px solid var(--red-border-60);
+  border-radius: 50%;
+  box-shadow: 0 0 18px var(--red-tint-20), 0 6px 16px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.launcher:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* empty panel — a native popover, so it renders in the top layer.
+   Overrides the UA popover defaults (centered, inset: 0, margin: auto). */
+.panel {
+  position: fixed;
+  inset: auto 20px 84px auto;
+  margin: 0;
+  padding: 0;
+  width: min(380px, calc(100vw - 40px));
+  height: min(540px, calc(100vh - 120px));
+  background: var(--bg-panel);
+  border: 1px solid var(--red-border-35);
+  border-radius: var(--r-card);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  transform-origin: bottom right;
+}
+
+/* plays each time the popover opens (display: none → flex). Transform-only;
+   keyframes module-owned because CSS Modules scopes animation names.
+   display lives here, not on .panel — an author display on .panel would beat
+   the UA's display:none for closed popovers and pin it open. */
+.panel:popover-open {
+  display: flex;
+  flex-direction: column;
+  animation: panelUp 0.22s ease-out;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* one bubble per turn — the player's own messages hug the right rail */
+.fromUser,
+.fromBot {
+  margin: 0;
+  max-width: 85%;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  border-radius: var(--r-card);
+}
+
+.fromUser {
+  align-self: flex-end;
+  color: var(--text-primary);
+  background: var(--red-tint-20);
+  border: 1px solid var(--red-border-35);
+}
+
+.fromBot {
+  align-self: flex-start;
+  color: var(--text-body);
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+}
+
+.muted {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.error {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--loss);
+}
+
+.form {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 11px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-14);
+  border-radius: var(--r-cell);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input:hover,
+.input:focus {
+  border-color: var(--red-border-60);
+}
+
+.send {
+  cursor: pointer;
+  padding: 0 14px;
+  font-family: var(--font-cond);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: var(--red);
+  border: 1px solid var(--red-border-60);
+  border-radius: var(--r-cell);
+  transition: filter 0.15s ease;
+}
+
+.send:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.send:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@keyframes panelUp {
+  from {
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    transform: none;
+  }
+}
+
+[data-motion='off'] .panel:popover-open {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel:popover-open {
+    animation: none;
+  }
+
+  .launcher {
+    transition: none;
+  }
+}
+
+/* phones: panel spans the width */
+@media (max-width: 520px) {
+  .launcher {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .panel {
+    inset: auto 12px 76px 12px;
+    width: auto;
+    height: calc(100dvh - 100px);
+  }
+}

@@ -4,6 +4,7 @@ import { Ticker } from '@/widgets/ticker/ui/Ticker';
 import { Header } from '@/widgets/header/ui/Header';
 import { Footer } from '@/widgets/footer/ui/Footer';
 import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { ChatBot } from '@/widgets/chatbot/ui/ChatBot';
 
 export interface RootSearch {
   season?: string;
@@ -40,6 +41,7 @@ function RootLayout() {
       <main className="pageWrap">
         <Outlet />
       </main>
+      <ChatBot />
       <Footer />
     </div>
   );
