@@ -382,7 +382,7 @@
   flex-direction: column;
   gap: 8px;
   flex: 1;
-  justify-content: center;
+  min-height: 0;
 }
 
 .wrapHeroHeadline {
@@ -393,6 +393,48 @@
   line-height: 1.3;
   color: var(--text-primary);
   text-wrap: pretty;
+}
+
+/* An explicit cap rather than relying on the grid row's stretched height — on
+   a single-column layout (auto-fit collapses to one track) there's no sibling
+   to stretch against, so an unbounded flex child would just grow forever
+   instead of scrolling. */
+.wrapHeroScroll {
+  margin-top: 4px;
+  max-height: 293px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.wrapHeroSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wrapHeroSubhead {
+  font-family: var(--font-cond);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text-bright);
+  text-transform: uppercase;
+}
+
+.wrapHeroPara {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.wrapHeroPara + .wrapHeroPara {
+  margin-top: 8px;
 }
 
 .radarMini {

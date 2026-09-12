@@ -1,13 +1,7 @@
-/* Title, archive and article all share one axis — a left-aligned header over a
-   centred article reads like two pages stitched together. */
-.titleRow,
-.archive,
-.article {
+/* Title stays full-width above; the archive and article share the row below. */
+.titleRow {
   max-width: 620px;
   margin-inline: auto;
-}
-
-.titleRow {
   display: flex;
   align-items: baseline;
   gap: 16px;
@@ -20,22 +14,39 @@
   color: var(--text-dim);
 }
 
-/* ---- Archive strip -------------------------------------------------------- */
+/* ---- Layout ---------------------------------------------------------------- */
+
+.layout {
+  margin-top: 24px;
+  display: flex;
+  align-items: stretch;
+  gap: 36px;
+}
+
+.mainCol {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Archive nav ------------------------------------------------------------ */
+/* Vertical rail. .layout stretches both columns to the same height so the
+   right border always reaches the bottom of the article, but the archive's
+   own content stays flush to the top (flex-direction: column's default
+   justify-content) rather than centering or spreading down the rail. */
 
 .archive {
-  margin-top: 18px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--hairline);
+  flex: 0 0 128px;
+  padding-right: 20px;
+  border-right: 1px solid var(--hairline);
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 18px;
+  flex-direction: column;
+  gap: 22px;
 }
 
 .seasonGroup {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .seasonLabel {
@@ -45,7 +56,7 @@
 
 .weekPills {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
 }
 
@@ -74,9 +85,6 @@
 
 /* ---- The article ---------------------------------------------------------- */
 
-/* One centred column on a reading measure: 620px is ~70 characters at the prose
-   size below. Past roughly 75 the eye loses the line return — which is what the
-   old auto-fit card grid did anyway, by splitting prose into parallel columns. */
 .article {
   margin-top: 30px;
 }
@@ -156,6 +164,36 @@
 }
 
 @media (max-width: 640px) {
+  /* No room for a side rail — fall back to a flat strip above the article,
+     newest week first since there's no vertical axis to read bottom-up. */
+  .layout {
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .archive {
+    flex-basis: auto;
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--hairline);
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+  }
+
+  .seasonGroup {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .weekPills {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   .article {
     margin-top: 24px;
   }
