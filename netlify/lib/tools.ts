@@ -241,7 +241,11 @@ function getMatchups(snap: Snapshot, week: number, season?: string): ToolOutcome
     playoffs: week >= b.pws,
     inProgress: live,
     ...(live
-      ? { note: 'This week is still being played — these are live scores, so report a leader, never a winner.' }
+      ? {
+          note:
+            'This week is still being played — these are live scores, so report a leader, never a winner, ' +
+            'and speak in the present tense. A team on 0.00 has not kicked off yet; it has not been shut out.',
+        }
       : {}),
     games: pairs.map(([x, y]) => {
       const [hi, lo] = x.p >= y.p ? [x, y] : [y, x];

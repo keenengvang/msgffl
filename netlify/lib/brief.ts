@@ -139,6 +139,11 @@ export function leagueBrief(snap: Snapshot): string {
     b ? standingsBlock(b, started) : '(unavailable)',
     '',
     `== ${active.season} WEEK ${liveWeek} ==`,
+    // Only while the season is running: mid-week these are live scores, and a
+    // 0.00 is a team that hasn't kicked off, not one that got shut out.
+    active.status === 'in_season'
+      ? 'These are LIVE scores for a week still being played — a leader, not a winner. A team on 0.00 has not started yet.'
+      : null,
     b && started ? weekBlock(b, liveWeek) : '(offseason — no games)',
     '',
     '== ALL-TIME (every Sleeper season) ==',
