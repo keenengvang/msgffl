@@ -19,7 +19,7 @@
 .layout {
   margin-top: 24px;
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 36px;
 }
 
@@ -28,18 +28,14 @@
   min-width: 0;
 }
 
-.article {
-  max-width: 620px;
-  margin-inline: auto;
-}
-
 /* ---- Archive nav ------------------------------------------------------------ */
-/* Vertical rail, top-aligned so it never stretches to the article's height —
-   a side rail that grows with the prose reads like it's chasing the page. */
+/* Vertical rail. .layout stretches both columns to the same height so the
+   right border always reaches the bottom of the article, but the archive's
+   own content stays flush to the top (flex-direction: column's default
+   justify-content) rather than centering or spreading down the rail. */
 
 .archive {
   flex: 0 0 128px;
-  align-self: flex-start;
   padding-right: 20px;
   border-right: 1px solid var(--hairline);
   display: flex;
@@ -89,9 +85,6 @@
 
 /* ---- The article ---------------------------------------------------------- */
 
-/* One centred column on a reading measure: 620px is ~70 characters at the prose
-   size below. Past roughly 75 the eye loses the line return — which is what the
-   old auto-fit card grid did anyway, by splitting prose into parallel columns. */
 .article {
   margin-top: 30px;
 }

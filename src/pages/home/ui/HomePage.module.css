@@ -401,7 +401,7 @@
    instead of scrolling. */
 .wrapHeroScroll {
   margin-top: 4px;
-  max-height: 220px;
+  max-height: 293px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
