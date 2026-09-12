@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSavage } from '@/shared/lib/vibes';
-import { useSendChat, type ChatTurn } from '../api/sendChat';
+import { MAX_MESSAGE_CHARS, useSendChat, type ChatTurn } from '../api/sendChat';
 import styles from './ChatBot.module.css';
 
 const COPY = {
@@ -38,7 +38,9 @@ export function ChatBot() {
   async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const question = draft.trim();
-    if (!question || send.isPending) return;
+    // maxLength on the input is the real guard; this keeps an over-long message
+    // from entering the transcript if that is ever bypassed.
+    if (!question || question.length > MAX_MESSAGE_CHARS || send.isPending) return;
 
     const next: ChatTurn[] = [...turns, { role: 'user', content: question }];
     setTurns(next);
@@ -79,6 +81,7 @@ export function ChatBot() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={copy.placeholder}
+            maxLength={MAX_MESSAGE_CHARS}
             aria-label="Message"
           />
           <button type="submit" className={styles.send} disabled={send.isPending || !draft.trim()}>

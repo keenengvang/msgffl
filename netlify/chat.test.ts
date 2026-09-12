@@ -46,6 +46,12 @@ describe('chat function', () => {
     expect((await handler(post({ messages: [turn('hi')] }))).status).toBe(500);
   });
 
+  it('400s on JSON that is not an object, instead of throwing', async () => {
+    for (const body of [null, [1, 2], 'hi']) {
+      expect((await handler(post(body, '6.6.6.6'))).status).toBe(400);
+    }
+  });
+
   it('rejects malformed histories', async () => {
     const bad = [
       { messages: [] },

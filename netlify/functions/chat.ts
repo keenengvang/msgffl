@@ -57,14 +57,19 @@ export default async function handler(req: Request): Promise<Response> {
   const ip = req.headers.get('x-nf-client-connection-ip') ?? 'unknown';
   if (rateLimited(ip)) return json(429, { error: 'easy, champ. the analyst needs a breather.' });
 
-  let payload: { messages?: unknown };
+  let payload: unknown;
   try {
     payload = await req.json();
   } catch {
     return json(400, { error: 'invalid JSON' });
   }
+  // `null` and arrays are valid JSON but have no .messages — reading through
+  // them would throw past this handler and surface as a platform 500.
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+    return json(400, { error: 'body must be a JSON object' });
+  }
 
-  const messages = parseMessages(payload.messages);
+  const messages = parseMessages((payload as { messages?: unknown }).messages);
   if (!messages) return json(400, { error: 'messages must be 1–40 turns of {role, content}' });
 
   try {
