@@ -14,7 +14,11 @@ import type { Matchup } from '@/shared/api/types';
 import type { StandingRow } from '@/entities/team/model/types';
 import styles from './MatchupDetailPage.module.css';
 
-const route = getRouteApi('/matchups/$week/$matchupId');
+// The route file is named `matchups_.$week.$matchupId.tsx` — the trailing
+// underscore opts it out of nesting under matchups.tsx (which has no
+// <Outlet/>), so TanStack Router's generated route id carries that
+// underscore too even though the actual URL path does not.
+const route = getRouteApi('/matchups_/$week/$matchupId');
 
 function RosterList({ rows, done }: { rows: RosterRow[]; done: boolean }) {
   const starters = rows.filter((r) => r.starter);
@@ -103,6 +107,21 @@ export function MatchupDetailPage() {
 
   if (error) return <ErrorPanel error={error} />;
   if (isLoading || !standings) return <LoadingQuip />;
+
+  // A bad URL (/matchups/foo/1, /matchups/0/1, …) leaves useMatchupWeekDetail
+  // disabled — its query never settles, so without this check the loading
+  // branch below would spin forever instead of saying the link is bad.
+  const weekValid = Number.isInteger(week) && week >= 1 && week <= 17;
+  if (!weekValid) {
+    return (
+      <div className="pageEnter">
+        <Link to="/matchups" className={styles.back}>
+          ← ALL MATCHUPS
+        </Link>
+        <EmptyState title="No such matchup">That's not a real week.</EmptyState>
+      </div>
+    );
+  }
 
   const names: Record<number, StandingRow> = {};
   standings.forEach((r) => (names[r.rosterId] = r));
