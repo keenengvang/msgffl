@@ -2,11 +2,14 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useSavage, useVibes } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { newestLeague } from '@/entities/league/lib/activeLeague';
+import { useNflState } from '@/entities/league/api/useNflState';
 import { useStandings } from '@/entities/team/api/useStandings';
 import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
 import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
+import { useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
+import { liveWeekFor, weekPulse } from '@/entities/matchup/lib/liveWeek';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
@@ -23,6 +26,8 @@ export function HomePage() {
   // The upcoming draft lives on the chain's newest league, not the viewed season.
   const newest = newestLeague(chain);
   const newestDraft = useDraft(newest);
+  const nflState = useNflState();
+  const weeks = useSeasonWeeks(league);
   const navigate = useNavigate();
 
   if (error) return <ErrorPanel error={error} />;
@@ -35,6 +40,16 @@ export function HomePage() {
   const nextDraft = newestDraft.data ? nextDraftInfo(newest?.season, newestDraft.data.draft) : null;
   const nextDraftYear = nextDraft ? Number(nextDraft.season) : preDraft ? Number(season) : Number(season) + 1;
   const draftDate = nextDraft?.startTime ? fmtEventDate(nextDraft.startTime) : null;
+  const inSeason = league?.status === 'in_season';
+  const liveWeek = liveWeekFor({
+    status: league?.status,
+    playoffWeekStart: pws,
+    nflSeason: nflState.data?.season,
+    nflWeek: nflState.data?.week,
+    season,
+  });
+  const pulse = weeks.data ? weekPulse(weeks.data[liveWeek]) : null;
+  const weekLive = inSeason && !!pulse && pulse.games > 0;
 
   const { champRoster, ruRoster } = titleGame(brackets.data?.winners);
   const champ = stand.find((r) => r.rosterId === champRoster);
@@ -42,6 +57,9 @@ export function HomePage() {
   const sacko = stand.length ? stand[stand.length - 1] : undefined;
   const pfKing = stand.length ? [...stand].sort((a, b) => b.pf - a.pf)[0] : undefined;
   const paMax = stand.length ? [...stand].sort((a, b) => b.pa - a.pa)[0] : undefined;
+  // Sleeper only rolls roster totals up once a week closes, so mid-week every
+  // pf/pa reads 0 — show the offseason placeholders rather than a wall of 0.00.
+  const totalsIn = !!pfKing && pfKing.pf > 0;
   const seedOf = (r: typeof champ) => (r ? stand.findIndex((x) => x.rosterId === r.rosterId) + 1 : '?');
 
   const hero = heroCopy({ season, status: league?.status, champ, ru, repeat: false, savage });
@@ -59,10 +77,20 @@ export function HomePage() {
   if (sacko && complete) intel.push({ p1: 'punishment_locked: ', hi: sacko.team, hiCol: 'var(--loss)', p2: savage ? ' — lawyer up' : '' });
   if (paMax && paMax.pa > 0) intel.push({ p1: `${paMax.team} allowed `, hi: fmt(paMax.pa), hiCol: 'var(--text-primary)', p2: savage ? ' pts. brutal.' : ' pts.' });
   if (preDraft) intel.push({ p1: 'rosters: ', hi: 'empty', hiCol: 'var(--text-muted)', p2: ' · trash_talk: already flowing' });
+  if (weekLive && pulse && pulse.scored > 0)
+    intel.unshift({
+      p1: `week_${liveWeek}: `,
+      hi: `${pulse.scored}/${pulse.games} games live`,
+      hiCol: 'var(--text-primary)',
+      p2: pulse.top ? ` · top ${fmt(pulse.top.points)}` : '',
+    });
   intel.push(
     draftDate
       ? { p1: `draft_${nextDraftYear}: `, hi: draftDate.toLowerCase(), hiCol: 'var(--text-primary)', p2: ' █' }
-      : { p1: `draft_${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' },
+      : inSeason
+        ? // Sleeper hasn't minted next year's league yet — nothing to schedule.
+          { p1: `draft_${nextDraftYear}: `, hi: 'not on sleeper yet', hiCol: 'var(--text-muted)', p2: ' █' }
+        : { p1: `draft_${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' },
   );
 
   return (
@@ -99,28 +127,30 @@ export function HomePage() {
           <div className={styles.snapRow}>
             <span className={styles.snapLabel}>Most points scored</span>
             <span className={styles.snapValue}>
-              {preDraft ? 'AWAITING KICKOFF' : pfKing ? pfKing.team.toUpperCase() : '…'} ·{' '}
-              <span className={styles.snapAccent}>{preDraft ? '—' : pfKing ? fmt(pfKing.pf) : ''}</span>
+              {!totalsIn ? 'AWAITING KICKOFF' : pfKing ? pfKing.team.toUpperCase() : '…'} ·{' '}
+              <span className={styles.snapAccent}>{!totalsIn ? '—' : pfKing ? fmt(pfKing.pf) : ''}</span>
             </span>
           </div>
           <div className={styles.snapRow}>
             <span className={styles.snapLabel}>Most points allowed</span>
             <span className={styles.snapValue}>
-              {preDraft ? 'NOBODY, YET' : paMax ? paMax.team.toUpperCase() : '…'} ·{' '}
-              <span className={styles.snapAccent}>{preDraft ? '—' : paMax ? fmt(paMax.pa) : ''}</span>
+              {!totalsIn ? 'NOBODY, YET' : paMax ? paMax.team.toUpperCase() : '…'} ·{' '}
+              <span className={styles.snapAccent}>{!totalsIn ? '—' : paMax ? fmt(paMax.pa) : ''}</span>
             </span>
           </div>
           <div className={styles.snapRow}>
             <span className={styles.snapLabel}>Last place — punishment owed</span>
             <span className={styles.snapValue}>
-              {preDraft ? 'TBD' : sacko ? sacko.team.toUpperCase() : '…'} ·{' '}
-              <span className={styles.snapAccent}>{preDraft ? '—' : sacko ? `${sacko.w}–${sacko.l}` : ''}</span>
+              {!totalsIn ? 'TBD' : sacko ? sacko.team.toUpperCase() : '…'} ·{' '}
+              <span className={styles.snapAccent}>{!totalsIn ? '—' : sacko ? `${sacko.w}–${sacko.l}` : ''}</span>
             </span>
           </div>
           <div className={styles.snapFoot}>
             <span className={styles.snapLabel}>Next event</span>
             <span className={styles.nextEvent}>
-              DRAFT {nextDraftYear} — {draftDate ?? 'TBD'}
+              {weekLive && pulse
+                ? `WEEK ${liveWeek} — ${pulse.scored > 0 ? 'IN PROGRESS' : 'KICKOFF PENDING'}`
+                : `DRAFT ${nextDraftYear} — ${draftDate ?? 'TBD'}`}
             </span>
           </div>
         </div>

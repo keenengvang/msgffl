@@ -5,15 +5,20 @@
   overflow: hidden;
 }
 
+/* The bar's height is set by the taller marquee text beside it, so the tag
+   stretches to fill it — a fixed padding left red slivers above and below. */
 .tag {
   flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
   font-family: var(--font-cond);
   font-weight: 800;
   font-size: 13px;
   letter-spacing: 0.14em;
   color: var(--text-primary);
   background: var(--bg-page);
-  padding: 7px 14px;
+  padding: 0 14px;
   position: relative;
   z-index: 2;
 }
