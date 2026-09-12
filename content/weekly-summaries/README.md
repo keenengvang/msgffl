@@ -47,3 +47,40 @@ front of `weeks`, write the whole thing back. The site re-sorts defensively
 keeps the file readable for humans skimming it on GitHub.
 
 Never delete or edit past entries/files — this is the archive.
+
+## Types are checked at runtime
+
+`src/entities/weekly-summary/api/` type-guards both files on fetch and throws
+`weekly summary file is malformed` / `weekly summary index is malformed` if
+anything is off, which surfaces as an error panel on the page. So:
+
+- `season` is a **string** (`"2026"`), `week` is a **number** (`3`, not `"3"`,
+  and not zero-padded — the padding is only in the filename).
+- `generatedAt` is a string; the page renders it via `new Date(...)`, so use
+  ISO 8601.
+- `headline` is a string, `sections` an array of `{heading, body}` — both
+  strings, no other keys read.
+- Index rows carry the same four fields plus `file`, the bare filename.
+- Bodies render as plain text in a `<p>`; markdown and HTML are not parsed and
+  will show as literal characters.
+
+## Publishing
+
+Branch `weekly-summary/<season>-w<week>`, commit the new week file plus the
+updated `index.json`, open a PR against `main` titled `Week <week> recap`.
+
+The only checks on this repo are Netlify deploy checks that settle in well
+under a minute, so **auto-merge usually cannot be armed**: GitHub refuses it as
+`unstable` while the checks are pending, then refuses it again as `clean` once
+they pass, because auto-merge only applies while something is still pending. On
+a `clean` PR, squash-merge it directly — that is the state auto-merge was meant
+to wait for. Only leave the PR open and comment if a check actually fails or
+there is a merge conflict.
+
+## The site reads this from `main` at runtime
+
+The pages fetch these files from `raw.githubusercontent.com/.../main/...`, not
+from the build, so a merge publishes the recap without a redeploy. Neither
+query is persisted to localStorage and both go stale after 5 minutes, so a new
+recap reaches open tabs on its own. If a recap looks missing right after a
+merge, check `raw.githubusercontent.com` before suspecting the file.
