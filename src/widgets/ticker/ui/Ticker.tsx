@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { useSavage, useVibes } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { useNflState } from '@/entities/league/api/useNflState';
@@ -45,12 +46,28 @@ export function Ticker() {
     playoffWeekStart: league?.settings?.playoff_week_start ?? 15,
   });
 
+  // Live polling changes `text`'s length mid-loop. The animation's -50% is
+  // relative to the track's own (now different) width, so a running loop
+  // would otherwise snap to a new position — the "cuts in and out" glitch,
+  // worst on mobile CPUs that can't absorb the resulting jank. Restarting
+  // the animation from 0 on every text change trades that snap for a clean
+  // restart instead.
+  const trackRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    track.style.animation = 'none';
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- force reflow before re-enabling
+    track.offsetHeight;
+    track.style.animation = '';
+  }, [text]);
+
   return (
     <div className={styles.bar}>
       <span className={styles.tag}>LEAGUE WIRE</span>
       <div className={styles.viewport}>
         {/* content duplicated 2x for a seamless loop */}
-        <div className={motion ? `${styles.track} ${styles.animated}` : styles.track}>
+        <div ref={trackRef} className={motion ? `${styles.track} ${styles.animated}` : styles.track}>
           <span className={styles.text}>{text}</span>
           <span className={styles.text}>{text}</span>
         </div>
