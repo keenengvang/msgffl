@@ -124,6 +124,11 @@ describe('league brief', () => {
     const text = leagueBrief(wk1);
     expect(text).toContain('no games decided yet');
     expect(text).not.toMatch(/^1\. .* 0-0 {2}PF 0\.00/m);
+    // Withholding the table must not withhold WHO runs each team — otherwise
+    // the brief names teams in the week block with no manager to match them to,
+    // and the model pairs them with whatever manager it saw last.
+    expect(text).toContain('Teams: ');
+    expect(text).toContain('Boom Squad (alice)');
     // The live scores still have to be there — they're the real state of play.
     expect(text).toContain('2024 WEEK 1');
     expect(text).toContain('120.50');

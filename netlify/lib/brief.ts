@@ -24,15 +24,25 @@ const SCORING: Record<string, string> = {
   pts_std: 'standard (no PPR)',
 };
 
+/** Team → manager, with no records attached. Whenever the standings table is
+    withheld this is the ONLY place the brief says who runs which team, and
+    without it the model pairs a team with whatever manager it saw last. */
+function rosterLine(b: SeasonBundle): string {
+  return `Teams: ${b.standings.map((r) => `${r.team} (${r.owner})`).join('; ')}`;
+}
+
 function standingsBlock(b: SeasonBundle, live: boolean): string {
   // A season that hasn't kicked off has no record worth printing — showing
   // 14 rows of 0-0 / 0.00 reads as a bug, not as an offseason.
-  if (!live) return '(season has not started — no records yet)';
+  if (!live) return `(season has not started — no records yet)\n${rosterLine(b)}`;
   // Sleeper only rolls roster season totals up after a week closes, so during
   // week 1 every row reads 0-0 / 0.00. Say so instead of printing the zeroes:
   // the live scores in the week block below are the real state of play.
   if (!b.standings.some((r) => r.w + r.l + r.t > 0)) {
-    return '(no games decided yet this season — Sleeper only totals a week once it closes, so every record reads 0-0. The live scores below are what is actually happening.)';
+    return (
+      '(no games decided yet this season — Sleeper only totals a week once it closes, so every record reads 0-0. The live scores below are what is actually happening.)\n' +
+      rosterLine(b)
+    );
   }
   return b.standings
     .map((r, i) => `${i + 1}. ${r.team} (${r.owner}) ${r.w}-${r.l}${r.t ? `-${r.t}` : ''}  PF ${n2(r.pf)}  PA ${n2(r.pa)}`)
