@@ -11,6 +11,8 @@ import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
 import { useLiveWeek } from '@/entities/matchup/api/useSeasonWeeks';
 import { liveWeekFor, weekPulse } from '@/entities/matchup/lib/liveWeek';
 import { useWeeklySummaryIndex } from '@/entities/weekly-summary/api/useWeeklySummaryIndex';
+import { useWeeklySummary } from '@/entities/weekly-summary/api/useWeeklySummary';
+import { splitParagraphs } from '@/entities/weekly-summary/lib/splitParagraphs';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
@@ -41,6 +43,7 @@ export function HomePage() {
   const live = useLiveWeek(league, liveWeek);
   const weeklyIndex = useWeeklySummaryIndex();
   const latestWeekly = weeklyIndex.data?.[0];
+  const weeklySummary = useWeeklySummary(latestWeekly?.file);
   const navigate = useNavigate();
 
   if (error) return <ErrorPanel error={error} />;
@@ -251,18 +254,32 @@ export function HomePage() {
               </Link>
             </div>
             <div className={styles.wrapHeroBody}>
-              {weeklyIndex.isLoading ? (
+              {weeklyIndex.isLoading || (latestWeekly && weeklySummary.isLoading) ? (
                 <p className={styles.wrapHeroHeadline}>{savage ? "PULLING THE BOT'S NOTES…" : "loading this week's recap…"}</p>
-              ) : weeklyIndex.error ? (
+              ) : weeklyIndex.error || weeklySummary.error ? (
                 <p className={styles.wrapHeroHeadline}>
                   {savage ? "HQ COULDN'T REACH THE BOT." : "Couldn't load the recap right now."}
                 </p>
-              ) : latestWeekly ? (
+              ) : latestWeekly && weeklySummary.data ? (
                 <>
                   <span className={styles.wrapWeek}>
                     {latestWeekly.season} · WEEK {latestWeekly.week || '—'}
                   </span>
-                  <p className={styles.wrapHeroHeadline}>{latestWeekly.headline}</p>
+                  <p className={styles.wrapHeroHeadline}>{weeklySummary.data.headline}</p>
+                  {/* Card height is fixed by the grid row it shares with the title-game
+                      card, so the full recap scrolls inside it instead of being clipped. */}
+                  <div className={styles.wrapHeroScroll}>
+                    {weeklySummary.data.sections.map((s) => (
+                      <div key={s.heading} className={styles.wrapHeroSection}>
+                        <span className={styles.wrapHeroSubhead}>{s.heading}</span>
+                        {splitParagraphs(s.body).map((p, i) => (
+                          <p key={i} className={styles.wrapHeroPara}>
+                            {p}
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </>
               ) : (
                 <p className={styles.wrapHeroHeadline}>

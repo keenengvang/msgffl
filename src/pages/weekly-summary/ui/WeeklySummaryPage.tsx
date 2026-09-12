@@ -6,8 +6,8 @@ import { PageTitle } from '@/shared/ui/PageTitle/PageTitle';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
 import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
+import { splitParagraphs } from '@/entities/weekly-summary/lib/splitParagraphs';
 import { groupBySeason } from '../model/groupBySeason';
-import { splitParagraphs } from '../model/splitParagraphs';
 import styles from './WeeklySummaryPage.module.css';
 
 export function WeeklySummaryPage() {
@@ -40,9 +40,11 @@ export function WeeklySummaryPage() {
       )}
 
       {!index.error && entries.length > 0 && (
-        <>
-          {/* Archive sits above the article as one flat strip so the recap column stays
-              centred on its own measure — a side rail shoves the prose off-axis. */}
+        <div className={styles.layout}>
+          {/* Vertical nav, oldest week at the bottom rising to the newest at the
+              top — groups are already newest-first, so plain column order does
+              this for free. Top-aligned so it never stretches to match the
+              article's height. */}
           <nav className={styles.archive} aria-label="Recap archive">
             {groups.map((g) => (
               <div key={g.season} className={styles.seasonGroup}>
@@ -64,40 +66,42 @@ export function WeeklySummaryPage() {
             ))}
           </nav>
 
-          {summary.error && <ErrorPanel error={summary.error} onRetry={() => summary.refetch()} />}
-          {!summary.error && (summary.isLoading || !summary.data) && <LoadingQuip />}
-          {!summary.error && summary.data && (
-            <article className={styles.article}>
-              <header className={styles.articleHead}>
-                <div className={styles.dateline}>
-                  <span className={`uLabel ${styles.badge}`}>WEEK {summary.data.week || '—'}</span>
-                  <span className={styles.sep}>·</span>
-                  <span className={`uMono ${styles.dim}`}>{summary.data.season}</span>
-                  <span className={styles.sep}>·</span>
-                  <span className={`uMono ${styles.dim}`}>
-                    {new Date(summary.data.generatedAt).toLocaleString()}
-                  </span>
-                </div>
-                <h2 className={styles.headline}>{summary.data.headline}</h2>
-              </header>
+          <div className={styles.mainCol}>
+            {summary.error && <ErrorPanel error={summary.error} onRetry={() => summary.refetch()} />}
+            {!summary.error && (summary.isLoading || !summary.data) && <LoadingQuip />}
+            {!summary.error && summary.data && (
+              <article className={styles.article}>
+                <header className={styles.articleHead}>
+                  <div className={styles.dateline}>
+                    <span className={`uLabel ${styles.badge}`}>WEEK {summary.data.week || '—'}</span>
+                    <span className={styles.sep}>·</span>
+                    <span className={`uMono ${styles.dim}`}>{summary.data.season}</span>
+                    <span className={styles.sep}>·</span>
+                    <span className={`uMono ${styles.dim}`}>
+                      {new Date(summary.data.generatedAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <h2 className={styles.headline}>{summary.data.headline}</h2>
+                </header>
 
-              {summary.data.sections.length === 0 ? (
-                <EmptyState title={savage ? 'THE BOT FILED NOTHING' : 'Nothing here yet'} />
-              ) : (
-                summary.data.sections.map((s) => (
-                  <section key={s.heading} className={styles.section}>
-                    <h3 className={styles.subhead}>{s.heading}</h3>
-                    {splitParagraphs(s.body).map((p, i) => (
-                      <p key={i} className={styles.body}>
-                        {p}
-                      </p>
-                    ))}
-                  </section>
-                ))
-              )}
-            </article>
-          )}
-        </>
+                {summary.data.sections.length === 0 ? (
+                  <EmptyState title={savage ? 'THE BOT FILED NOTHING' : 'Nothing here yet'} />
+                ) : (
+                  summary.data.sections.map((s) => (
+                    <section key={s.heading} className={styles.section}>
+                      <h3 className={styles.subhead}>{s.heading}</h3>
+                      {splitParagraphs(s.body).map((p, i) => (
+                        <p key={i} className={styles.body}>
+                          {p}
+                        </p>
+                      ))}
+                    </section>
+                  ))
+                )}
+              </article>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
