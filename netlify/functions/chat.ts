@@ -28,6 +28,7 @@ const MAX_TURNS = 40; // whole conversation
 const MAX_CHARS = 2000; // per message
 const MAX_TOOL_ROUNDS = 4; // tool → answer hops before we cut it off
 const DEADLINE_MS = 8_500; // leave headroom inside Netlify's ~10s function cap
+const MIN_CALL_MS = 2_000; // even past the deadline, give a final call a chance to land
 
 const PERSONA = {
   savage:
@@ -160,16 +161,28 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     let text = '';
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+      const left = deadline - Date.now();
+      // Out of time with an answer already in hand: return it rather than
+      // start a round we can't finish.
+      if (left <= 0 && text) break;
+
       // Past the deadline, drop the tools so the model has to answer in words
       // rather than starting another round we don't have time to finish.
-      const outOfTime = Date.now() > deadline;
-      const message = await client.messages.create({
-        model: MODEL,
-        max_tokens: 2048,
-        system,
-        messages: thread,
-        ...(snap && !outOfTime && round < MAX_TOOL_ROUNDS ? { tools: TOOLS } : {}),
-      });
+      const outOfTime = left <= 0;
+      const message = await client.messages.create(
+        {
+          model: MODEL,
+          max_tokens: 2048,
+          system,
+          messages: thread,
+          ...(snap && !outOfTime && round < MAX_TOOL_ROUNDS ? { tools: TOOLS } : {}),
+        },
+        // Bound the call to the budget we have left. Without this, dropping the
+        // tools still left an unbounded round trip, and a slow cold snapshot
+        // followed by a slow model call lets the platform kill the function
+        // before any of our own fallbacks can run.
+        { timeout: Math.max(MIN_CALL_MS, left) },
+      );
 
       text = message.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')

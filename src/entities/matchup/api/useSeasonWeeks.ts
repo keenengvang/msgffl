@@ -23,11 +23,29 @@ export function useSeasonWeeks(league: League | undefined) {
       return trimmed;
     },
     staleTime: staleFor(league, 60_000),
-    // staleTime only marks data stale; it schedules nothing, and the provider
-    // turns off refetch-on-focus. Without this the ticker and dashboard
-    // advertise live scores that never move until a reload. Only while a
-    // season is actually being played — a completed one can't change — and
-    // TanStack pauses the interval on a hidden tab by default.
-    refetchInterval: league?.status === 'in_season' ? 60_000 : false,
+  });
+}
+
+/** The one week that can still change, polled on its own.
+ *
+ * The 17-week query above must NOT poll: re-running it re-downloads sixteen
+ * immutable weeks to learn about one, which is ~1000 Sleeper requests an hour
+ * per open tab. staleTime alone doesn't refetch anything either (it only marks
+ * data stale, and the provider turns off refetch-on-focus), so live scores sat
+ * frozen until a reload. This fetches the live week only, every 60s, and
+ * TanStack pauses the interval while the tab is hidden. */
+export function useLiveWeek(league: League | undefined, week: number) {
+  const live = league?.status === 'in_season';
+  return useQuery({
+    queryKey: qk.liveWeek(league?.league_id ?? '', week),
+    enabled: !!league && live && week > 0,
+    queryFn: async () => {
+      const raw = await api<Matchup[]>(`/league/${league!.league_id}/matchups/${week}`).catch(
+        () => [] as Matchup[],
+      );
+      return raw.map((m) => ({ m: m.matchup_id, r: m.roster_id, p: m.points || 0 }));
+    },
+    staleTime: 60_000,
+    refetchInterval: live ? 60_000 : false,
   });
 }

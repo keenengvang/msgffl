@@ -8,7 +8,7 @@ import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
 import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
-import { useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
+import { useLiveWeek, useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
 import { liveWeekFor, weekPulse } from '@/entities/matchup/lib/liveWeek';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
@@ -28,6 +28,17 @@ export function HomePage() {
   const newestDraft = useDraft(newest);
   const nflState = useNflState();
   const weeks = useSeasonWeeks(league);
+  // Hoisted above the early returns: useLiveWeek is a hook, so it can't sit
+  // below them, and it needs the week number.
+  const pws = league?.settings?.playoff_week_start ?? 15;
+  const liveWeek = liveWeekFor({
+    status: league?.status,
+    playoffWeekStart: pws,
+    nflSeason: nflState.data?.season,
+    nflWeek: nflState.data?.week,
+    season,
+  });
+  const live = useLiveWeek(league, liveWeek);
   const navigate = useNavigate();
 
   if (error) return <ErrorPanel error={error} />;
@@ -36,19 +47,13 @@ export function HomePage() {
   const stand = standings;
   const complete = league?.status === 'complete';
   const preDraft = league?.status === 'pre_draft' || league?.status === 'drafting';
-  const pws = league?.settings?.playoff_week_start ?? 15;
   const nextDraft = newestDraft.data ? nextDraftInfo(newest?.season, newestDraft.data.draft) : null;
   const nextDraftYear = nextDraft ? Number(nextDraft.season) : preDraft ? Number(season) : Number(season) + 1;
   const draftDate = nextDraft?.startTime ? fmtEventDate(nextDraft.startTime) : null;
   const inSeason = league?.status === 'in_season';
-  const liveWeek = liveWeekFor({
-    status: league?.status,
-    playoffWeekStart: pws,
-    nflSeason: nflState.data?.season,
-    nflWeek: nflState.data?.week,
-    season,
-  });
-  const pulse = weeks.data ? weekPulse(weeks.data[liveWeek]) : null;
+  // The live week polls on its own; the 17-week bundle is the fallback until
+  // the first poll lands (and out of season, where there is nothing to poll).
+  const pulse = live.data ? weekPulse(live.data) : weeks.data ? weekPulse(weeks.data[liveWeek]) : null;
   const weekLive = inSeason && !!pulse && pulse.games > 0;
 
   const { champRoster, ruRoster } = titleGame(brackets.data?.winners);

@@ -10,6 +10,7 @@ import { h2h } from '@/features/league-history/model/h2h';
 import type { SeasonBundle } from '@/features/league-history/model/buildSeasonBundle';
 import type { League, TrimmedMatchup } from '@/shared/api/types';
 import type { StandingRow } from '@/entities/team/model/types';
+import { settleBundles } from './lib/league';
 import type { Snapshot } from './lib/league';
 
 const PWS = 3; // weeks 1–2 are regular season, 3+ is playoffs
@@ -93,14 +94,20 @@ export function makeSnapshot(overrides: Partial<Snapshot> = {}): Snapshot {
     ]),
   ];
 
+  const current = league('2024', 'in_season');
+  // Mirrors snapshot(): records and rivalries are built from the settled
+  // bundles, so a game still being played can't become an all-time record or
+  // a completed head-to-head win.
+  const settled = settleBundles(bundles, current, 2);
+
   return {
     chain: [league('2024', 'in_season'), league('2023', 'complete')],
     active: league('2024', 'in_season'),
-    current: league('2024', 'in_season'),
+    current,
     bundles,
     allTime: aggregateAllTime(bundles),
-    recs: recordBook(bundles),
-    h2h: h2h(bundles),
+    recs: recordBook(settled),
+    h2h: h2h(settled),
     nfl: { season: '2024', week: 2, season_type: 'regular' },
     liveWeek: 2,
     ...overrides,

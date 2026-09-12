@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { makeSnapshot } from './fixture';
 import { leagueBrief } from './lib/brief';
+import { looksWhole, settleBundles } from './lib/league';
 import { people, resolvePerson } from './lib/names';
 import { runTool, TOOLS } from './lib/tools';
 
@@ -22,6 +23,7 @@ vi.mock('./lib/players', () => ({
   // p3/p4 have no projection — the "not projected to play" case.
   weekProjections: vi.fn(async () => ({ p1: { pts_ppr: 18.3 }, p2: { pts_ppr: 21.34 } })),
 }));
+
 
 vi.mock('./lib/league', async (orig) => ({
   ...(await orig<typeof import('./lib/league')>()),
@@ -89,8 +91,17 @@ describe('league brief', () => {
   });
 
   it('counts streaks and wins as whole numbers, not scores', () => {
+    // 2 comes from the completed 2023 season, which the live week never touches.
     expect(brief).toContain('Longest win streak (reg. season): 2 —');
-    expect(brief).toContain('Most points, one week: 175.25 —');
+  });
+
+  it('keeps a game still being played out of the record book', () => {
+    // 175.25 is the live week's top score and would be the all-time high, but
+    // it is provisional — the record is the best SETTLED week, 140.75.
+    expect(brief).toContain('Most points, one week: 140.75 —');
+    expect(brief).not.toContain('Most points, one week: 175.25');
+    // It still shows as a live score in the week block, which is the point.
+    expect(brief).toContain('175.25 Dust Bowl');
   });
 
   it('names the scoring format and the playoff week', () => {
@@ -116,6 +127,52 @@ describe('league brief', () => {
     // The live scores still have to be there — they're the real state of play.
     expect(text).toContain('2024 WEEK 1');
     expect(text).toContain('120.50');
+  });
+});
+
+describe('settling the live week', () => {
+  const bundles = snap.bundles;
+  const inSeason = snap.current;
+
+  it('blanks only the live week of the season being played', () => {
+    const out = settleBundles(bundles, inSeason, 2);
+    const live = out.find((b) => b.season === '2024')!;
+    expect(live.weeks[0]).toHaveLength(4); // week 1 untouched
+    expect(live.weeks[1]).toHaveLength(0); // week 2 is live
+    // A different season keeps every week.
+    expect(out.find((b) => b.season === '2023')!.weeks[1]).toHaveLength(4);
+  });
+
+  it('is a no-op when no season is being played', () => {
+    const out = settleBundles(bundles, { ...inSeason, status: 'complete' }, 2);
+    expect(out).toBe(bundles);
+  });
+});
+
+describe('caching a completed season', () => {
+  const base = snap.bundles[1]!; // 2023, complete, pws 3 → title week 5
+  const played = base.weeks[0]!;
+  // A realistic finished season: every week through the title game has games.
+  const done = {
+    ...base,
+    status: 'complete' as const,
+    weeks: base.weeks.map((w, i) => (i < 5 ? played : w)),
+  };
+
+  it('accepts a season whose weeks all came back', () => {
+    expect(looksWhole(done)).toBe(true);
+  });
+
+  it('rejects one missing a single week, not just one missing all of them', () => {
+    // buildSeasonBundle swallows a failed week into []. The old check asked
+    // whether SOME week had entries, so a bundle with one hole passed and was
+    // then kept forever.
+    const holed = { ...done, weeks: done.weeks.map((w, i) => (i === 1 ? [] : w)) };
+    expect(looksWhole(holed)).toBe(false);
+  });
+
+  it('rejects a season with no champion — the bracket request failed', () => {
+    expect(looksWhole({ ...done, champ: null })).toBe(false);
   });
 });
 

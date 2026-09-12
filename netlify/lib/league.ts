@@ -82,8 +82,13 @@ function nflState(): Promise<NflState | null> {
     request and resolves with an empty array instead of rejecting, so a
     transient blip yields a hollow-but-successful bundle — which must not be
     the thing we keep forever. */
-function looksWhole(b: SeasonBundle): boolean {
-  return b.standings.length > 0 && b.champ !== null && b.weeks.some((w) => w.length > 0);
+export function looksWhole(b: SeasonBundle): boolean {
+  if (b.standings.length === 0 || b.champ === null) return false;
+  // EVERY week through the title game must be there. Checking "some week has
+  // entries" would pass a bundle missing exactly one failed week, and hold that
+  // hole — a whole week absent from H2H and the record book — forever.
+  const titleWeek = Math.min(b.pws + 2, 17);
+  return b.weeks.slice(0, titleWeek).every((w) => w.length > 0);
 }
 
 function bundleFor(lg: League): Promise<SeasonBundle> {
@@ -113,6 +118,17 @@ export function rostersFor(lg: League): Promise<{ rosters: Roster[]; users: Leag
   });
   rosterSlots.set(lg.league_id, slot);
   return slot.p;
+}
+
+/** The bundles with the in-progress week removed, for anything that states a
+    finished result. No-op unless a season is actually being played. */
+export function settleBundles(bundles: SeasonBundle[], current: League, liveWeek: number): SeasonBundle[] {
+  if (current.status !== 'in_season') return bundles;
+  return bundles.map((b) =>
+    b.season === current.season
+      ? { ...b, weeks: b.weeks.map((w, i) => (i + 1 === liveWeek ? [] : w)) }
+      : b,
+  );
 }
 
 export interface Snapshot {
@@ -146,16 +162,32 @@ export async function snapshot(): Promise<Snapshot> {
   const lgs = await chain(nfl);
   if (lgs.length === 0) throw new Error('Sleeper returned an empty league chain');
   const active = activeLeague(lgs) ?? lgs[0]!;
+  const current = newestLeague(lgs) ?? active;
   const bundles = await Promise.all(lgs.map(bundleFor));
+  const liveWeek = liveWeekFor({
+    status: active.status,
+    playoffWeekStart: active.settings?.playoff_week_start ?? 15,
+    nflSeason: nfl?.season,
+    nflWeek: nfl?.week,
+    season: active.season,
+  });
+
+  // Records and rivalries are claims about SETTLED games. A week in progress
+  // carries provisional scores, so feeding it to recordBook makes a 1-0 score
+  // early on a Sunday the all-time lowest week (or worst win, or a streak),
+  // and h2h hands whoever is currently ahead a completed win. Blank the live
+  // week for those two, and only those two: standings and the matchup tools
+  // still read `bundles` because showing the live score is the whole point.
+  const settled = settleBundles(bundles, current, liveWeek);
 
   return {
     chain: lgs,
-    current: newestLeague(lgs) ?? active,
+    current,
     active,
     bundles,
     allTime: aggregateAllTime(bundles),
-    recs: recordBook(bundles),
-    h2h: h2h(bundles),
+    recs: recordBook(settled),
+    h2h: h2h(settled),
     nfl,
     liveWeek: liveWeekFor({
       status: active.status,
