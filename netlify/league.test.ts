@@ -95,6 +95,19 @@ describe('league brief', () => {
     expect(text).toContain('has not started');
     expect(text).toContain('offseason');
   });
+
+  it('explains the 0-0 table in week 1 instead of printing it', () => {
+    // Sleeper only totals a week once it closes, so mid-week-1 every roster
+    // reads 0-0 / 0.00 even though games are being played.
+    const wk1 = makeSnapshot({ liveWeek: 1 });
+    wk1.bundles[0]!.standings = wk1.bundles[0]!.standings.map((r) => ({ ...r, w: 0, l: 0, t: 0, pf: 0, pa: 0 }));
+    const text = leagueBrief(wk1);
+    expect(text).toContain('no games decided yet');
+    expect(text).not.toMatch(/^1\. .* 0-0 {2}PF 0\.00/m);
+    // The live scores still have to be there — they're the real state of play.
+    expect(text).toContain('2024 WEEK 1');
+    expect(text).toContain('120.50');
+  });
 });
 
 describe('tools', () => {

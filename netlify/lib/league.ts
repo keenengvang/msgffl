@@ -11,9 +11,8 @@
  * Freshness mirrors the client's staleTime table: the chain is good for an
  * hour, a completed season is immutable, a live one is re-read every 5 minutes.
  */
-import { LEAGUE_ID } from '@/shared/config/constants';
 import { api } from '@/shared/api/sleeper';
-import { walkChain } from '@/entities/league/lib/walkChain';
+import { fetchChain } from '@/entities/league/lib/fetchChain';
 import { activeLeague } from '@/entities/league/lib/activeLeague';
 import { computeStandings, usersById } from '@/entities/team/lib/computeStandings';
 import { liveWeekFor } from '@/entities/matchup/lib/liveWeek';
@@ -51,8 +50,11 @@ let nflSlot: Slot<NflState | null> | null = null;
 const bundleSlots = new Map<string, Slot<SeasonBundle>>();
 const rosterSlots = new Map<string, Slot<{ rosters: Roster[]; users: LeagueUser[] }>>();
 
-function chain(): Promise<League[]> {
-  chainSlot = keep(chainSlot, HOUR, () => walkChain(LEAGUE_ID));
+/** Needs the NFL state: without it there is no forward auto-discovery, and the
+    chain stops at whatever season LEAGUE_ID names — which is a season behind
+    for most of the year. */
+function chain(ns: NflState | null): Promise<League[]> {
+  chainSlot = keep(chainSlot, HOUR, () => fetchChain(ns));
   return chainSlot.p;
 }
 
@@ -85,7 +87,7 @@ export function rostersFor(lg: League): Promise<{ rosters: Roster[]; users: Leag
 }
 
 export interface Snapshot {
-  /** Newest season first, as walkChain returns it. */
+  /** Newest season first, including the season auto-discovered by fetchChain. */
   chain: League[];
   /** The season the site shows by default. */
   active: League;
@@ -103,10 +105,14 @@ export interface Snapshot {
     recomputed per call rather than cached (they're pure and cheap over a
     handful of seasons) — the same rule the pages follow. */
 export async function snapshot(): Promise<Snapshot> {
-  const lgs = await chain();
+  // Sequential on purpose: the chain's forward auto-discovery needs to know
+  // what season the NFL is in, or it never finds the league Sleeper minted for
+  // this year and the analyst answers from last season.
+  const nfl = await nflState();
+  const lgs = await chain(nfl);
   if (lgs.length === 0) throw new Error('Sleeper returned an empty league chain');
   const active = activeLeague(lgs) ?? lgs[0]!;
-  const [bundles, nfl] = await Promise.all([Promise.all(lgs.map(bundleFor)), nflState()]);
+  const bundles = await Promise.all(lgs.map(bundleFor));
 
   return {
     chain: lgs,
