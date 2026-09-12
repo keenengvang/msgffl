@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useSavage, useVibes } from '@/shared/lib/vibes';
+import { useSavage } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { newestLeague } from '@/entities/league/lib/activeLeague';
 import { useStandings } from '@/entities/team/api/useStandings';
@@ -17,7 +17,6 @@ import styles from './HomePage.module.css';
 
 export function HomePage() {
   const savage = useSavage();
-  const { motion } = useVibes();
   const { season, league, chain } = useSeason();
   const { standings, isLoading, error } = useStandings(league);
   const brackets = useBrackets(league);
@@ -190,33 +189,24 @@ export function HomePage() {
             )}
           </div>
 
-          <div className={styles.radarCard}>
-            <div className={styles.radarDish}>
-              <div className={styles.radarRing1} />
-              <div className={styles.radarRing2} />
-              <div className={motion ? `${styles.radarSweep} ${styles.sweeping}` : styles.radarSweep} />
-              <div className={styles.blip1} />
-              <div className={styles.blip2} />
-              <div className={styles.blip3} />
+          <div className={styles.wrapHero}>
+            <div className={styles.cardHead}>
+              <span className={styles.cardTitle}>THE WEEKLY WRAP</span>
+              <Link to="/weekly-summary" className={styles.cardLink}>
+                READ IT →
+              </Link>
             </div>
-            <div className={styles.radarList}>
-              <span className={styles.cardTitle}>
-                {preDraft ? season : Number(season) + 1} THREAT RADAR
-              </span>
-              <div className={styles.radarLines}>
-                {preDraft ? (
-                  <div className={styles.radarLine}>
-                    <span style={{ color: 'var(--text-muted)' }}>▲ SCAN</span> NO READS — EVERYONE TALKS TOUGH IN JULY · PF —
-                  </div>
-                ) : (
-                  radarPool.map((r, i) => (
-                    <div key={r.rosterId} className={styles.radarLine}>
-                      <span style={{ color: radarLvls[i]?.[1] }}>▲ {radarLvls[i]?.[0]}</span> {r.team.toUpperCase()} · PF{' '}
-                      {fmt(r.pf)}
-                    </div>
-                  ))
-                )}
-              </div>
+            <div className={styles.wrapHeroBody}>
+              {weekly.data ? (
+                <>
+                  <span className={styles.wrapWeek}>WEEK {weekly.data.week || '—'}</span>
+                  <p className={styles.wrapHeroHeadline}>{weekly.data.headline}</p>
+                </>
+              ) : (
+                <p className={styles.wrapHeroHeadline}>
+                  {savage ? 'THE BOT HAS NOTHING FILED YET.' : 'No recap filed yet — check back soon.'}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -235,23 +225,22 @@ export function HomePage() {
             </div>
           </div>
 
-          <div className={styles.card}>
-            <div className={styles.cardHead}>
-              <span className={styles.cardTitle}>THE WEEKLY WRAP</span>
-              <Link to="/weekly-summary" className={styles.cardLink}>
-                READ IT →
-              </Link>
-            </div>
-            <div className={styles.wrapTeaser}>
-              {weekly.data ? (
-                <>
-                  <span className={styles.wrapWeek}>WEEK {weekly.data.week || '—'}</span>
-                  <p className={styles.wrapHeadline}>{weekly.data.headline}</p>
-                </>
+          <div className={styles.radarMini}>
+            <span className={styles.cardTitle}>
+              {preDraft ? season : Number(season) + 1} THREAT RADAR
+            </span>
+            <div className={styles.radarLines}>
+              {preDraft ? (
+                <div className={styles.radarLine}>
+                  <span style={{ color: 'var(--text-muted)' }}>▲ SCAN</span> NO READS — EVERYONE TALKS TOUGH IN JULY · PF —
+                </div>
               ) : (
-                <p className={styles.wrapHeadline}>
-                  {savage ? 'THE BOT HAS NOTHING FILED YET.' : 'No recap filed yet — check back soon.'}
-                </p>
+                radarPool.map((r, i) => (
+                  <div key={r.rosterId} className={styles.radarLine}>
+                    <span style={{ color: radarLvls[i]?.[1] }}>▲ {radarLvls[i]?.[0]}</span> {r.team.toUpperCase()} · PF{' '}
+                    {fmt(r.pf)}
+                  </div>
+                ))
               )}
             </div>
           </div>
