@@ -2,6 +2,13 @@
   "weeks": [
     {
       "season": "2026",
+      "week": 1,
+      "generatedAt": "2026-09-12T04:47:58Z",
+      "headline": "A DEFENSE AND A KICKER ARE WINNING THIS LEAGUE",
+      "file": "2026-w01.json"
+    },
+    {
+      "season": "2026",
       "week": 0,
       "generatedAt": "2026-09-12T00:00:00Z",
       "headline": "THE BOT HASN'T FILED ITS FIRST REPORT YET",
