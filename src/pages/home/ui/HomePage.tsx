@@ -72,26 +72,38 @@ export function HomePage() {
   ] as const;
 
   const intel: Array<{ p1: string; hi: string; hiCol: string; p2: string }> = [];
-  if (champ) intel.push({ p1: 'title_decided: ', hi: champ.team, hiCol: 'var(--text-primary)', p2: ` def. ${ru ? ru.team : '?'}` });
-  if (pfKing && pfKing.pf > 0) intel.push({ p1: `pf_record: ${pfKing.team} `, hi: fmt(pfKing.pf), hiCol: 'var(--text-primary)', p2: '' });
-  if (sacko && complete) intel.push({ p1: 'punishment_locked: ', hi: sacko.team, hiCol: 'var(--loss)', p2: savage ? ' — lawyer up' : '' });
+  if (champ) intel.push({ p1: 'title decided: ', hi: champ.team, hiCol: 'var(--text-primary)', p2: ` def. ${ru ? ru.team : '?'}` });
+  if (pfKing && pfKing.pf > 0) intel.push({ p1: `pf record: ${pfKing.team} `, hi: fmt(pfKing.pf), hiCol: 'var(--text-primary)', p2: '' });
+  if (sacko && complete) intel.push({ p1: 'punishment locked: ', hi: sacko.team, hiCol: 'var(--loss)', p2: savage ? ' — lawyer up' : '' });
   if (paMax && paMax.pa > 0) intel.push({ p1: `${paMax.team} allowed `, hi: fmt(paMax.pa), hiCol: 'var(--text-primary)', p2: savage ? ' pts. brutal.' : ' pts.' });
-  if (preDraft) intel.push({ p1: 'rosters: ', hi: 'empty', hiCol: 'var(--text-muted)', p2: ' · trash_talk: already flowing' });
+  if (preDraft) intel.push({ p1: 'rosters: ', hi: 'empty', hiCol: 'var(--text-muted)', p2: ' · trash talk: already flowing' });
   if (weekLive && pulse && pulse.scored > 0)
     intel.unshift({
-      p1: `week_${liveWeek}: `,
+      p1: `week ${liveWeek}: `,
       hi: `${pulse.scored}/${pulse.games} games live`,
       hiCol: 'var(--text-primary)',
       p2: pulse.top ? ` · top ${fmt(pulse.top.points)}` : '',
     });
-  intel.push(
-    draftDate
-      ? { p1: `draft_${nextDraftYear}: `, hi: draftDate.toLowerCase(), hiCol: 'var(--text-primary)', p2: ' █' }
-      : inSeason
-        ? // Sleeper hasn't minted next year's league yet — nothing to schedule.
-          { p1: `draft_${nextDraftYear}: `, hi: 'not on sleeper yet', hiCol: 'var(--text-muted)', p2: ' █' }
-        : { p1: `draft_${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' },
-  );
+  // Mid-season the next draft is a year out, so the playoff race takes the slot.
+  if (inSeason) {
+    const togo = pws - liveWeek;
+    intel.push(
+      togo > 0
+        ? {
+            p1: 'playoffs: ',
+            hi: `week ${pws}`,
+            hiCol: 'var(--text-primary)',
+            p2: ` · ${togo} week${togo === 1 ? '' : 's'} to sort it out █`,
+          }
+        : { p1: 'playoffs: ', hi: 'here', hiCol: 'var(--red)', p2: ' · win or go home █' },
+    );
+  } else {
+    intel.push(
+      draftDate
+        ? { p1: `draft ${nextDraftYear}: `, hi: draftDate.toLowerCase(), hiCol: 'var(--text-primary)', p2: ' █' }
+        : { p1: `draft ${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' },
+    );
+  }
 
   return (
     <div className="pageEnter">

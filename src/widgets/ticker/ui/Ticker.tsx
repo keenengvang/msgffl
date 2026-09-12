@@ -40,6 +40,7 @@ export function Ticker() {
     nextDraft: newestDraft.data ? nextDraftInfo(newest?.season, newestDraft.data.draft) : undefined,
     week,
     pulse: weeks.data ? weekPulse(weeks.data[week]) : undefined,
+    playoffWeekStart: league?.settings?.playoff_week_start ?? 15,
   });
 
   return (

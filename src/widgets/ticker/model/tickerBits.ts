@@ -15,6 +15,7 @@ interface TickerInput {
   /** The week the season is on, and what's on the board in it. */
   week?: number;
   pulse?: WeekPulse;
+  playoffWeekStart?: number;
 }
 
 /** The League Wire line. Mirrors legacy renderVals ticker logic. */
@@ -27,6 +28,7 @@ export function tickerText({
   nextDraft,
   week,
   pulse,
+  playoffWeekStart,
 }: TickerInput): string {
   const complete = status === 'complete';
   const preDraft = status === 'pre_draft' || status === 'drafting';
@@ -73,15 +75,21 @@ export function tickerText({
     bits.push('EVERYONE IS UNDEFEATED. ENJOY IT WHILE IT LASTS');
   }
 
-  if (nextDraft?.startTime) {
+  // While a season is running the next draft is a year out and Sleeper hasn't
+  // minted that league — the playoff race is the deadline that actually matters.
+  if (inSeason && week) {
+    const pws = playoffWeekStart ?? 15;
+    if (week < pws) {
+      const togo = pws - week;
+      bits.push(
+        `PLAYOFFS START WEEK ${pws} — ${togo} WEEK${togo === 1 ? '' : 'S'} ${savage ? 'TO FIX WHATEVER THAT ROSTER IS' : 'TO MAKE YOUR CASE'}`,
+      );
+    } else {
+      bits.push(`PLAYOFF FOOTBALL — WIN OR ${savage ? 'EXPLAIN YOURSELF' : 'GO HOME'}`);
+    }
+  } else if (nextDraft?.startTime) {
     bits.push(
       `DRAFT ${nextDraftYear}: ${fmtEventDate(nextDraft.startTime)}${savage ? ' — BE THERE OR GET AUTOPICKED' : ' — MARK YOUR CALENDAR'}`,
-    );
-  } else if (inSeason) {
-    // Mid-season the next draft is next summer, and Sleeper hasn't minted that
-    // league yet — nothing for the commish to set, so don't imply otherwise.
-    bits.push(
-      `DRAFT ${nextDraftYear}: NOT ON SLEEPER YET${savage ? ' — WORRY ABOUT THIS ROSTER FIRST' : ' — CHECK BACK NEXT SUMMER'}`,
     );
   } else {
     bits.push(`DRAFT ${nextDraftYear}: DATE TBD — COMMISH, SET IT`);
