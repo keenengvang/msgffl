@@ -1,7 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useVibes } from '@/shared/lib/vibes';
 import { MAX_MESSAGE_CHARS, useSendChat, type ChatTurn } from '../api/sendChat';
+import { parseInlineMarkdown } from '../model/parseInlineMarkdown';
 import styles from './ChatBot.module.css';
+
+/** Claude answers in prose that leans on bold and italic markdown for
+    emphasis; the bubble renders plain text otherwise (white-space: pre-wrap
+    already handles the line breaks), so only those two inline spans need
+    converting. */
+function renderTurn(content: string) {
+  return parseInlineMarkdown(content).map((token, i) => {
+    if (token.type === 'bold') return <strong key={i}>{token.value}</strong>;
+    if (token.type === 'italic') return <em key={i}>{token.value}</em>;
+    return <Fragment key={i}>{token.value}</Fragment>;
+  });
+}
 
 const COPY = {
   savage: {
@@ -121,7 +134,7 @@ export function ChatBot() {
           {turns.length === 0 && !send.isPending && <p className={styles.muted}>{copy.empty}</p>}
           {turns.map((turn, i) => (
             <p key={i} className={turn.role === 'user' ? styles.fromUser : styles.fromBot}>
-              {turn.content}
+              {turn.role === 'assistant' ? renderTurn(turn.content) : turn.content}
             </p>
           ))}
           {send.isPending && <p className={styles.muted}>{copy.thinking}</p>}
