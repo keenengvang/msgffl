@@ -61,8 +61,29 @@ anything is off, which surfaces as an error panel on the page. So:
 - `headline` is a string, `sections` an array of `{heading, body}` — both
   strings, no other keys read.
 - Index rows carry the same four fields plus `file`, the bare filename.
-- Bodies render as plain text in a `<p>`; markdown and HTML are not parsed and
-  will show as literal characters.
+- Bodies render as plain text; markdown and HTML are not parsed and will show as
+  literal characters.
+
+## Break the bodies into paragraphs
+
+The page renders each recap as a single-column article on a ~70-character
+measure, so a section body written as one unbroken block becomes one very tall
+paragraph — readable, but a wall.
+
+**Separate paragraphs inside a `body` with a blank line** (`\n\n` in the JSON
+string). Each one renders as its own `<p>` with proper spacing:
+
+```json
+{ "heading": "THE ZERO CLUB", "body": "Three teams put up a clean 0.00.\n\nBefore anyone starts the group chat, none of them rostered a Thursday player." }
+```
+
+Two or three paragraphs per section is the right texture for a 100–200 word
+section; a single short section can stay one paragraph. Break where the thought
+turns — a new team, a new joke, the twist — not at a fixed length. A single
+newline does *not* start a new paragraph; only a blank line does.
+
+This is presentation only. Bodies with no blank line still render correctly as
+one paragraph, which is what every recap filed before week 2 of 2026 does.
 
 ## Publishing
 
