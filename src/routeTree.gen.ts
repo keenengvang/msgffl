@@ -22,6 +22,7 @@ import { Route as BracketRouteImport } from './routes/bracket'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsOwnerIdRouteImport } from './routes/teams.$ownerId'
+import { Route as MatchupsWeekMatchupIdRouteImport } from './routes/matchups.$week.$matchupId'
 
 const WeeklySummaryRoute = WeeklySummaryRouteImport.update({
   id: '/weekly-summary',
@@ -88,13 +89,18 @@ const TeamsOwnerIdRoute = TeamsOwnerIdRouteImport.update({
   path: '/teams/$ownerId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MatchupsWeekMatchupIdRoute = MatchupsWeekMatchupIdRouteImport.update({
+  id: '/$week/$matchupId',
+  path: '/$week/$matchupId',
+  getParentRoute: () => MatchupsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bracket': typeof BracketRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
-  '/matchups': typeof MatchupsRoute
+  '/matchups': typeof MatchupsRouteWithChildren
   '/players': typeof PlayersRoute
   '/power': typeof PowerRoute
   '/rules': typeof RulesRoute
@@ -103,13 +109,14 @@ export interface FileRoutesByFullPath {
   '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams/': typeof TeamsIndexRoute
+  '/matchups/$week/$matchupId': typeof MatchupsWeekMatchupIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bracket': typeof BracketRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
-  '/matchups': typeof MatchupsRoute
+  '/matchups': typeof MatchupsRouteWithChildren
   '/players': typeof PlayersRoute
   '/power': typeof PowerRoute
   '/rules': typeof RulesRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams': typeof TeamsIndexRoute
+  '/matchups/$week/$matchupId': typeof MatchupsWeekMatchupIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,7 +133,7 @@ export interface FileRoutesById {
   '/bracket': typeof BracketRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
-  '/matchups': typeof MatchupsRoute
+  '/matchups': typeof MatchupsRouteWithChildren
   '/players': typeof PlayersRoute
   '/power': typeof PowerRoute
   '/rules': typeof RulesRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams/': typeof TeamsIndexRoute
+  '/matchups/$week/$matchupId': typeof MatchupsWeekMatchupIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams/'
+    | '/matchups/$week/$matchupId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams'
+    | '/matchups/$week/$matchupId'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams/'
+    | '/matchups/$week/$matchupId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -188,7 +200,7 @@ export interface RootRouteChildren {
   BracketRoute: typeof BracketRoute
   DraftRoute: typeof DraftRoute
   HistoryRoute: typeof HistoryRoute
-  MatchupsRoute: typeof MatchupsRoute
+  MatchupsRoute: typeof MatchupsRouteWithChildren
   PlayersRoute: typeof PlayersRoute
   PowerRoute: typeof PowerRoute
   RulesRoute: typeof RulesRoute
@@ -292,15 +304,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsOwnerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/matchups/$week/$matchupId': {
+      id: '/matchups/$week/$matchupId'
+      path: '/$week/$matchupId'
+      fullPath: '/matchups/$week/$matchupId'
+      preLoaderRoute: typeof MatchupsWeekMatchupIdRouteImport
+      parentRoute: typeof MatchupsRoute
+    }
   }
 }
+
+interface MatchupsRouteChildren {
+  MatchupsWeekMatchupIdRoute: typeof MatchupsWeekMatchupIdRoute
+}
+
+const MatchupsRouteChildren: MatchupsRouteChildren = {
+  MatchupsWeekMatchupIdRoute: MatchupsWeekMatchupIdRoute,
+}
+
+const MatchupsRouteWithChildren = MatchupsRoute._addFileChildren(
+  MatchupsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BracketRoute: BracketRoute,
   DraftRoute: DraftRoute,
   HistoryRoute: HistoryRoute,
-  MatchupsRoute: MatchupsRoute,
+  MatchupsRoute: MatchupsRouteWithChildren,
   PlayersRoute: PlayersRoute,
   PowerRoute: PowerRoute,
   RulesRoute: RulesRoute,

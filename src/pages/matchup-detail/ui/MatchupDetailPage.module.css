@@ -1,0 +1,136 @@
+.back {
+  cursor: pointer;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--text-primary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 22px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.avWin {
+  border: 2px solid var(--red);
+}
+
+.avLose {
+  border: 2px solid var(--hair2, rgba(255, 255, 255, 0.16));
+}
+
+.headStack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.teamName {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.owner {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.totalPts {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.roster {
+  display: flex;
+  flex-direction: column;
+}
+
+.groupLabel {
+  padding: 10px 18px 6px;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 7px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pos {
+  width: 34px;
+  text-align: center;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 3px 0;
+}
+
+.playerName {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nflTeam {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.playerPts {
+  width: 52px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-body);
+}
