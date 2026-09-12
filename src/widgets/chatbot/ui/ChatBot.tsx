@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSavage } from '@/shared/lib/vibes';
+import { useVibes } from '@/shared/lib/vibes';
 import { MAX_MESSAGE_CHARS, useSendChat, type ChatTurn } from '../api/sendChat';
 import styles from './ChatBot.module.css';
 
@@ -24,7 +24,8 @@ const COPY = {
     every turn (the Messages API is stateless), so Claude keeps the thread.
     Closing the popover keeps the transcript; a reload starts fresh. */
 export function ChatBot() {
-  const copy = useSavage() ? COPY.savage : COPY.polite;
+  const { snark } = useVibes();
+  const copy = snark !== 'polite' ? COPY.savage : COPY.polite;
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [draft, setDraft] = useState('');
   const send = useSendChat();
@@ -46,7 +47,7 @@ export function ChatBot() {
     setTurns(next);
     setDraft('');
     try {
-      const reply = await send.mutateAsync(next);
+      const reply = await send.mutateAsync({ messages: next, snark });
       setTurns([...next, { role: 'assistant', content: reply }]);
     } catch {
       // The thrown message renders below; the user's turn stays in the thread

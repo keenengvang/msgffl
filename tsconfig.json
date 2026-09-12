@@ -3,5 +3,13 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  /* Not used by `tsc -b` (the referenced projects carry their own paths) — this
+     is here so esbuild, which reads the nearest tsconfig.json when bundling the
+     Netlify functions, can resolve the `@/` alias in the src/ modules they
+     share. Without it the chat function fails to bundle. */
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  }
 }
