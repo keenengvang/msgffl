@@ -51,6 +51,7 @@ Families: **Archivo Black** (display) · **Barlow Condensed** 400–800 (heading
 | Team / card title | Barlow Condensed 700–800, 16–18px |
 | Nav item | Barlow Condensed 600, 14.5px, tracking .13em |
 | Body copy | Barlow 400–600, 14px / 1.55 |
+| Long-form prose | Barlow 400, 16px / 1.72 on a ≤68ch measure — **weekly recap only** |
 | Data & micro-labels | IBM Plex Mono, 12px (11px absolute floor) |
 
 **Rules:** nothing under 11px, ever. Letter-spacing (.16–.2em) only on uppercase condensed labels — never on body or mono content. All numerals in mono for alignment.
