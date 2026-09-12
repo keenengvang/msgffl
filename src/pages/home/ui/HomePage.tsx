@@ -192,20 +192,22 @@ export function HomePage() {
               FULL TABLE →
             </Link>
           </div>
-          {stand.slice(0, 6).map((r, i) => (
-            <div key={r.rosterId} className={styles.homeRow}>
-              <span className={`${styles.homeRank} ${i < 4 ? styles.rankHot : styles.rankCold}`}>{i + 1}</span>
-              <TeamAvatar src={r.avatar} size={22} />
-              <span className={styles.homeTeam}>
-                {r.team}{' '}
-                {champ && r.rosterId === champ.rosterId && <span className={styles.champChip}>★ CHAMP</span>}
-              </span>
-              <span className={styles.homeWl}>
-                {r.w}–{r.l}
-              </span>
-              <span className={styles.homePf}>{fmt(r.pf)}</span>
-            </div>
-          ))}
+          <div className={styles.standingsBody}>
+            {stand.map((r, i) => (
+              <div key={r.rosterId} className={styles.homeRow}>
+                <span className={`${styles.homeRank} ${i < 4 ? styles.rankHot : styles.rankCold}`}>{i + 1}</span>
+                <TeamAvatar src={r.avatar} size={22} />
+                <span className={styles.homeTeam}>
+                  {r.team}{' '}
+                  {champ && r.rosterId === champ.rosterId && <span className={styles.champChip}>★ CHAMP</span>}
+                </span>
+                <span className={styles.homeWl}>
+                  {r.w}–{r.l}
+                </span>
+                <span className={styles.homePf}>{fmt(r.pf)}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className={styles.sideCol}>
