@@ -120,6 +120,13 @@ export function rostersFor(lg: League): Promise<{ rosters: Roster[]; users: Leag
   return slot.p;
 }
 
+/** A season counts toward a career only once it is being played. Sleeper mints
+    the next league months early, and counting that pre-draft bundle gives every
+    manager an extra "season played" for a year nobody has lined up for yet. */
+export function hasStarted(b: SeasonBundle): boolean {
+  return b.status !== 'pre_draft' && b.status !== 'drafting';
+}
+
 /** The bundles with the in-progress week removed, for anything that states a
     finished result. No-op unless a season is actually being played. */
 export function settleBundles(bundles: SeasonBundle[], current: League, liveWeek: number): SeasonBundle[] {
@@ -178,14 +185,17 @@ export async function snapshot(): Promise<Snapshot> {
   // and h2h hands whoever is currently ahead a completed win. Blank the live
   // week for those two, and only those two: standings and the matchup tools
   // still read `bundles` because showing the live score is the whole point.
-  const settled = settleBundles(bundles, current, liveWeek);
+  // Career totals cover seasons that have actually started. `bundles` keeps
+  // the pre-draft season, because that's where current rosters live.
+  const played = bundles.filter(hasStarted);
+  const settled = settleBundles(played, current, liveWeek);
 
   return {
     chain: lgs,
     current,
     active,
     bundles,
-    allTime: aggregateAllTime(bundles),
+    allTime: aggregateAllTime(played),
     recs: recordBook(settled),
     h2h: h2h(settled),
     nfl,

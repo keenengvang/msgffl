@@ -184,6 +184,23 @@ describe('chat function', () => {
       expect(next.status).toBe(200);
     });
 
+    it('never returns pre-tool preamble as the answer', async () => {
+      // Claude often says "let me check" in the same message as a tool_use
+      // block. That text is not an answer, and returning it would ship a
+      // confident-looking non-answer with a 200.
+      create.mockResolvedValueOnce({
+        content: [
+          { type: 'text', text: 'Let me check that for you.' },
+          { type: 'tool_use', id: 'tool-1', name: 'get_season', input: { season: '2023' } },
+        ],
+      });
+      create.mockResolvedValueOnce(say('Boom Squad won it.'));
+
+      const res = await handler(post({ messages: [turn('who won 2023?')] }, '7.7.8.2'));
+
+      expect(await res.json()).toEqual({ text: 'Boom Squad won it.' });
+    });
+
     it('leaves a short reply untouched', async () => {
       create.mockResolvedValue(say('Short and rude.'));
       const res = await handler(post({ messages: [turn('hi')] }, '7.7.8.1'));

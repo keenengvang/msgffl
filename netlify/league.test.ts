@@ -245,6 +245,31 @@ describe('tools', () => {
     expect(data.playoffs).toBe(false);
   });
 
+  it('get_matchups calls a live game a leader, never a winner', async () => {
+    // The fixture's live week is 2024 week 2.
+    const { data } = await call('get_matchups', { week: 2, season: '2024' });
+    expect(data.inProgress).toBe(true);
+    expect(data.games[0].winner).toBeUndefined();
+    expect(data.games[0].leader).toBe('Boom Squad');
+    expect(data.note).toContain('still being played');
+  });
+
+  it('get_matchups reports a winner once the week is settled', async () => {
+    const { data } = await call('get_matchups', { week: 1, season: '2024' });
+    expect(data.inProgress).toBe(false);
+    expect(data.games[0].winner).toBe('Boom Squad');
+    expect(data.games[0].leader).toBeUndefined();
+  });
+
+  it('get_team lists only seasons that have started', async () => {
+    // Sleeper mints next season's league months early; it is not a season played.
+    const preDraft = makeSnapshot({ current: { ...snap.current, status: 'pre_draft' } });
+    preDraft.bundles = [{ ...preDraft.bundles[0]!, status: 'pre_draft' }, preDraft.bundles[1]!];
+    const out = await runTool('get_team', { team: 'alice' }, preDraft);
+    const data = JSON.parse(out.content);
+    expect(data.seasons.map((s: { season: string }) => s.season)).toEqual(['2023']);
+  });
+
   it('get_matchups defaults to the current season and rejects a bad week', async () => {
     expect((await call('get_matchups', { week: 2 })).data.season).toBe('2024');
     expect((await call('get_matchups', { week: 44 })).isError).toBe(true);

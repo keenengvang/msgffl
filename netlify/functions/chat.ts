@@ -159,12 +159,15 @@ export default async function handler(req: Request): Promise<Response> {
   const thread: Anthropic.MessageParam[] = [...messages];
 
   try {
-    let text = '';
+    // Only ever set from a response with no pending tool calls. Claude often
+    // says "let me check that" BEFORE a tool_use block, and returning that
+    // preamble as the answer would ship a confident-looking non-answer.
+    let answer = '';
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const left = deadline - Date.now();
-      // Out of time with an answer already in hand: return it rather than
-      // start a round we can't finish.
-      if (left <= 0 && text) break;
+      // Out of time with a real answer in hand: return it rather than start a
+      // round we can't finish.
+      if (left <= 0 && answer) break;
 
       // Past the deadline, drop the tools so the model has to answer in words
       // rather than starting another round we don't have time to finish.
@@ -184,14 +187,18 @@ export default async function handler(req: Request): Promise<Response> {
         { timeout: Math.max(MIN_CALL_MS, left) },
       );
 
-      text = message.content
+      const said = message.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
         .join('\n')
         .trim();
 
       const calls = message.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-      if (calls.length === 0 || !snap) break;
+      if (calls.length === 0 || !snap) {
+        answer = said;
+        break;
+      }
+      // `said` alongside tool calls is preamble, not a finished answer.
 
       thread.push({ role: 'assistant', content: message.content });
       // Parallel calls must come back as tool_result blocks in ONE user message,
@@ -216,7 +223,7 @@ export default async function handler(req: Request): Promise<Response> {
       // than that would be rejected on the NEXT question and every one after,
       // bricking the thread — so never emit what our own validator would
       // refuse. max_tokens allows far more than MAX_CHARS of prose.
-      text: clampReply(text) || "The analyst went quiet. Ask that again, maybe with fewer moving parts.",
+      text: clampReply(answer) || "The analyst went quiet. Ask that again, maybe with fewer moving parts.",
     });
   } catch (err) {
     const status = err instanceof Anthropic.APIError ? err.status : undefined;

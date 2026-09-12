@@ -16,7 +16,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { ptsKey } from '@/entities/league/lib/ptsKey';
 import { pairMatchups } from '@/entities/matchup/lib/pairMatchups';
 import { weekTags } from '@/entities/matchup/lib/weekTags';
-import { bundleOf, rostersFor, type Snapshot } from './league';
+import { bundleOf, hasStarted, rostersFor, type Snapshot } from './league';
 import { people, resolvePerson, type Person } from './names';
 import { playerIndex, seasonStats, weekProjections, type Projections } from './players';
 
@@ -133,6 +133,9 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
 
   const agg = snap.allTime.agg[who.ownerId];
   const seasons = snap.bundles
+    // Seasons the manager has actually played: a pre-draft season would list a
+    // 0-0 record and a seed that is only sort order.
+    .filter(hasStarted)
     .map((b) => {
       const i = b.standings.findIndex((r) => r.ownerId === who.ownerId);
       if (i < 0) return null;
@@ -227,17 +230,26 @@ function getMatchups(snap: Snapshot, week: number, season?: string): ToolOutcome
   const pairs = pairMatchups(b.weeks[week - 1] ?? []);
   if (pairs.length === 0) return ok({ season: s, week, played: false, games: [] });
   const tags = weekTags(pairs);
+  // The week being played right now has provisional scores. Reporting a
+  // `winner` here would tell the model a game in progress is already decided —
+  // the same trap the record book and head-to-head paths already avoid.
+  const live = snap.current.status === 'in_season' && s === snap.current.season && week === snap.liveWeek;
 
   return ok({
     season: s,
     week,
     playoffs: week >= b.pws,
+    inProgress: live,
+    ...(live
+      ? { note: 'This week is still being played — these are live scores, so report a leader, never a winner.' }
+      : {}),
     games: pairs.map(([x, y]) => {
       const [hi, lo] = x.p >= y.p ? [x, y] : [y, x];
+      const ahead = hi.p === lo.p ? null : (b.names[hi.r]?.team ?? '?');
       return {
         home: { team: b.names[x.r]?.team ?? '?', manager: b.names[x.r]?.owner ?? '?', points: n2(x.p) },
         away: { team: b.names[y.r]?.team ?? '?', manager: b.names[y.r]?.owner ?? '?', points: n2(y.p) },
-        winner: hi.p === lo.p ? null : (b.names[hi.r]?.team ?? '?'),
+        ...(live ? { leader: ahead } : { winner: ahead }),
         margin: n2(hi.p - lo.p),
         // Precedence when a game holds several: NUKE > MASSACRE > PHOTO FINISH.
         tag:
