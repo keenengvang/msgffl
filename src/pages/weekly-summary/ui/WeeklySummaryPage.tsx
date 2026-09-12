@@ -7,6 +7,7 @@ import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
 import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
 import { groupBySeason } from '../model/groupBySeason';
+import { splitParagraphs } from '../model/splitParagraphs';
 import styles from './WeeklySummaryPage.module.css';
 
 export function WeeklySummaryPage() {
@@ -39,46 +40,19 @@ export function WeeklySummaryPage() {
       )}
 
       {!index.error && entries.length > 0 && (
-        <div className={styles.layout}>
-          <div className={styles.main}>
-            {summary.error && <ErrorPanel error={summary.error} onRetry={() => summary.refetch()} />}
-            {!summary.error && (summary.isLoading || !summary.data) && <LoadingQuip />}
-            {!summary.error && summary.data && (
-              <div className={styles.wrap}>
-                <div className={styles.meta}>
-                  <span className={`uLabel ${styles.badge}`}>WEEK {summary.data.week || '—'}</span>
-                  <span className={styles.dim}>·</span>
-                  <span className={styles.dim}>{summary.data.season}</span>
-                  <span className={styles.dim}>·</span>
-                  <span className={`uMono ${styles.dim}`}>{new Date(summary.data.generatedAt).toLocaleString()}</span>
-                </div>
-                <h2 className={styles.headline}>{summary.data.headline}</h2>
-                {summary.data.sections.length === 0 ? (
-                  <EmptyState title={savage ? 'THE BOT FILED NOTHING' : 'Nothing here yet'} />
-                ) : (
-                  <div className={styles.sections}>
-                    {summary.data.sections.map((s) => (
-                      <div key={s.heading} className={styles.card}>
-                        <div className={styles.cardHead}>{s.heading}</div>
-                        <p className={styles.body}>{s.body}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className={styles.archive}>
-            <span className="uLabel">ARCHIVE</span>
+        <>
+          {/* Archive sits above the article as one flat strip so the recap column stays
+              centred on its own measure — a side rail shoves the prose off-axis. */}
+          <nav className={styles.archive} aria-label="Recap archive">
             {groups.map((g) => (
               <div key={g.season} className={styles.seasonGroup}>
-                <span className={styles.seasonLabel}>{g.season}</span>
+                <span className={`uMono ${styles.seasonLabel}`}>{g.season}</span>
                 <div className={styles.weekPills}>
                   {g.weeks.map((w) => (
                     <button
                       key={w.file}
                       type="button"
+                      aria-current={w.file === activeFile ? 'true' : undefined}
                       className={w.file === activeFile ? `${styles.weekPill} ${styles.weekPillActive}` : styles.weekPill}
                       onClick={() => setSelectedFile(w.file)}
                     >
@@ -88,8 +62,42 @@ export function WeeklySummaryPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
+          </nav>
+
+          {summary.error && <ErrorPanel error={summary.error} onRetry={() => summary.refetch()} />}
+          {!summary.error && (summary.isLoading || !summary.data) && <LoadingQuip />}
+          {!summary.error && summary.data && (
+            <article className={styles.article}>
+              <header className={styles.articleHead}>
+                <div className={styles.dateline}>
+                  <span className={`uLabel ${styles.badge}`}>WEEK {summary.data.week || '—'}</span>
+                  <span className={styles.sep}>·</span>
+                  <span className={`uMono ${styles.dim}`}>{summary.data.season}</span>
+                  <span className={styles.sep}>·</span>
+                  <span className={`uMono ${styles.dim}`}>
+                    {new Date(summary.data.generatedAt).toLocaleString()}
+                  </span>
+                </div>
+                <h2 className={styles.headline}>{summary.data.headline}</h2>
+              </header>
+
+              {summary.data.sections.length === 0 ? (
+                <EmptyState title={savage ? 'THE BOT FILED NOTHING' : 'Nothing here yet'} />
+              ) : (
+                summary.data.sections.map((s) => (
+                  <section key={s.heading} className={styles.section}>
+                    <h3 className={styles.subhead}>{s.heading}</h3>
+                    {splitParagraphs(s.body).map((p, i) => (
+                      <p key={i} className={styles.body}>
+                        {p}
+                      </p>
+                    ))}
+                  </section>
+                ))
+              )}
+            </article>
+          )}
+        </>
       )}
     </div>
   );
