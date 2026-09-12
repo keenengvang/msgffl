@@ -27,8 +27,14 @@ const MODEL = 'claude-sonnet-5';
 const MAX_TURNS = 40; // whole conversation
 const MAX_CHARS = 2000; // per message
 const MAX_TOOL_ROUNDS = 4; // tool → answer hops before we cut it off
-const DEADLINE_MS = 8_500; // leave headroom inside Netlify's ~10s function cap
-const MIN_CALL_MS = 2_000; // even past the deadline, give a final call a chance to land
+/* Budget. The deadline exists to guarantee a controlled answer before the
+   platform kills the request, so it belongs just under the real limit — not at
+   an arbitrary low number. It was 8.5s on the assumption of a 10s cap; a
+   measured cold request returned 200 at 24.2s, so the cap is higher than that
+   and the tight budget was starving the model call instead of protecting it.
+   Warm requests measure 2-5s and never come near any of this. */
+const DEADLINE_MS = 20_000;
+const MIN_CALL_MS = 5_000; // never leave the model less than this to answer in
 const TOOL_FLOOR_MS = 500; // a warm tool answers in ms; don't kill one on a rounding error
 
 const PERSONA = {
@@ -171,7 +177,11 @@ export default async function handler(req: Request): Promise<Response> {
     },
   );
 
-  const client = new Anthropic({ apiKey });
+  // We own the budget, so the SDK must not quietly multiply it: its default of
+  // 2 retries turns a per-request timeout into three of them plus backoff,
+  // which is how a cold request reached 24s against an 8.5s deadline. One
+  // retry covers a genuine blip; past that we'd rather answer than keep trying.
+  const client = new Anthropic({ apiKey, maxRetries: 1 });
   const system = systemFor(snark, snap ? leagueBrief(snap) : null);
   const thread: Anthropic.MessageParam[] = [...messages];
 
