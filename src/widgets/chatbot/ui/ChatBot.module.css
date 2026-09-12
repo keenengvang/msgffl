@@ -161,6 +161,16 @@
   border: 1px solid var(--hairline);
 }
 
+.fromBot strong {
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.fromBot em {
+  font-style: italic;
+  color: var(--text-primary);
+}
+
 .muted {
   margin: 0;
   font-family: var(--font-body);
