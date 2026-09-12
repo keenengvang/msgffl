@@ -1,4 +1,4 @@
-import { getRouteApi } from '@tanstack/react-router';
+import { Link, getRouteApi } from '@tanstack/react-router';
 import { useSavage } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { useNflState } from '@/entities/league/api/useNflState';
@@ -97,27 +97,33 @@ export function MatchupsPage() {
             variant = 'close';
           }
           return (
-            <MatchupCard
+            <Link
               key={String(a.m)}
-              tag={tag}
-              tagVariant={variant}
-              mid={done ? `FINAL · MARGIN ${fmt(Math.abs(a.p - b.p))}` : 'NOT PLAYED'}
-              done={done}
-              a={{
-                avatar: na?.avatar ?? '',
-                name: na?.team ?? `Roster ${a.r}`,
-                owner: na?.owner ?? '',
-                pts: done ? fmt(a.p) : '—',
-                win: a.p > b.p,
-              }}
-              b={{
-                avatar: nb?.avatar ?? '',
-                name: nb?.team ?? `Roster ${b.r}`,
-                owner: nb?.owner ?? '',
-                pts: done ? fmt(b.p) : '—',
-                win: b.p > a.p,
-              }}
-            />
+              to="/matchups/$week/$matchupId"
+              params={{ week: String(week), matchupId: String(a.m) }}
+              className={styles.cardLink}
+            >
+              <MatchupCard
+                tag={tag}
+                tagVariant={variant}
+                mid={done ? `FINAL · MARGIN ${fmt(Math.abs(a.p - b.p))}` : 'NOT PLAYED'}
+                done={done}
+                a={{
+                  avatar: na?.avatar ?? '',
+                  name: na?.team ?? `Roster ${a.r}`,
+                  owner: na?.owner ?? '',
+                  pts: done ? fmt(a.p) : '—',
+                  win: a.p > b.p,
+                }}
+                b={{
+                  avatar: nb?.avatar ?? '',
+                  name: nb?.team ?? `Roster ${b.r}`,
+                  owner: nb?.owner ?? '',
+                  pts: done ? fmt(b.p) : '—',
+                  win: b.p > a.p,
+                }}
+              />
+            </Link>
           );
         })}
       </div>

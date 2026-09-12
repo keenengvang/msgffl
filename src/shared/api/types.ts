@@ -55,6 +55,12 @@ export interface Matchup {
   matchup_id: number | null;
   roster_id: number;
   points?: number;
+  /** Full-roster fields, only read by the matchup detail view — everything
+      else trims a Matchup down to {matchup_id, roster_id, points} before it
+      enters the cache (see useSeasonWeeks/useLiveWeek). */
+  starters?: string[];
+  players?: string[];
+  players_points?: Record<string, number>;
 }
 
 export interface Draft {

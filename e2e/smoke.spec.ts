@@ -39,3 +39,11 @@ test('team detail opens from the teams grid', async ({ page }) => {
   await expect(page.getByText(/CAREER LEDGER/i)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/RIVALRY LEDGER/i)).toBeVisible();
 });
+
+test('matchup detail opens from the matchups grid', async ({ page }) => {
+  await page.goto('/matchups?season=2024&week=14');
+  await page.getByText(/FINAL · MARGIN/i).first().waitFor();
+  await page.locator('a[href*="/matchups/14/"]').first().click();
+  await expect(page.getByText(/STARTERS/i).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/← WEEK 14/i)).toBeVisible();
+});

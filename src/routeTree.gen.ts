@@ -22,6 +22,7 @@ import { Route as BracketRouteImport } from './routes/bracket'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsOwnerIdRouteImport } from './routes/teams.$ownerId'
+import { Route as MatchupsWeekMatchupIdRouteImport } from './routes/matchups_.$week.$matchupId'
 
 const WeeklySummaryRoute = WeeklySummaryRouteImport.update({
   id: '/weekly-summary',
@@ -88,6 +89,11 @@ const TeamsOwnerIdRoute = TeamsOwnerIdRouteImport.update({
   path: '/teams/$ownerId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MatchupsWeekMatchupIdRoute = MatchupsWeekMatchupIdRouteImport.update({
+  id: '/matchups_/$week/$matchupId',
+  path: '/matchups/$week/$matchupId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams/': typeof TeamsIndexRoute
+  '/matchups/$week/$matchupId': typeof MatchupsWeekMatchupIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams': typeof TeamsIndexRoute
+  '/matchups/$week/$matchupId': typeof MatchupsWeekMatchupIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams/': typeof TeamsIndexRoute
+  '/matchups_/$week/$matchupId': typeof MatchupsWeekMatchupIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams/'
+    | '/matchups/$week/$matchupId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams'
+    | '/matchups/$week/$matchupId'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams/'
+    | '/matchups_/$week/$matchupId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   WeeklySummaryRoute: typeof WeeklySummaryRoute
   TeamsOwnerIdRoute: typeof TeamsOwnerIdRoute
   TeamsIndexRoute: typeof TeamsIndexRoute
+  MatchupsWeekMatchupIdRoute: typeof MatchupsWeekMatchupIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsOwnerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/matchups_/$week/$matchupId': {
+      id: '/matchups_/$week/$matchupId'
+      path: '/matchups/$week/$matchupId'
+      fullPath: '/matchups/$week/$matchupId'
+      preLoaderRoute: typeof MatchupsWeekMatchupIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,6 +329,7 @@ const rootRouteChildren: RootRouteChildren = {
   WeeklySummaryRoute: WeeklySummaryRoute,
   TeamsOwnerIdRoute: TeamsOwnerIdRoute,
   TeamsIndexRoute: TeamsIndexRoute,
+  MatchupsWeekMatchupIdRoute: MatchupsWeekMatchupIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
