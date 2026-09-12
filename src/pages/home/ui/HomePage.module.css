@@ -229,7 +229,7 @@
 /* All 14 teams render, not just the top of the table — capped and scrollable
    so a 14-team league doesn't blow out the card's height on the home grid. */
 .standingsBody {
-  max-height: 336px;
+  max-height: 450px;
   overflow-y: auto;
 }
 
