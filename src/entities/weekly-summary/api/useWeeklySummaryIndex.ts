@@ -6,7 +6,14 @@ import type { WeeklySummaryIndex, WeeklySummaryIndexEntry } from '../model/types
 
 function isIndexEntry(v: unknown): v is WeeklySummaryIndexEntry {
   const e = v as Partial<WeeklySummaryIndexEntry> | null;
-  return !!e && typeof e.season === 'string' && typeof e.week === 'number' && typeof e.file === 'string';
+  return (
+    !!e &&
+    typeof e.season === 'string' &&
+    typeof e.week === 'number' &&
+    typeof e.generatedAt === 'string' &&
+    typeof e.headline === 'string' &&
+    typeof e.file === 'string'
+  );
 }
 
 function isWeeklySummaryIndex(v: unknown): v is WeeklySummaryIndex {

@@ -251,7 +251,13 @@ export function HomePage() {
               </Link>
             </div>
             <div className={styles.wrapHeroBody}>
-              {latestWeekly ? (
+              {weeklyIndex.isLoading ? (
+                <p className={styles.wrapHeroHeadline}>{savage ? "PULLING THE BOT'S NOTES…" : "loading this week's recap…"}</p>
+              ) : weeklyIndex.error ? (
+                <p className={styles.wrapHeroHeadline}>
+                  {savage ? "HQ COULDN'T REACH THE BOT." : "Couldn't load the recap right now."}
+                </p>
+              ) : latestWeekly ? (
                 <>
                   <span className={styles.wrapWeek}>
                     {latestWeekly.season} · WEEK {latestWeekly.week || '—'}
