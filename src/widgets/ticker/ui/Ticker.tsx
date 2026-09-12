@@ -6,7 +6,7 @@ import { useStandings } from '@/entities/team/api/useStandings';
 import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
-import { useLiveWeek, useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
+import { useLiveWeek } from '@/entities/matchup/api/useSeasonWeeks';
 import { liveWeekFor, weekPulse } from '@/entities/matchup/lib/liveWeek';
 import { tickerText } from '../model/tickerBits';
 import styles from './Ticker.module.css';
@@ -18,7 +18,6 @@ export function Ticker() {
   const nflState = useNflState();
   const { standings } = useStandings(league);
   const brackets = useBrackets(league);
-  const weeks = useSeasonWeeks(league);
   // The upcoming draft lives on the chain's newest league, not the viewed season.
   const newest = newestLeague(chain);
   const newestDraft = useDraft(newest);
@@ -42,7 +41,7 @@ export function Ticker() {
     week,
     // Live week first (it polls); the 17-week bundle covers the gap before the
     // first poll lands and out of season, where nothing is polling.
-    pulse: live.data?.length ? weekPulse(live.data) : weeks.data ? weekPulse(weeks.data[week]) : undefined,
+    pulse: live.data?.length ? weekPulse(live.data) : undefined,
     playoffWeekStart: league?.settings?.playoff_week_start ?? 15,
   });
 

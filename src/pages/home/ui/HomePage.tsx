@@ -8,7 +8,7 @@ import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
 import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
-import { useLiveWeek, useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
+import { useLiveWeek } from '@/entities/matchup/api/useSeasonWeeks';
 import { liveWeekFor, weekPulse } from '@/entities/matchup/lib/liveWeek';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
@@ -27,7 +27,6 @@ export function HomePage() {
   const newest = newestLeague(chain);
   const newestDraft = useDraft(newest);
   const nflState = useNflState();
-  const weeks = useSeasonWeeks(league);
   // Hoisted above the early returns: useLiveWeek is a hook, so it can't sit
   // below them, and it needs the week number.
   const pws = league?.settings?.playoff_week_start ?? 15;
@@ -53,7 +52,7 @@ export function HomePage() {
   const inSeason = league?.status === 'in_season';
   // The live week polls on its own; the 17-week bundle is the fallback until
   // the first poll lands (and out of season, where there is nothing to poll).
-  const pulse = live.data?.length ? weekPulse(live.data) : weeks.data ? weekPulse(weeks.data[liveWeek]) : null;
+  const pulse = live.data?.length ? weekPulse(live.data) : null;
   const weekLive = inSeason && !!pulse && pulse.games > 0;
 
   const { champRoster, ruRoster } = titleGame(brackets.data?.winners);
@@ -166,14 +165,13 @@ export function HomePage() {
             <span className={styles.snapLabel}>Next event</span>
             <span className={styles.nextEvent}>
               {/* In season, the next event is never next year's draft. weekLive
-                  is false while the 17 matchup requests are still in flight and
-                  if they fail (useSeasonWeeks resolves to an empty array), so
-                  without the inSeason branch those states advertise a draft a
-                  year out on a page that is otherwise talking about this week. */}
+                  is false while the live-week request is in flight and if it
+                  fails, so without the inSeason branch those states advertise a
+                  draft a year out on a page otherwise talking about this week. */}
               {weekLive && pulse
                 ? `WEEK ${liveWeek} — ${pulse.scored > 0 ? 'IN PROGRESS' : 'KICKOFF PENDING'}`
                 : inSeason
-                  ? `WEEK ${liveWeek} — ${weeks.isPending ? 'LOADING' : 'SCHEDULED'}`
+                  ? `WEEK ${liveWeek} — ${live.isPending ? 'LOADING' : 'SCHEDULED'}`
                   : `DRAFT ${nextDraftYear} — ${draftDate ?? 'TBD'}`}
             </span>
           </div>

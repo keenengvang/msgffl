@@ -82,7 +82,12 @@ function allTimeBlock(snap: Snapshot): string {
 function titlesBlock(snap: Snapshot): string {
   return snap.bundles
     .map((b) => {
-      if (b.status !== 'complete') return `${b.season}: in progress`;
+      // Sleeper mints next season's league months early. Calling that "in
+      // progress" had the brief claim a future season was underway while also
+      // naming an earlier one as current.
+      if (b.status !== 'complete') {
+        return `${b.season}: ${b.status === 'in_season' ? 'in progress' : 'not started yet'}`;
+      }
       const champ = b.champ ? `${b.champ.team} (${b.champ.owner})` : 'unknown';
       const ru = b.ru ? `, runner-up ${b.ru.team} (${b.ru.owner})` : '';
       // The sacko badge is only real once the season is actually over.

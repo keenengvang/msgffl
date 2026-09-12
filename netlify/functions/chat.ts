@@ -29,6 +29,7 @@ const MAX_CHARS = 2000; // per message
 const MAX_TOOL_ROUNDS = 4; // tool → answer hops before we cut it off
 const DEADLINE_MS = 8_500; // leave headroom inside Netlify's ~10s function cap
 const MIN_CALL_MS = 2_000; // even past the deadline, give a final call a chance to land
+const TOOL_FLOOR_MS = 500; // a warm tool answers in ms; don't kill one on a rounding error
 
 const PERSONA = {
   savage:
@@ -219,17 +220,32 @@ export default async function handler(req: Request): Promise<Response> {
       thread.push({ role: 'assistant', content: message.content });
       // Parallel calls must come back as tool_result blocks in ONE user message,
       // or the model quietly stops making parallel calls.
-      const results = await Promise.all(
-        calls.map(async (call): Promise<Anthropic.ToolResultBlockParam> => {
-          const outcome = await runTool(call.name, call.input, snap);
-          return {
-            type: 'tool_result',
-            tool_use_id: call.id,
-            content: outcome.content,
-            ...(outcome.isError ? { is_error: true } : {}),
-          };
-        }),
-      );
+      // Tools reach Sleeper through a bare fetch with no timeout of its own —
+      // a cold get_team pulls rosters, the 5MB player db, stats and
+      // projections — so this await needs the same bound as the model call.
+      // Without it a stalled upstream runs past the platform limit and none of
+      // our fallbacks get to run.
+      let results: Anthropic.ToolResultBlockParam[];
+      try {
+        results = await withTimeout(
+          Promise.all(
+            calls.map(async (call): Promise<Anthropic.ToolResultBlockParam> => {
+              const outcome = await runTool(call.name, call.input, snap);
+              return {
+                type: 'tool_result',
+                tool_use_id: call.id,
+                content: outcome.content,
+                ...(outcome.isError ? { is_error: true } : {}),
+              };
+            }),
+          ),
+          Math.max(TOOL_FLOOR_MS, deadline - Date.now()),
+          'tools',
+        );
+      } catch (err) {
+        console.error('tool execution exceeded the budget', err);
+        break;
+      }
       thread.push({ role: 'user', content: results });
     }
 
