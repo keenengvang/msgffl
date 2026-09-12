@@ -87,6 +87,7 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
   | stats/{season} | complete ? ∞ : 6 h | yes | past seasons never change |
   | players-trimmed | 7 days | yes | see below |
   | season-bundle | complete ? ∞ : 10 min | yes | history feature |
+  | weekly-summary (index + files) | 5 min | **no** | recap changes weekly; see below |
 
 - **Never cache raw `/players/nfl`** — it's ~5MB. `usePlayersDb` trims inside the
   queryFn (QB/RB/WR/TE/K/DEF, active-only except DEF) so only ~200KB enters the
@@ -94,6 +95,13 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
 - Persistence: `PersistQueryClientProvider` + localStorage under `msgffl-query-cache`,
   `maxAge: Infinity`, cache **buster `'v1'`** — bump the buster in
   `app/providers/QueryProvider.tsx` whenever a cached shape changes.
+- **Two key prefixes are never persisted** (`shouldDehydrateQuery`): `nfl-state`
+  (cheap, always refetched) and `weekly-summary`. Because `maxAge` is `Infinity`,
+  a persisted entry never ages out on its own — fine for immutable past seasons,
+  wrong for the recap, which is rewritten every week. Persisting it meant a
+  returning visitor saw the previous week's recap until `staleTime` lapsed, with
+  no way to fix it but clearing localStorage. Content that changes on a schedule
+  stays out of the persister.
 - Scoring key auto-detected from `league.scoring_settings.rec`
   (`entities/league/lib/ptsKey.ts`): 1 → pts_ppr, 0.5 → pts_half_ppr, else pts_std.
 - Derived aggregates (record book, all-time, H2H, power index, grades) are **computed

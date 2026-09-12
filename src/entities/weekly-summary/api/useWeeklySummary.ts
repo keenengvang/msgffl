@@ -32,7 +32,8 @@ export function useWeeklySummary(file: string | undefined) {
       if (!isWeeklySummary(body)) throw new Error('weekly summary file is malformed');
       return body;
     },
-    staleTime: 60 * 60 * 1000,
+    // Short: a new recap lands mid-session on filing day, and this is never persisted.
+    staleTime: 5 * 60 * 1000,
     enabled: !!file,
   });
 }

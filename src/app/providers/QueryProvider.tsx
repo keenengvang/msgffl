@@ -30,7 +30,13 @@ export function QueryProvider({ children }: { children: ReactNode }) {
         buster: CACHE_BUSTER,
         dehydrateOptions: {
           // Persist only successful data; nfl-state is cheap and always refetched.
-          shouldDehydrateQuery: (q) => q.state.status === 'success' && q.queryKey[0] !== 'nfl-state',
+          // weekly-summary is never persisted either: the recap changes weekly and the
+          // files are ~2KB, so a persisted copy buys nothing and hides a fresh recap
+          // behind a stale one until staleTime lapses.
+          shouldDehydrateQuery: (q) =>
+            q.state.status === 'success' &&
+            q.queryKey[0] !== 'nfl-state' &&
+            q.queryKey[0] !== 'weekly-summary',
         },
       }}
     >
