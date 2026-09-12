@@ -17,6 +17,7 @@ const NAV: Array<[to: string, label: string]> = [
   ['/power', 'POWER'],
   ['/bracket', 'PLAYOFFS'],
   ['/history', 'RECORDS'],
+  ['/weekly-summary', 'WEEKLY WRAP'],
   ['/rules', 'RULE BOOK'],
   ['/suggest', 'SUGGESTION BOX'],
 ];

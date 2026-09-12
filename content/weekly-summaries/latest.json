@@ -1,0 +1,12 @@
+{
+  "season": "2026",
+  "week": 0,
+  "generatedAt": "2026-09-12T00:00:00Z",
+  "headline": "THE BOT HASN'T FILED ITS FIRST REPORT YET",
+  "sections": [
+    {
+      "heading": "WHAT GOES HERE",
+      "body": "This file is written by the weekly-summary managed agent — it clones nothing, it just calls the GitHub MCP `create_or_update_file` tool against this exact path (content/weekly-summaries/latest.json) every week. Once it runs, this placeholder gets overwritten with real league banter."
+    }
+  ]
+}

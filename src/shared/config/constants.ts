@@ -10,6 +10,11 @@ export const CURRENT_SLEEPER_LEAGUE_ID = '1355188234203701248';
 /* Where suggestion-box submissions land (GitHub issues, mirrored to Notion). */
 export const SUGGESTIONS_URL = 'https://github.com/keenengvang/msgffl/issues?q=is%3Aissue%20label%3Asuggestion';
 
+/* Written by the weekly-summary managed agent via the GitHub MCP toolset —
+   fetched raw so a new summary shows up with no rebuild required. */
+export const WEEKLY_SUMMARY_URL =
+  'https://raw.githubusercontent.com/keenengvang/msgffl/main/content/weekly-summaries/latest.json';
+
 export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K' | 'DEF';
 
 export const POS_COLORS: Record<Position, string> = {
