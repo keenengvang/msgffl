@@ -48,6 +48,19 @@ describe('aggregateAllTime', () => {
     expect(agg['a']!.pf).toBeCloseTo(2800);
     expect(agg['b']).toMatchObject({ w: 13, l: 15, titles: 1, sackos: 1, seasons: 2 });
   });
+
+  it('does not hand out a sacko for a season still in progress', () => {
+    // Week 1: everyone 0-0, so "last in the standings" is just sort order.
+    const live: SeasonBundle = {
+      ...bundle('2025', [row(1, 'a', 0, 0), row(2, 'b', 0, 0)], []),
+      status: 'in_season',
+    };
+    const { agg } = aggregateAllTime([live]);
+    expect(agg['a']!.sackos).toBe(0);
+    expect(agg['b']!.sackos).toBe(0);
+    // The season still counts toward games played and seasons.
+    expect(agg['b']).toMatchObject({ seasons: 1 });
+  });
 });
 
 describe('recordBook', () => {

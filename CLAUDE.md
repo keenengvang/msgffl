@@ -13,7 +13,7 @@ npm run dev        # Vite dev server
 npm run build      # tsc -b && vite build → dist/
 npm run preview    # serve the production build
 npm run typecheck  # tsc -b
-npm run lint       # eslint src (includes FSD import-boundary rules)
+npm run lint       # eslint src netlify e2e (includes FSD import-boundary rules)
 npm run test       # vitest run (unit tests for pure model/lib functions)
 npm run test:e2e   # playwright smoke: builds, previews, hits every route (live API, system Chrome)
 ```
@@ -54,6 +54,18 @@ Where does new code go?
 Second documented exception: two global utility classes in `shared/styles/global.css`
 (`.uLabel` tracked condensed label, `.uMono` tabular mono data) plus `.pageWrap` /
 `.pageEnter`— everything else is CSS Modules.
+
+Third documented exception: `netlify/` may import **down into `src/`** (the reverse
+never happens — nothing in `src/` imports a function). The chatbot has to quote the same
+numbers the pages do, so `netlify/lib/` reuses `buildSeasonBundle`, `recordBook`, `h2h`,
+`aggregateAllTime`, `computeStandings`, `pairMatchups` and `weekTags` rather than
+reimplementing them server-side. Only React-free `lib/` and `model/` files are fair game.
+Mechanically this needs the `@/` alias in **three** places — `tsconfig.app.json` (the SPA),
+`tsconfig.node.json` (typechecks `netlify/`, and must `include` `src/**/*.ts` so composite
+mode accepts the cross-project imports), and the root `tsconfig.json` (esbuild reads the
+*nearest* tsconfig when Netlify bundles a function, and silently fails to resolve `@/`
+without it). ESLint's FSD zones only cover `src/`, so the downward-only rule inside
+`netlify/` is convention, not enforcement.
 
 ## Data layer
 
@@ -160,3 +172,35 @@ the created issue. The old localStorage docket is retired — GitHub *is* the do
 (`SUGGESTIONS_URL` in shared/config/constants). The function is a plain
 `Request → Response` handler, unit-tested in vitest with a mocked fetch — no Netlify
 CLI needed for tests.
+
+**Chatbot backend**: `netlify/functions/chat.ts` — POST `{messages, snark}` → `{text}`.
+Requires `ANTHROPIC_API_KEY` in the Netlify UI env vars (never a `VITE_` var — those ship
+to the browser). The Messages API is stateless, so the browser owns the transcript and
+replays it every turn, windowed to 40 turns × 2000 chars by `widgets/chatbot`.
+
+The analyst knows the league two ways, both built in `netlify/lib/`:
+
+- **The brief** (`brief.ts`) — standings, all-time table, champions/sackos, record book
+  and the live week, rendered to ~1000 tokens of plain text into the system prompt on
+  every turn. Most questions never touch a tool, which is the point: a synchronous
+  Netlify function has ~10s, and each extra hop is another round trip.
+- **Five tools** (`tools.ts`) — `get_team`, `get_matchups`, `get_head_to_head`,
+  `get_season`, `search_players`. Shaped like the questions people ask, **not** like the
+  Sleeper endpoints: `/matchups/{week}` is 28 rows of `{matchup_id, roster_id, points}`
+  with no names, so endpoint-shaped tools would cost three round trips and a join for
+  "who played who". Team arguments are free text resolved by `names.ts`, which returns
+  **candidates instead of guessing** when ambiguous — a confidently wrong owner poisons
+  every number after it.
+
+`league.ts` is the server's answer to TanStack Query: the same fetches behind a warm
+module-scope cache on the function instance, with the client's freshness rules (chain 1 h,
+completed season ∞, live season 5 min, a rejected fetch evicted immediately so one Sleeper
+blip isn't cached for an hour). A cold snapshot is ~80 Sleeper requests and lands in well
+under a second. `players.ts` loads `/players/nfl` **lazily** — only tools that need a
+player name pay for it, and it's trimmed on arrival like `usePlayersDb`.
+
+Loop control: `MAX_TOOL_ROUNDS` hops, and past `DEADLINE_MS` the tools are dropped from
+the request so the model must answer in words instead of starting a round there's no time
+to finish. If Sleeper is down the chat still answers and says the data is missing.
+Model is `claude-sonnet-5` — tool use here is a multi-hop join and Haiku fumbles the
+chain; it's a one-line swap in `chat.ts` if the bill argues.

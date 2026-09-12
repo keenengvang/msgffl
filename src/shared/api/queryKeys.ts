@@ -7,6 +7,8 @@ export const qk = {
   users: (leagueId: string) => ['league', leagueId, 'users'] as const,
   rosters: (leagueId: string) => ['league', leagueId, 'rosters'] as const,
   weeks: (leagueId: string) => ['league', leagueId, 'weeks'] as const,
+  /** The single in-progress week, polled apart from the 17-week bundle. */
+  liveWeek: (leagueId: string, week: number) => ['league', leagueId, 'live-week', week] as const,
   draft: (leagueId: string) => ['league', leagueId, 'draft'] as const,
   brackets: (leagueId: string) => ['league', leagueId, 'brackets'] as const,
   seasonBundle: (leagueId: string) => ['league', leagueId, 'season-bundle'] as const,

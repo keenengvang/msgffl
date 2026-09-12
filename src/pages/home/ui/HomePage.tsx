@@ -2,11 +2,14 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useSavage, useVibes } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { newestLeague } from '@/entities/league/lib/activeLeague';
+import { useNflState } from '@/entities/league/api/useNflState';
 import { useStandings } from '@/entities/team/api/useStandings';
 import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
 import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
+import { useLiveWeek } from '@/entities/matchup/api/useSeasonWeeks';
+import { liveWeekFor, weekPulse } from '@/entities/matchup/lib/liveWeek';
 import { useWeeklySummaryIndex } from '@/entities/weekly-summary/api/useWeeklySummaryIndex';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
@@ -24,6 +27,18 @@ export function HomePage() {
   // The upcoming draft lives on the chain's newest league, not the viewed season.
   const newest = newestLeague(chain);
   const newestDraft = useDraft(newest);
+  const nflState = useNflState();
+  // Hoisted above the early returns: useLiveWeek is a hook, so it can't sit
+  // below them, and it needs the week number.
+  const pws = league?.settings?.playoff_week_start ?? 15;
+  const liveWeek = liveWeekFor({
+    status: league?.status,
+    playoffWeekStart: pws,
+    nflSeason: nflState.data?.season,
+    nflWeek: nflState.data?.week,
+    season,
+  });
+  const live = useLiveWeek(league, liveWeek);
   const weeklyIndex = useWeeklySummaryIndex();
   const latestWeekly = weeklyIndex.data?.[0];
   const navigate = useNavigate();
@@ -34,10 +49,14 @@ export function HomePage() {
   const stand = standings;
   const complete = league?.status === 'complete';
   const preDraft = league?.status === 'pre_draft' || league?.status === 'drafting';
-  const pws = league?.settings?.playoff_week_start ?? 15;
   const nextDraft = newestDraft.data ? nextDraftInfo(newest?.season, newestDraft.data.draft) : null;
   const nextDraftYear = nextDraft ? Number(nextDraft.season) : preDraft ? Number(season) : Number(season) + 1;
   const draftDate = nextDraft?.startTime ? fmtEventDate(nextDraft.startTime) : null;
+  const inSeason = league?.status === 'in_season';
+  // The live week polls on its own; the 17-week bundle is the fallback until
+  // the first poll lands (and out of season, where there is nothing to poll).
+  const pulse = live.data?.length ? weekPulse(live.data) : null;
+  const weekLive = inSeason && !!pulse && pulse.games > 0;
 
   const { champRoster, ruRoster } = titleGame(brackets.data?.winners);
   const champ = stand.find((r) => r.rosterId === champRoster);
@@ -45,6 +64,9 @@ export function HomePage() {
   const sacko = stand.length ? stand[stand.length - 1] : undefined;
   const pfKing = stand.length ? [...stand].sort((a, b) => b.pf - a.pf)[0] : undefined;
   const paMax = stand.length ? [...stand].sort((a, b) => b.pa - a.pa)[0] : undefined;
+  // Sleeper only rolls roster totals up once a week closes, so mid-week every
+  // pf/pa reads 0 — show the offseason placeholders rather than a wall of 0.00.
+  const totalsIn = !!pfKing && pfKing.pf > 0;
   const seedOf = (r: typeof champ) => (r ? stand.findIndex((x) => x.rosterId === r.rosterId) + 1 : '?');
 
   const hero = heroCopy({ season, status: league?.status, champ, ru, repeat: false, savage });
@@ -57,16 +79,38 @@ export function HomePage() {
   ] as const;
 
   const intel: Array<{ p1: string; hi: string; hiCol: string; p2: string }> = [];
-  if (champ) intel.push({ p1: 'title_decided: ', hi: champ.team, hiCol: 'var(--text-primary)', p2: ` def. ${ru ? ru.team : '?'}` });
-  if (pfKing && pfKing.pf > 0) intel.push({ p1: `pf_record: ${pfKing.team} `, hi: fmt(pfKing.pf), hiCol: 'var(--text-primary)', p2: '' });
-  if (sacko && complete) intel.push({ p1: 'punishment_locked: ', hi: sacko.team, hiCol: 'var(--loss)', p2: savage ? ' — lawyer up' : '' });
+  if (champ) intel.push({ p1: 'title decided: ', hi: champ.team, hiCol: 'var(--text-primary)', p2: ` def. ${ru ? ru.team : '?'}` });
+  if (pfKing && pfKing.pf > 0) intel.push({ p1: `pf record: ${pfKing.team} `, hi: fmt(pfKing.pf), hiCol: 'var(--text-primary)', p2: '' });
+  if (sacko && complete) intel.push({ p1: 'punishment locked: ', hi: sacko.team, hiCol: 'var(--loss)', p2: savage ? ' — lawyer up' : '' });
   if (paMax && paMax.pa > 0) intel.push({ p1: `${paMax.team} allowed `, hi: fmt(paMax.pa), hiCol: 'var(--text-primary)', p2: savage ? ' pts. brutal.' : ' pts.' });
-  if (preDraft) intel.push({ p1: 'rosters: ', hi: 'empty', hiCol: 'var(--text-muted)', p2: ' · trash_talk: already flowing' });
-  intel.push(
-    draftDate
-      ? { p1: `draft_${nextDraftYear}: `, hi: draftDate.toLowerCase(), hiCol: 'var(--text-primary)', p2: ' █' }
-      : { p1: `draft_${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' },
-  );
+  if (preDraft) intel.push({ p1: 'rosters: ', hi: 'empty', hiCol: 'var(--text-muted)', p2: ' · trash talk: already flowing' });
+  if (weekLive && pulse && pulse.scored > 0)
+    intel.unshift({
+      p1: `week ${liveWeek}: `,
+      hi: `${pulse.scored}/${pulse.games} games live`,
+      hiCol: 'var(--text-primary)',
+      p2: pulse.top ? ` · top ${fmt(pulse.top.points)}` : '',
+    });
+  // Mid-season the next draft is a year out, so the playoff race takes the slot.
+  if (inSeason) {
+    const togo = pws - liveWeek;
+    intel.push(
+      togo > 0
+        ? {
+            p1: 'playoffs: ',
+            hi: `week ${pws}`,
+            hiCol: 'var(--text-primary)',
+            p2: ` · ${togo} week${togo === 1 ? '' : 's'} to sort it out █`,
+          }
+        : { p1: 'playoffs: ', hi: 'here', hiCol: 'var(--red)', p2: ' · win or go home █' },
+    );
+  } else {
+    intel.push(
+      draftDate
+        ? { p1: `draft ${nextDraftYear}: `, hi: draftDate.toLowerCase(), hiCol: 'var(--text-primary)', p2: ' █' }
+        : { p1: `draft ${nextDraftYear}: `, hi: 'awaiting commissioner', hiCol: 'var(--text-muted)', p2: ' █' },
+    );
+  }
 
   return (
     <div className="pageEnter">
@@ -102,28 +146,36 @@ export function HomePage() {
           <div className={styles.snapRow}>
             <span className={styles.snapLabel}>Most points scored</span>
             <span className={styles.snapValue}>
-              {preDraft ? 'AWAITING KICKOFF' : pfKing ? pfKing.team.toUpperCase() : '…'} ·{' '}
-              <span className={styles.snapAccent}>{preDraft ? '—' : pfKing ? fmt(pfKing.pf) : ''}</span>
+              {!totalsIn ? 'AWAITING KICKOFF' : pfKing ? pfKing.team.toUpperCase() : '…'} ·{' '}
+              <span className={styles.snapAccent}>{!totalsIn ? '—' : pfKing ? fmt(pfKing.pf) : ''}</span>
             </span>
           </div>
           <div className={styles.snapRow}>
             <span className={styles.snapLabel}>Most points allowed</span>
             <span className={styles.snapValue}>
-              {preDraft ? 'NOBODY, YET' : paMax ? paMax.team.toUpperCase() : '…'} ·{' '}
-              <span className={styles.snapAccent}>{preDraft ? '—' : paMax ? fmt(paMax.pa) : ''}</span>
+              {!totalsIn ? 'NOBODY, YET' : paMax ? paMax.team.toUpperCase() : '…'} ·{' '}
+              <span className={styles.snapAccent}>{!totalsIn ? '—' : paMax ? fmt(paMax.pa) : ''}</span>
             </span>
           </div>
           <div className={styles.snapRow}>
             <span className={styles.snapLabel}>Last place — punishment owed</span>
             <span className={styles.snapValue}>
-              {preDraft ? 'TBD' : sacko ? sacko.team.toUpperCase() : '…'} ·{' '}
-              <span className={styles.snapAccent}>{preDraft ? '—' : sacko ? `${sacko.w}–${sacko.l}` : ''}</span>
+              {!totalsIn ? 'TBD' : sacko ? sacko.team.toUpperCase() : '…'} ·{' '}
+              <span className={styles.snapAccent}>{!totalsIn ? '—' : sacko ? `${sacko.w}–${sacko.l}` : ''}</span>
             </span>
           </div>
           <div className={styles.snapFoot}>
             <span className={styles.snapLabel}>Next event</span>
             <span className={styles.nextEvent}>
-              DRAFT {nextDraftYear} — {draftDate ?? 'TBD'}
+              {/* In season, the next event is never next year's draft. weekLive
+                  is false while the live-week request is in flight and if it
+                  fails, so without the inSeason branch those states advertise a
+                  draft a year out on a page otherwise talking about this week. */}
+              {weekLive && pulse
+                ? `WEEK ${liveWeek} — ${pulse.scored > 0 ? 'IN PROGRESS' : 'KICKOFF PENDING'}`
+                : inSeason
+                  ? `WEEK ${liveWeek} — ${live.isPending ? 'LOADING' : 'SCHEDULED'}`
+                  : `DRAFT ${nextDraftYear} — ${draftDate ?? 'TBD'}`}
             </span>
           </div>
         </div>

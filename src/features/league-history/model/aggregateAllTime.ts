@@ -35,7 +35,10 @@ export function aggregateAllTime(bundles: SeasonBundle[]): AllTime {
       ownerMeta[k] ??= { owner: r.owner, team: r.team, av: r.avatar };
     });
     if (b.champ && agg[b.champ.ownerId]) agg[b.champ.ownerId]!.titles++;
-    if (b.sacko && agg[b.sacko.ownerId]) agg[b.sacko.ownerId]!.sackos++;
+    // A bundle's sacko is just "last in the standings", which is a real result
+    // only once the season is over — in week 1 everyone is 0-0 and whoever
+    // sorts last would collect a sacko they haven't earned.
+    if (b.status === 'complete' && b.sacko && agg[b.sacko.ownerId]) agg[b.sacko.ownerId]!.sackos++;
   });
   return { agg, ownerMeta };
 }

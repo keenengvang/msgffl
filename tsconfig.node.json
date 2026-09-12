@@ -7,11 +7,12 @@
     "module": "ESNext",
     "types": ["node"],
     "moduleResolution": "bundler",
+    "paths": { "@/*": ["./src/*"] },
     "allowImportingTsExtensions": true,
     "moduleDetection": "force",
     "noEmit": true,
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "netlify/**/*.ts"]
+  "include": ["vite.config.ts", "playwright.config.ts", "netlify/**/*.ts", "src/**/*.ts"]
 }
