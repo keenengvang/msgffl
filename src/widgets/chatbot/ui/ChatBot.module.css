@@ -54,6 +54,77 @@
   animation: panelUp 0.22s ease-out;
 }
 
+/* header: title, clear, close. Sits outside .body so it stays put while the
+   transcript scrolls under it. */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* .uLabel supplies the condensed tracked face; only the size and colour
+   differ here — the panel header sits quieter than a page label. */
+.title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.clear {
+  cursor: pointer;
+  flex: none;
+  padding: 4px 9px;
+  font-family: var(--font-cond);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border-14);
+  border-radius: var(--r-cell);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.clear:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--red-border-60);
+}
+
+.clear:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.close {
+  cursor: pointer;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-cell);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.close:hover {
+  color: var(--text-primary);
+  border-color: var(--red-border-60);
+}
+
+.closeIcon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+}
+
 .body {
   flex: 1;
   display: flex;
@@ -172,7 +243,11 @@
     animation: none;
   }
 
-  .launcher {
+  .launcher,
+  .clear,
+  .close,
+  .input,
+  .send {
     transition: none;
   }
 }

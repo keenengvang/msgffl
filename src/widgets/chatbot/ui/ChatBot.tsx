@@ -9,12 +9,20 @@ const COPY = {
     placeholder: 'Who should I start, genius?',
     thinking: 'Consulting the film room…',
     send: 'Ask',
+    title: 'The Analyst',
+    clear: 'Wipe it',
+    clearHint: 'Burn the transcript and start over',
+    close: 'Close the analyst',
   },
   polite: {
     empty: 'Ask a fantasy football question to get started.',
     placeholder: 'Ask a fantasy question…',
     thinking: 'Thinking…',
     send: 'Send',
+    title: 'League Analyst',
+    clear: 'Clear',
+    clearHint: 'Clear this conversation and start a new one',
+    close: 'Close chat',
   },
 };
 
@@ -35,6 +43,18 @@ export function ChatBot() {
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight });
   }, [turns, send.isPending]);
+
+  /** Start a fresh thread without reloading. The transcript is the whole
+      conversation state — the Messages API is stateless and nothing is
+      persisted — so dropping it is all "new chat" means. reset() also clears a
+      failed mutation, or the last error would outlive the messages it came from. */
+  function clearChat() {
+    setTurns([]);
+    setDraft('');
+    send.reset();
+  }
+
+  const hasThread = turns.length > 0 || send.isError;
 
   async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,6 +86,37 @@ export function ChatBot() {
         </svg>
       </button>
       <div id="chatbot-panel" popover="auto" className={styles.panel}>
+        <header className={styles.head}>
+          <span className={`uLabel ${styles.title}`}>{copy.title}</span>
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={clearChat}
+            disabled={!hasThread || send.isPending}
+            title={copy.clearHint}
+          >
+            {copy.clear}
+          </button>
+          {/* Native popover control — hides the panel with no JS and no state
+              of our own. Esc and an outside click already do this; the X is for
+              people who reach for one. */}
+          <button
+            type="button"
+            className={styles.close}
+            popoverTarget="chatbot-panel"
+            popoverTargetAction="hide"
+            aria-label={copy.close}
+          >
+            <svg className={styles.closeIcon} viewBox="0 0 14 14" aria-hidden="true">
+              <path
+                d="M1.5 1.5 12.5 12.5M12.5 1.5 1.5 12.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </header>
         <div className={styles.body} ref={bodyRef} aria-live="polite">
           {turns.length === 0 && !send.isPending && <p className={styles.muted}>{copy.empty}</p>}
           {turns.map((turn, i) => (
