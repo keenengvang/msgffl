@@ -11,8 +11,19 @@
   color: var(--text-dim);
 }
 
-.wrap {
+.layout {
   margin-top: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 24px;
+  align-items: start;
+}
+
+.main {
+  min-width: 0;
+}
+
+.wrap {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -73,4 +84,62 @@
   color: var(--text-secondary);
   text-wrap: pretty;
   white-space: pre-wrap;
+}
+
+.archive {
+  background: var(--bg-panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seasonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seasonLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.weekPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.weekPill {
+  cursor: pointer;
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-nav);
+  background: transparent;
+  border: 1px solid var(--border-18);
+  border-radius: var(--r-pill);
+  padding: 5px 11px;
+}
+
+.weekPill:hover {
+  border-color: var(--red);
+}
+
+.weekPillActive {
+  color: var(--text-primary);
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* Phones: the fixed-width archive rail starves the recap column — stack instead. */
+@media (max-width: 640px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

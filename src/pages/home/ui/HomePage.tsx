@@ -7,7 +7,7 @@ import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
 import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
-import { useWeeklySummary } from '@/entities/weekly-summary/api/useWeeklySummary';
+import { useWeeklySummaryIndex } from '@/entities/weekly-summary/api/useWeeklySummaryIndex';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
@@ -24,7 +24,8 @@ export function HomePage() {
   // The upcoming draft lives on the chain's newest league, not the viewed season.
   const newest = newestLeague(chain);
   const newestDraft = useDraft(newest);
-  const weekly = useWeeklySummary();
+  const weeklyIndex = useWeeklySummaryIndex();
+  const latestWeekly = weeklyIndex.data?.[0];
   const navigate = useNavigate();
 
   if (error) return <ErrorPanel error={error} />;
@@ -198,10 +199,12 @@ export function HomePage() {
               </Link>
             </div>
             <div className={styles.wrapHeroBody}>
-              {weekly.data ? (
+              {latestWeekly ? (
                 <>
-                  <span className={styles.wrapWeek}>WEEK {weekly.data.week || '—'}</span>
-                  <p className={styles.wrapHeroHeadline}>{weekly.data.headline}</p>
+                  <span className={styles.wrapWeek}>
+                    {latestWeekly.season} · WEEK {latestWeekly.week || '—'}
+                  </span>
+                  <p className={styles.wrapHeroHeadline}>{latestWeekly.headline}</p>
                 </>
               ) : (
                 <p className={styles.wrapHeroHeadline}>
