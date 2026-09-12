@@ -23,5 +23,11 @@ export function useSeasonWeeks(league: League | undefined) {
       return trimmed;
     },
     staleTime: staleFor(league, 60_000),
+    // staleTime only marks data stale; it schedules nothing, and the provider
+    // turns off refetch-on-focus. Without this the ticker and dashboard
+    // advertise live scores that never move until a reload. Only while a
+    // season is actually being played — a completed one can't change — and
+    // TanStack pauses the interval on a hidden tab by default.
+    refetchInterval: league?.status === 'in_season' ? 60_000 : false,
   });
 }

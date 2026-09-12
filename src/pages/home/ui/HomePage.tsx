@@ -160,9 +160,16 @@ export function HomePage() {
           <div className={styles.snapFoot}>
             <span className={styles.snapLabel}>Next event</span>
             <span className={styles.nextEvent}>
+              {/* In season, the next event is never next year's draft. weekLive
+                  is false while the 17 matchup requests are still in flight and
+                  if they fail (useSeasonWeeks resolves to an empty array), so
+                  without the inSeason branch those states advertise a draft a
+                  year out on a page that is otherwise talking about this week. */}
               {weekLive && pulse
                 ? `WEEK ${liveWeek} — ${pulse.scored > 0 ? 'IN PROGRESS' : 'KICKOFF PENDING'}`
-                : `DRAFT ${nextDraftYear} — ${draftDate ?? 'TBD'}`}
+                : inSeason
+                  ? `WEEK ${liveWeek} — ${weeks.isPending ? 'LOADING' : 'SCHEDULED'}`
+                  : `DRAFT ${nextDraftYear} — ${draftDate ?? 'TBD'}`}
             </span>
           </div>
         </div>

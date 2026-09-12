@@ -18,7 +18,7 @@ import { pairMatchups } from '@/entities/matchup/lib/pairMatchups';
 import { weekTags } from '@/entities/matchup/lib/weekTags';
 import { bundleOf, rostersFor, type Snapshot } from './league';
 import { people, resolvePerson, type Person } from './names';
-import { playerIndex, playersDb, seasonStats, weekProjections } from './players';
+import { playerIndex, seasonStats, weekProjections, type Projections } from './players';
 
 export const TOOLS: Anthropic.Tool[] = [
   {
@@ -108,6 +108,13 @@ const n2 = (v: number): number => Number(v.toFixed(2));
 const isOutcome = (v: unknown): v is ToolOutcome =>
   typeof v === 'object' && v !== null && 'content' in v;
 
+/** Projections only mean something while a season is actually being played.
+    Out of season there is no live week to project, so don't ask for one. */
+function projectionsFor(snap: Snapshot): Promise<Projections> {
+  if (snap.current.status !== 'in_season') return Promise.resolve({});
+  return weekProjections(snap.current.season, snap.liveWeek);
+}
+
 /** Resolve a team argument, or produce the error text that tells the model to
     ask the user which manager they meant instead of picking one. */
 function personOr(query: string, roster: Person[]): Person | ToolOutcome {
@@ -132,7 +139,10 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
       const r = b.standings[i]!;
       return {
         season: b.season,
-        finish: i + 1,
+        // Standings order, not final placement: the bracket decides the
+        // postseason, so a champion can sit mid-table here. Naming it "finish"
+        // invited the model to report a title winner as having finished 5th.
+        regularSeasonSeed: i + 1,
         of: b.standings.length,
         record: `${r.w}-${r.l}${r.t ? `-${r.t}` : ''}`,
         pf: n2(r.pf),
@@ -159,11 +169,13 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
     status?: string;
   }[] = [];
   try {
-    const key = ptsKey(snap.active);
+    const key = ptsKey(snap.current);
     const [{ rosters }, { db, benched }, proj] = await Promise.all([
-      rostersFor(snap.active),
+      // snap.current, not snap.active: during the pre-draft window `active` is
+      // still last season, and its rosters are last season's squads.
+      rostersFor(snap.current),
       playerIndex(),
-      weekProjections(snap.active.season, snap.liveWeek),
+      projectionsFor(snap),
     ]);
     const mine = rosters.find((r) => r.owner_id === who.ownerId);
     const starters = new Set(mine?.starters ?? []);
@@ -249,10 +261,16 @@ function getHeadToHead(snap: Snapshot, a: string, bq: string): ToolOutcome {
   if (isOutcome(pb)) return pb;
   if (pa.ownerId === pb.ownerId) return fail('Those two names resolve to the same manager.');
 
-  const rec = snap.h2h[pa.ownerId]?.[pb.ownerId] ?? { w: 0, l: 0 };
+  // A game being played RIGHT NOW carries provisional scores. Counting it as a
+  // decided result means asking about a rivalry mid-Sunday reports whoever is
+  // ahead as having won. Hold it out of the record and report it separately.
+  const liveSeason = snap.current.status === 'in_season' ? snap.current.season : null;
+  const isLive = (season: string, week: number) => season === liveSeason && week === snap.liveWeek;
+
+  const meetings: { season: string; week: number; a: number; b: number; winner: string }[] = [];
+  let inProgress: { season: string; week: number; a: number; b: number; leader: string } | null = null;
 
   // Same scan rule as h2h(): regular season only, skip unplayed 0-0 pairs.
-  const meetings: { season: string; week: number; a: number; b: number; winner: string }[] = [];
   snap.bundles.forEach((bundle) => {
     bundle.weeks.forEach((wl, wi) => {
       if (wi + 1 >= bundle.pws) return;
@@ -264,6 +282,16 @@ function getHeadToHead(snap: Snapshot, a: string, bq: string): ToolOutcome {
         const theirs = ox === pb.ownerId ? x : oy === pb.ownerId ? y : null;
         if (!mine || !theirs) return;
         if ((mine.p || 0) === 0 && (theirs.p || 0) === 0) return;
+        if (isLive(bundle.season, wi + 1)) {
+          inProgress = {
+            season: bundle.season,
+            week: wi + 1,
+            a: n2(mine.p),
+            b: n2(theirs.p),
+            leader: mine.p === theirs.p ? 'level' : mine.p > theirs.p ? pa.owner : pb.owner,
+          };
+          return;
+        }
         meetings.push({
           season: bundle.season,
           week: wi + 1,
@@ -278,9 +306,14 @@ function getHeadToHead(snap: Snapshot, a: string, bq: string): ToolOutcome {
   return ok({
     a: { manager: pa.owner, team: pa.team },
     b: { manager: pb.owner, team: pb.team },
-    record: `${pa.owner} is ${rec.w}-${rec.l} against ${pb.owner}`,
-    note: 'Regular season only — playoff meetings are excluded.',
+    // Counted from the decided meetings above rather than read off snap.h2h,
+    // which aggregates every bundle and so folds in a game still being played.
+    record: `${pa.owner} is ${meetings.filter((m) => m.winner === pa.owner).length}-${
+      meetings.filter((m) => m.winner === pb.owner).length
+    } against ${pb.owner}`,
+    note: 'Regular season only — playoff meetings are excluded, and a game still being played is reported under inProgress rather than counted.',
     meetings,
+    inProgress,
   });
 }
 
@@ -317,24 +350,34 @@ async function searchPlayers(
   const cap = Math.min(Math.max(Math.trunc(limit ?? 5), 1), 15);
   const key = ptsKey(snap.active);
 
-  const [db, stats, proj] = await Promise.all([
-    playersDb(),
+  const [{ db, benched }, stats, proj] = await Promise.all([
+    playerIndex(),
     seasonStats(snap.active.season, snap.active.status === 'complete'),
-    weekProjections(snap.active.season, snap.liveWeek),
+    projectionsFor(snap),
   ]);
 
-  // Who rosters whom, this season.
+  // Who rosters whom, this season — read off the newest league, since during
+  // the pre-draft window snap.active is still last season.
   const owned = new Map<string, string>();
   try {
-    const { rosters, users } = await rostersFor(snap.active);
+    const { rosters, users } = await rostersFor(snap.current);
     const teamOf = new Map(users.map((u) => [u.user_id, u.metadata?.team_name || u.display_name]));
     rosters.forEach((r) => (r.players ?? []).forEach((id) => owned.set(id, teamOf.get(r.owner_id) ?? 'unknown')));
   } catch {
     // Ownership is a nice-to-have; the stat line is the answer.
   }
 
+  // Inactive players are searchable too: someone asking after an injured guy
+  // usually asks BECAUSE he's hurt, and he may well still be on a roster.
+  // playerIndex already holds them, so not merging them here made the lookup
+  // deny the existence of players the league is actively worrying about.
+  const searchable: Record<string, { n: string; p: string; t: string; a?: number; status?: string }> = {
+    ...db,
+    ...benched,
+  };
+
   const q = (query ?? '').toLowerCase().trim();
-  const hits = Object.entries(db)
+  const hits = Object.entries(searchable)
     .filter(([, p]) => (!q || p.n.toLowerCase().includes(q)) && (!position || p.p === position))
     .map(([id, p]) => ({
       name: p.n,
@@ -344,6 +387,7 @@ async function searchPlayers(
       seasonPoints: n2(stats[id]?.[key] ?? 0),
       projectedThisWeek: proj[id]?.[key] ?? null,
       rosteredBy: owned.get(id) ?? null,
+      ...(p.status ? { status: p.status } : {}),
     }))
     .sort((x, y) => y.seasonPoints - x.seasonPoints);
 

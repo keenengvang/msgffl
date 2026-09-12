@@ -71,6 +71,16 @@ function json(status: number, body: unknown): Response {
   });
 }
 
+/** Keep a reply inside the same per-message cap parseMessages enforces, so a
+    long answer can always be replayed as history. Cuts at a sentence end when
+    one is near the limit, rather than mid-word. */
+function clampReply(text: string): string {
+  if (text.length <= MAX_CHARS) return text;
+  const cut = text.slice(0, MAX_CHARS - 1);
+  const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+  return (lastStop > MAX_CHARS * 0.6 ? cut.slice(0, lastStop + 1) : cut.trimEnd()) + '…';
+}
+
 /** Narrow untrusted JSON to the message shape the API expects. */
 function parseMessages(raw: unknown): Anthropic.MessageParam[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_TURNS) return null;
@@ -110,6 +120,12 @@ export default async function handler(req: Request): Promise<Response> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return json(500, { error: 'chat not configured (missing ANTHROPIC_API_KEY)' });
 
+  // Started before the league fetch, not after: a cold snapshot is the most
+  // expensive thing this handler does, and a deadline that ignores it would
+  // hand a slow cold start a full model budget on top and let the platform
+  // kill the request instead of returning our own fallback.
+  const deadline = Date.now() + DEADLINE_MS;
+
   const ip = req.headers.get('x-nf-client-connection-ip') ?? 'unknown';
   if (rateLimited(ip)) return json(429, { error: 'easy, champ. the analyst needs a breather.' });
 
@@ -140,7 +156,6 @@ export default async function handler(req: Request): Promise<Response> {
   const client = new Anthropic({ apiKey });
   const system = systemFor(snark, snap ? leagueBrief(snap) : null);
   const thread: Anthropic.MessageParam[] = [...messages];
-  const deadline = Date.now() + DEADLINE_MS;
 
   try {
     let text = '';
@@ -183,7 +198,12 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     return json(200, {
-      text: text || "The analyst went quiet. Ask that again, maybe with fewer moving parts.",
+      // The browser stores this as an assistant turn and replays it next time,
+      // where parseMessages caps every message at MAX_CHARS. A reply longer
+      // than that would be rejected on the NEXT question and every one after,
+      // bricking the thread — so never emit what our own validator would
+      // refuse. max_tokens allows far more than MAX_CHARS of prose.
+      text: clampReply(text) || "The analyst went quiet. Ask that again, maybe with fewer moving parts.",
     });
   } catch (err) {
     const status = err instanceof Anthropic.APIError ? err.status : undefined;

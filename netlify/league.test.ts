@@ -191,10 +191,29 @@ describe('tools', () => {
 
   it('get_head_to_head counts the regular season only', async () => {
     const { data } = await call('get_head_to_head', { team_a: 'alice', team_b: 'bob' });
-    // Four regular-season meetings across the two seasons, all won by alice.
+    // Playoffs (week >= pws of 3) never appear.
+    expect(data.meetings.every((m: { week: number }) => m.week < 3)).toBe(true);
+  });
+
+  it('get_head_to_head reports a game still being played instead of counting it', async () => {
+    // The fixture's live week is 2024 week 2, and alice leads it 101–100.5.
+    const { data } = await call('get_head_to_head', { team_a: 'alice', team_b: 'bob' });
+    // Three decided meetings, not four — the live one is held out of the record
+    // so a mid-game lead isn't reported as a win.
+    expect(data.record).toBe('alice is 3-0 against bob');
+    expect(data.meetings).toHaveLength(3);
+    expect(data.meetings.some((m: { season: string; week: number }) => m.season === '2024' && m.week === 2)).toBe(false);
+    expect(data.inProgress).toMatchObject({ season: '2024', week: 2, leader: 'alice' });
+  });
+
+  it('get_head_to_head counts every meeting once the season is done', async () => {
+    // Same fixture, nothing live: the week-2 game is a decided result again.
+    const done = makeSnapshot({ current: { ...snap.current, status: 'complete' } });
+    const out = await runTool('get_head_to_head', { team_a: 'alice', team_b: 'bob' }, done);
+    const data = JSON.parse(out.content);
     expect(data.record).toBe('alice is 4-0 against bob');
     expect(data.meetings).toHaveLength(4);
-    expect(data.meetings.every((m: { week: number }) => m.week < 3)).toBe(true);
+    expect(data.inProgress).toBeNull();
   });
 
   it('get_head_to_head refuses a team against itself', async () => {
@@ -218,6 +237,22 @@ describe('tools', () => {
     expect(data.scoring).toBe('pts_ppr');
     expect(data.players[0]).toMatchObject({ name: 'Josh Allen', seasonPoints: 310.4, rosteredBy: 'Boom Squad' });
     expect(data.players[1].rosteredBy).toBeNull();
+  });
+
+  it('search_players finds an inactive player, who is usually why you asked', async () => {
+    const { data } = await call('search_players', { query: 'hurt' });
+    expect(data.players).toHaveLength(1);
+    expect(data.players[0]).toMatchObject({ name: 'Hurt Guy', pos: 'RB', status: 'IR' });
+  });
+
+  it('get_team calls the standings position a seed, not a finish', async () => {
+    const { data } = await call('get_team', { team: 'alice' });
+    const y2023 = data.seasons.find((s: { season: string }) => s.season === '2023');
+    // The bracket decides placement, so the standings row is only a seed —
+    // alice won 2023 from whatever this number says.
+    expect(y2023.regularSeasonSeed).toBeDefined();
+    expect(y2023.finish).toBeUndefined();
+    expect(y2023.champion).toBe(true);
   });
 
   it('search_players needs something to search on', async () => {

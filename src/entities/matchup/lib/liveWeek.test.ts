@@ -42,6 +42,13 @@ describe('weekPulse', () => {
     expect(pulse.closest).toEqual({ winner: 3, loser: 4, margin: 5 });
   });
 
+  it('ignores a one-sided game even when its margin is the smallest', () => {
+    // 5–0 looks tighter than 20–10 by margin alone, but roster 2 has not
+    // kicked off — calling it the closest game invents a winner.
+    const pulse = weekPulse([e(1, 1, 5), e(1, 2, 0), e(2, 3, 20), e(2, 4, 10)]);
+    expect(pulse.closest).toEqual({ winner: 3, loser: 4, margin: 10 });
+  });
+
   it('is empty for a week that has not started', () => {
     expect(weekPulse([e(1, 1, 0), e(1, 2, 0)])).toEqual({ games: 1, scored: 0, top: null, closest: null });
     expect(weekPulse(undefined)).toEqual({ games: 0, scored: 0, top: null, closest: null });

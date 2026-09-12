@@ -41,8 +41,11 @@ export function weekPulse(list: TrimmedMatchup[] | undefined): WeekPulse {
     if (!pulse.top || hi.p > pulse.top.points) pulse.top = { rosterId: hi.r, points: hi.p };
 
     const margin = hi.p - lo.p;
-    // A margin of 0 means one side hasn't played yet, not a tie worth bragging about.
-    if (margin > 0 && (!pulse.closest || margin < pulse.closest.margin)) {
+    // Both sides must be on the board. A margin of 0 means nobody has played;
+    // a side still at 0 while the other scores means only one of them has
+    // kicked off, and calling that the week's tightest game (5–0 beating a real
+    // 20–10) advertises a winner in a game that hasn't happened.
+    if (lo.p > 0 && margin > 0 && (!pulse.closest || margin < pulse.closest.margin)) {
       pulse.closest = { winner: hi.r, loser: lo.r, margin };
     }
   });

@@ -96,6 +96,7 @@ export function makeSnapshot(overrides: Partial<Snapshot> = {}): Snapshot {
   return {
     chain: [league('2024', 'in_season'), league('2023', 'complete')],
     active: league('2024', 'in_season'),
+    current: league('2024', 'in_season'),
     bundles,
     allTime: aggregateAllTime(bundles),
     recs: recordBook(bundles),

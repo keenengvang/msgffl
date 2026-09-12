@@ -165,6 +165,31 @@ describe('chat function', () => {
       expect(create.mock.calls.at(-1)![0].tools).toBeUndefined();
     });
 
+    it('clamps a reply to the per-message cap so it can be replayed as history', async () => {
+      // max_tokens allows far more prose than MAX_CHARS. An over-long reply
+      // would be stored by the browser and rejected by parseMessages on the
+      // NEXT question, bricking the thread.
+      create.mockResolvedValueOnce(say('word. '.repeat(600))); // ~3600 chars
+
+      const res = await handler(post({ messages: [turn('go on')] }, '7.7.7.9'));
+      const { text } = (await res.json()) as { text: string };
+
+      expect(text.length).toBeLessThanOrEqual(2000);
+      expect(text.endsWith('…')).toBe(true);
+      // Round-trips: the clamped reply is a valid turn on the next request.
+      create.mockClear();
+      const next = await handler(
+        post({ messages: [turn('go on'), { role: 'assistant', content: text }, turn('and?')] }, '7.7.8.0'),
+      );
+      expect(next.status).toBe(200);
+    });
+
+    it('leaves a short reply untouched', async () => {
+      create.mockResolvedValue(say('Short and rude.'));
+      const res = await handler(post({ messages: [turn('hi')] }, '7.7.8.1'));
+      expect(await res.json()).toEqual({ text: 'Short and rude.' });
+    });
+
     it('still answers when Sleeper is down, and says the data is missing', async () => {
       snapshot.mockRejectedValue(new Error('sleeper is having a day'));
 

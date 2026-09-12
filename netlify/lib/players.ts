@@ -100,8 +100,12 @@ export function weekProjections(season: string, week: number): Promise<Projectio
       }
       return out;
     })
-    // A missing projection is a thinner answer, never a failed one.
-    .catch(() => ({}) as Projections);
+    // A missing projection is a thinner answer, never a failed one — but drop
+    // the slot so the next request retries instead of serving the blank.
+    .catch(() => {
+      projSlots.delete(key);
+      return {} as Projections;
+    });
 
   projSlots.set(key, { at: Date.now(), p });
   return p;
@@ -114,7 +118,13 @@ const statSlots = new Map<string, { at: number; p: Promise<SeasonStats> }>();
 export function seasonStats(season: string, complete: boolean): Promise<SeasonStats> {
   const slot = statSlots.get(season);
   if (slot && (complete || Date.now() - slot.at < SIX_HOURS)) return slot.p;
-  const p = api<SeasonStats>(`/stats/nfl/regular/${season}`).catch(() => ({}) as SeasonStats);
+  // Degrade to empty for THIS call, but evict — otherwise a completed season
+  // (cached forever) would report every player at zero points for the life of
+  // the warm instance because one request happened to fail.
+  const p = api<SeasonStats>(`/stats/nfl/regular/${season}`).catch(() => {
+    statSlots.delete(season);
+    return {} as SeasonStats;
+  });
   statSlots.set(season, { at: Date.now(), p });
   return p;
 }

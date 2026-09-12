@@ -13,7 +13,7 @@
  */
 import { api } from '@/shared/api/sleeper';
 import { fetchChain } from '@/entities/league/lib/fetchChain';
-import { activeLeague } from '@/entities/league/lib/activeLeague';
+import { activeLeague, newestLeague } from '@/entities/league/lib/activeLeague';
 import { computeStandings, usersById } from '@/entities/team/lib/computeStandings';
 import { liveWeekFor } from '@/entities/matchup/lib/liveWeek';
 import { buildSeasonBundle, type SeasonBundle } from '@/features/league-history/model/buildSeasonBundle';
@@ -36,12 +36,25 @@ interface Slot<T> {
 /** Return `slot` if it is still fresh, else start a new fetch. A rejected
     fetch is evicted immediately (ttl 0) so one Sleeper blip isn't cached for
     an hour; the `.catch` also keeps the rejection from going unhandled. */
-function keep<T>(slot: Slot<T> | null, ttl: number, make: () => Promise<T>): Slot<T> {
+function keep<T>(
+  slot: Slot<T> | null,
+  ttl: number,
+  make: () => Promise<T>,
+  /** Given the resolved value, return the TTL it actually deserves. Lets a
+      caller downgrade a "cache forever" slot once it can see the value came
+      back hollow. */
+  reviseTtl?: (value: T) => number,
+): Slot<T> {
   if (slot && Date.now() - slot.at < slot.ttl) return slot;
   const next: Slot<T> = { at: Date.now(), ttl, p: make() };
-  next.p.catch(() => {
-    next.ttl = 0;
-  });
+  next.p.then(
+    (value) => {
+      if (reviseTtl) next.ttl = reviseTtl(value);
+    },
+    () => {
+      next.ttl = 0;
+    },
+  );
   return next;
 }
 
@@ -64,9 +77,25 @@ function nflState(): Promise<NflState | null> {
   return nflSlot.p;
 }
 
+/** A finished season should have standings, played weeks and a champion from
+    the winners bracket. buildSeasonBundle catches a failed bracket or matchup
+    request and resolves with an empty array instead of rejecting, so a
+    transient blip yields a hollow-but-successful bundle — which must not be
+    the thing we keep forever. */
+function looksWhole(b: SeasonBundle): boolean {
+  return b.standings.length > 0 && b.champ !== null && b.weeks.some((w) => w.length > 0);
+}
+
 function bundleFor(lg: League): Promise<SeasonBundle> {
   const ttl = lg.status === 'complete' ? Infinity : LIVE_TTL;
-  const slot = keep(bundleSlots.get(lg.league_id) ?? null, ttl, () => buildSeasonBundle(lg));
+  const slot = keep(
+    bundleSlots.get(lg.league_id) ?? null,
+    ttl,
+    () => buildSeasonBundle(lg),
+    // Only a complete season that actually came back complete earns Infinity;
+    // a partial one falls back to the live TTL so the next request retries.
+    (b) => (ttl === Infinity && !looksWhole(b) ? LIVE_TTL : ttl),
+  );
   bundleSlots.set(lg.league_id, slot);
   return slot.p;
 }
@@ -89,8 +118,13 @@ export function rostersFor(lg: League): Promise<{ rosters: Roster[]; users: Leag
 export interface Snapshot {
   /** Newest season first, including the season auto-discovered by fetchChain. */
   chain: League[];
-  /** The season the site shows by default. */
+  /** The season the site shows by default: newest complete or in-season. */
   active: League;
+  /** The newest league in the chain, which may be a pre-draft season `active`
+      deliberately skips. Rosters and ownership live here — during the
+      pre-draft window `active` is last year, and reading rosters off it would
+      label last season's squads as "this season's". */
+  current: League;
   bundles: SeasonBundle[];
   allTime: AllTime;
   recs: RecordBook;
@@ -116,6 +150,7 @@ export async function snapshot(): Promise<Snapshot> {
 
   return {
     chain: lgs,
+    current: newestLeague(lgs) ?? active,
     active,
     bundles,
     allTime: aggregateAllTime(bundles),
