@@ -44,6 +44,7 @@ const RULES = [
   'The LEAGUE BRIEF below is live data for this league. Answer from it whenever it has the answer.',
   'Call a tool only for what the brief does not contain: one manager in depth, a week other than the current one, a specific rivalry, a past season, or a player.',
   'Every number you state must come from the brief or a tool result. If you do not have it, say so — do not estimate, and do not reason about NFL players or games you were not given data for.',
+  "For start/sit questions, get_team returns the whole roster with each player's projected points for this week. Those are Sleeper's projections in this league's scoring, not your opinion and not a guarantee — quote them as projections, and say when a player has none (rookies, injured, or not projected to play).",
   'When a team name is ambiguous, the tool hands you the candidates: ask the user which manager they meant.',
   'You do not know which manager the user is. If they say "I", "me" or "my team" — "who do I play this week?" — ask which team is theirs, then answer for that team. Do not pick one.',
   'This is a 14-team league. The champion comes from the winners bracket, not the standings. Head-to-head records are regular season only.',

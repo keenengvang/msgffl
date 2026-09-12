@@ -7,18 +7,27 @@ import { runTool, TOOLS } from './lib/tools';
 // The tools that reach past the bundles (rosters, the 5MB player db) are the
 // only place these tests would hit the network — faked here so the suite stays
 // offline and fast.
+const DB = {
+  p1: { n: 'Josh Allen', p: 'QB', t: 'BUF', a: 28, x: 6 },
+  p2: { n: 'Joe Burrow', p: 'QB', t: 'CIN', a: 27, x: 4 },
+  p3: { n: 'Benched Guy', p: 'WR', t: 'FA', a: 30, x: 9 },
+};
+// A rostered player the active-only trim drops — rosters keep IR players.
+const BENCHED = { p4: { n: 'Hurt Guy', p: 'RB', t: 'DET', status: 'IR' } };
+
 vi.mock('./lib/players', () => ({
-  playersDb: vi.fn(async () => ({
-    p1: { n: 'Josh Allen', p: 'QB', t: 'BUF', a: 28, x: 6 },
-    p2: { n: 'Joe Burrow', p: 'QB', t: 'CIN', a: 27, x: 4 },
-  })),
+  playerIndex: vi.fn(async () => ({ db: DB, benched: BENCHED })),
+  playersDb: vi.fn(async () => DB),
   seasonStats: vi.fn(async () => ({ p1: { pts_ppr: 310.4 }, p2: { pts_ppr: 288.1 } })),
+  // p3/p4 have no projection — the "not projected to play" case.
+  weekProjections: vi.fn(async () => ({ p1: { pts_ppr: 18.3 }, p2: { pts_ppr: 21.34 } })),
 }));
 
 vi.mock('./lib/league', async (orig) => ({
   ...(await orig<typeof import('./lib/league')>()),
   rostersFor: vi.fn(async () => ({
-    rosters: [{ roster_id: 1, owner_id: 'a', players: ['p1'], starters: ['p1'] }],
+    // p3 (no projection) listed first, p1 second — the tool must reorder.
+    rosters: [{ roster_id: 1, owner_id: 'a', players: ['p3', 'p1', 'p4'], starters: ['p1'] }],
     users: [{ user_id: 'a', display_name: 'alice', avatar: null, metadata: { team_name: 'Boom Squad' } }],
   })),
 }));
@@ -127,7 +136,36 @@ describe('tools', () => {
     expect(data.allTime).toMatchObject({ record: '4-0', titles: 1 });
     expect(data.seasons.map((s: { season: string }) => s.season)).toEqual(['2024', '2023']);
     expect(data.seasons.find((s: { season: string }) => s.season === '2023').champion).toBe(true);
-    expect(data.roster).toEqual([{ name: 'Josh Allen', pos: 'QB', nflTeam: 'BUF', starter: true }]);
+    expect(data.roster[0]).toEqual({
+      name: 'Josh Allen',
+      pos: 'QB',
+      nflTeam: 'BUF',
+      starter: true,
+      projectedThisWeek: 18.3,
+    });
+  });
+
+  it('get_team sorts the roster by projection so start/sit reads off the top', async () => {
+    const { data } = await call('get_team', { team: 'alice' });
+    const projections = data.roster.map((p: { projectedThisWeek: number | null }) => p.projectedThisWeek);
+    // Best first; an unprojected player sinks to the bottom rather than
+    // reading as a zero-point recommendation.
+    expect(projections).toEqual([18.3, null, null]);
+  });
+
+  it('get_team names an IR player instead of leaking a raw Sleeper id', async () => {
+    const { data } = await call('get_team', { team: 'alice' });
+    const hurt = data.roster.find((p: { name: string }) => p.name === 'Hurt Guy');
+    // The active-only trim drops him, but the roster still holds him.
+    expect(hurt).toMatchObject({ pos: 'RB', nflTeam: 'DET', status: 'IR' });
+    expect(JSON.stringify(data.roster)).not.toContain('unknown player');
+  });
+
+  it('search_players reports the week projection alongside season points', async () => {
+    const { data } = await call('search_players', { position: 'QB' });
+    expect(data.week).toBe(2);
+    expect(data.players[0]).toMatchObject({ name: 'Josh Allen', seasonPoints: 310.4, projectedThisWeek: 18.3 });
+    expect(data.projectionSource).toContain('Sleeper');
   });
 
   it('get_team asks for a disambiguation rather than picking one', async () => {

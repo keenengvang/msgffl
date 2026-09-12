@@ -18,13 +18,13 @@ import { pairMatchups } from '@/entities/matchup/lib/pairMatchups';
 import { weekTags } from '@/entities/matchup/lib/weekTags';
 import { bundleOf, rostersFor, type Snapshot } from './league';
 import { people, resolvePerson, type Person } from './names';
-import { playersDb, seasonStats } from './players';
+import { playerIndex, playersDb, seasonStats, weekProjections } from './players';
 
 export const TOOLS: Anthropic.Tool[] = [
   {
     name: 'get_team',
     description:
-      "One manager in depth: their all-time record, every season they've played, titles and sackos, their best and worst rivalries, and their current roster. Use this whenever the question is about a specific team or manager and goes beyond what the standings in the brief already show.",
+      "One manager in depth: their all-time record, every season they've played, titles and sackos, their best and worst rivalries, and their current roster with each player's projected points for this week, best first. This is the tool for start/sit questions — it tells you who is on the bench and what each of them is projected to score.",
     input_schema: {
       type: 'object',
       properties: {
@@ -78,7 +78,7 @@ export const TOOLS: Anthropic.Tool[] = [
   {
     name: 'search_players',
     description:
-      "Look up NFL players by name or position: their NFL team, age, this season's fantasy points in this league's scoring, and which manager rosters them, if anyone.",
+      "Look up NFL players by name or position: their NFL team, age, this season's fantasy points so far, their projected points for this week, and which manager rosters them, if anyone. All points are in this league's scoring.",
     input_schema: {
       type: 'object',
       properties: {
@@ -150,17 +150,38 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
     .sort((a, b) => b.w - b.l - (a.w - a.l));
 
   // The roster only means anything for the season currently being played.
-  let roster: { name: string; pos: string; nflTeam: string; starter: boolean }[] = [];
+  let roster: {
+    name: string;
+    pos: string;
+    nflTeam: string;
+    starter: boolean;
+    projectedThisWeek: number | null;
+    status?: string;
+  }[] = [];
   try {
-    const [{ rosters }, db] = await Promise.all([rostersFor(snap.active), playersDb()]);
+    const key = ptsKey(snap.active);
+    const [{ rosters }, { db, benched }, proj] = await Promise.all([
+      rostersFor(snap.active),
+      playerIndex(),
+      weekProjections(snap.active.season, snap.liveWeek),
+    ]);
     const mine = rosters.find((r) => r.owner_id === who.ownerId);
     const starters = new Set(mine?.starters ?? []);
-    roster = (mine?.players ?? []).map((id) => ({
-      name: db[id]?.n ?? id,
-      pos: db[id]?.p ?? '?',
-      nflTeam: db[id]?.t ?? '?',
-      starter: starters.has(id),
-    }));
+    roster = (mine?.players ?? [])
+      .map((id) => {
+        // Rosters keep IR players, whom the active-only trim drops.
+        const info = db[id] ?? benched[id];
+        return {
+          name: info?.n ?? `unknown player (${id})`,
+          pos: info?.p ?? '?',
+          nflTeam: info?.t ?? '?',
+          starter: starters.has(id),
+          projectedThisWeek: proj[id]?.[key] ?? null,
+          ...(benched[id] ? { status: benched[id]!.status } : {}),
+        };
+      })
+      // Best projection first, so a start/sit question reads off the top.
+      .sort((x, y) => (y.projectedThisWeek ?? -1) - (x.projectedThisWeek ?? -1));
   } catch {
     // A players-db hiccup shouldn't sink the whole answer — the history above
     // is the part that matters, so it goes back with an empty roster.
@@ -296,9 +317,10 @@ async function searchPlayers(
   const cap = Math.min(Math.max(Math.trunc(limit ?? 5), 1), 15);
   const key = ptsKey(snap.active);
 
-  const [db, stats] = await Promise.all([
+  const [db, stats, proj] = await Promise.all([
     playersDb(),
     seasonStats(snap.active.season, snap.active.status === 'complete'),
+    weekProjections(snap.active.season, snap.liveWeek),
   ]);
 
   // Who rosters whom, this season.
@@ -320,13 +342,16 @@ async function searchPlayers(
       nflTeam: p.t,
       age: p.a || null,
       seasonPoints: n2(stats[id]?.[key] ?? 0),
+      projectedThisWeek: proj[id]?.[key] ?? null,
       rosteredBy: owned.get(id) ?? null,
     }))
     .sort((x, y) => y.seasonPoints - x.seasonPoints);
 
   return ok({
     season: snap.active.season,
+    week: snap.liveWeek,
     scoring: key,
+    projectionSource: "Sleeper's own weekly projection, in this league's scoring",
     matches: hits.length,
     players: hits.slice(0, cap),
   });
