@@ -53,7 +53,7 @@ export function HomePage() {
   const inSeason = league?.status === 'in_season';
   // The live week polls on its own; the 17-week bundle is the fallback until
   // the first poll lands (and out of season, where there is nothing to poll).
-  const pulse = live.data ? weekPulse(live.data) : weeks.data ? weekPulse(weeks.data[liveWeek]) : null;
+  const pulse = live.data?.length ? weekPulse(live.data) : weeks.data ? weekPulse(weeks.data[liveWeek]) : null;
   const weekLive = inSeason && !!pulse && pulse.games > 0;
 
   const { champRoster, ruRoster } = titleGame(brackets.data?.winners);

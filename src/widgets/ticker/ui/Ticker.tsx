@@ -42,7 +42,7 @@ export function Ticker() {
     week,
     // Live week first (it polls); the 17-week bundle covers the gap before the
     // first poll lands and out of season, where nothing is polling.
-    pulse: live.data ? weekPulse(live.data) : weeks.data ? weekPulse(weeks.data[week]) : undefined,
+    pulse: live.data?.length ? weekPulse(live.data) : weeks.data ? weekPulse(weeks.data[week]) : undefined,
     playoffWeekStart: league?.settings?.playoff_week_start ?? 15,
   });
 

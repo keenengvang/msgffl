@@ -39,10 +39,12 @@ export function useLiveWeek(league: League | undefined, week: number) {
   return useQuery({
     queryKey: qk.liveWeek(league?.league_id ?? '', week),
     enabled: !!league && live && week > 0,
+    // Deliberately NOT caught: resolving a failure as [] would look like a
+    // genuinely empty week, and consumers would drop the perfectly good
+    // fallback from the 17-week query in favour of nothing. Letting it reject
+    // leaves `data` undefined, so the fallback holds and React Query retries.
     queryFn: async () => {
-      const raw = await api<Matchup[]>(`/league/${league!.league_id}/matchups/${week}`).catch(
-        () => [] as Matchup[],
-      );
+      const raw = await api<Matchup[]>(`/league/${league!.league_id}/matchups/${week}`);
       return raw.map((m) => ({ m: m.matchup_id, r: m.roster_id, p: m.points || 0 }));
     },
     staleTime: 60_000,
