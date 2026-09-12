@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useSavage } from '@/shared/lib/vibes';
+import { useSavage, useVibes } from '@/shared/lib/vibes';
 import { useSeason } from '@/entities/league/api/useSeason';
 import { newestLeague } from '@/entities/league/lib/activeLeague';
 import { useStandings } from '@/entities/team/api/useStandings';
@@ -17,6 +17,7 @@ import styles from './HomePage.module.css';
 
 export function HomePage() {
   const savage = useSavage();
+  const { motion } = useVibes();
   const { season, league, chain } = useSeason();
   const { standings, isLoading, error } = useStandings(league);
   const brackets = useBrackets(league);
@@ -226,22 +227,32 @@ export function HomePage() {
           </div>
 
           <div className={styles.radarMini}>
-            <span className={styles.cardTitle}>
-              {preDraft ? season : Number(season) + 1} THREAT RADAR
-            </span>
-            <div className={styles.radarLines}>
-              {preDraft ? (
-                <div className={styles.radarLine}>
-                  <span style={{ color: 'var(--text-muted)' }}>▲ SCAN</span> NO READS — EVERYONE TALKS TOUGH IN JULY · PF —
-                </div>
-              ) : (
-                radarPool.map((r, i) => (
-                  <div key={r.rosterId} className={styles.radarLine}>
-                    <span style={{ color: radarLvls[i]?.[1] }}>▲ {radarLvls[i]?.[0]}</span> {r.team.toUpperCase()} · PF{' '}
-                    {fmt(r.pf)}
+            <div className={styles.radarDish}>
+              <div className={styles.radarRing1} />
+              <div className={styles.radarRing2} />
+              <div className={motion ? `${styles.radarSweep} ${styles.sweeping}` : styles.radarSweep} />
+              <div className={styles.blip1} />
+              <div className={styles.blip2} />
+              <div className={styles.blip3} />
+            </div>
+            <div className={styles.radarList}>
+              <span className={styles.cardTitle}>
+                {preDraft ? season : Number(season) + 1} THREAT RADAR
+              </span>
+              <div className={styles.radarLines}>
+                {preDraft ? (
+                  <div className={styles.radarLine}>
+                    <span style={{ color: 'var(--text-muted)' }}>▲ SCAN</span> NO READS — EVERYONE TALKS TOUGH IN JULY · PF —
                   </div>
-                ))
-              )}
+                ) : (
+                  radarPool.map((r, i) => (
+                    <div key={r.rosterId} className={styles.radarLine}>
+                      <span style={{ color: radarLvls[i]?.[1] }}>▲ {radarLvls[i]?.[0]}</span> {r.team.toUpperCase()} · PF{' '}
+                      {fmt(r.pf)}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 

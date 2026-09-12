@@ -399,10 +399,98 @@
   background: var(--bg-panel);
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
-  padding: 14px 18px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.radarDish {
+  position: relative;
+  width: 100px;
+  height: 94px;
+  border-radius: 50%;
+  border: 1px solid rgba(143, 163, 205, 0.35);
+  flex: none;
+}
+
+.radarRing1 {
+  position: absolute;
+  inset: 13px;
+  border-radius: 50%;
+  border: 1px solid rgba(143, 163, 205, 0.22);
+}
+
+.radarRing2 {
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(143, 163, 205, 0.18);
+}
+
+.radarSweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(rgba(230, 12, 26, 0.5), transparent 70deg);
+}
+
+/* module-owned keyframes: CSS Modules scopes animation names */
+@keyframes msgSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.sweeping {
+  animation: msgSweep 4.5s linear infinite;
+}
+
+[data-motion='off'] .sweeping {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweeping {
+    animation: none;
+  }
+}
+
+.blip1 {
+  position: absolute;
+  top: 19px;
+  left: 52px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 8px rgba(230, 12, 26, 0.9);
+}
+
+.blip2 {
+  position: absolute;
+  top: 47px;
+  left: 25px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-primary);
+}
+
+.blip3 {
+  position: absolute;
+  top: 63px;
+  left: 62px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.radarList {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .radarLines {
