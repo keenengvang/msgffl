@@ -43,6 +43,7 @@
 
 .animated {
   animation: msgMarquee 32s linear infinite;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
