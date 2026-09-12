@@ -199,19 +199,25 @@ export default async function handler(req: Request): Promise<Response> {
       // Past the deadline, drop the tools so the model has to answer in words
       // rather than starting another round we don't have time to finish.
       const outOfTime = left <= 0;
-      const message = await client.messages.create(
-        {
-          model: MODEL,
-          max_tokens: 2048,
-          system,
-          messages: thread,
-          ...(snap && !outOfTime && round < MAX_TOOL_ROUNDS ? { tools: TOOLS } : {}),
-        },
-        // Bound the call to the budget we have left. Without this, dropping the
-        // tools still left an unbounded round trip, and a slow cold snapshot
-        // followed by a slow model call lets the platform kill the function
-        // before any of our own fallbacks can run.
-        { timeout: Math.max(MIN_CALL_MS, left) },
+      const budget = Math.max(MIN_CALL_MS, left);
+      // Two bounds, because they cover different things. The SDK `timeout` caps
+      // each attempt; withTimeout caps the WHOLE sequence, retries and backoff
+      // included. With only the per-attempt cap, maxRetries lets a stalled call
+      // spend the budget twice over and overrun the window we are protecting.
+      // A fast 429 or 5xx still gets its retry, inside the same total.
+      const message = await withTimeout(
+        client.messages.create(
+          {
+            model: MODEL,
+            max_tokens: 2048,
+            system,
+            messages: thread,
+            ...(snap && !outOfTime && round < MAX_TOOL_ROUNDS ? { tools: TOOLS } : {}),
+          },
+          { timeout: budget },
+        ),
+        budget,
+        'model',
       );
 
       const said = message.content
