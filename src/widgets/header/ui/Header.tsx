@@ -9,6 +9,7 @@ import styles from './Header.module.css';
 
 const NAV: Array<[to: string, label: string]> = [
   ['/', 'HOME'],
+  ['/weekly-summary', 'WEEKLY WRAP'],
   ['/standings', 'STANDINGS'],
   ['/matchups', 'MATCHUPS'],
   ['/teams', 'TEAMS'],
@@ -17,7 +18,6 @@ const NAV: Array<[to: string, label: string]> = [
   ['/power', 'POWER'],
   ['/bracket', 'PLAYOFFS'],
   ['/history', 'RECORDS'],
-  ['/weekly-summary', 'WEEKLY WRAP'],
   ['/rules', 'RULE BOOK'],
   ['/suggest', 'SUGGESTION BOX'],
 ];

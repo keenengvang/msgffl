@@ -7,6 +7,7 @@ import { useBrackets } from '@/entities/bracket/api/useBrackets';
 import { titleGame } from '@/entities/bracket/lib/titleGame';
 import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
+import { useWeeklySummary } from '@/entities/weekly-summary/api/useWeeklySummary';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
@@ -23,6 +24,7 @@ export function HomePage() {
   // The upcoming draft lives on the chain's newest league, not the viewed season.
   const newest = newestLeague(chain);
   const newestDraft = useDraft(newest);
+  const weekly = useWeeklySummary();
   const navigate = useNavigate();
 
   if (error) return <ErrorPanel error={error} />;
@@ -230,6 +232,27 @@ export function HomePage() {
                   {ln.p2}
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <span className={styles.cardTitle}>THE WEEKLY WRAP</span>
+              <Link to="/weekly-summary" className={styles.cardLink}>
+                READ IT →
+              </Link>
+            </div>
+            <div className={styles.wrapTeaser}>
+              {weekly.data ? (
+                <>
+                  <span className={styles.wrapWeek}>WEEK {weekly.data.week || '—'}</span>
+                  <p className={styles.wrapHeadline}>{weekly.data.headline}</p>
+                </>
+              ) : (
+                <p className={styles.wrapHeadline}>
+                  {savage ? 'THE BOT HAS NOTHING FILED YET.' : 'No recap filed yet — check back soon.'}
+                </p>
+              )}
             </div>
           </div>
 
