@@ -10,6 +10,7 @@ import { useDraft } from '@/entities/draft/api/useDraft';
 import { nextDraftInfo } from '@/entities/draft/lib/nextDraft';
 import { useLiveWeek } from '@/entities/matchup/api/useSeasonWeeks';
 import { liveWeekFor, weekPulse } from '@/entities/matchup/lib/liveWeek';
+import { useWeeklySummaryIndex } from '@/entities/weekly-summary/api/useWeeklySummaryIndex';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
@@ -38,6 +39,8 @@ export function HomePage() {
     season,
   });
   const live = useLiveWeek(league, liveWeek);
+  const weeklyIndex = useWeeklySummaryIndex();
+  const latestWeekly = weeklyIndex.data?.[0];
   const navigate = useNavigate();
 
   if (error) return <ErrorPanel error={error} />;
@@ -240,7 +243,51 @@ export function HomePage() {
             )}
           </div>
 
-          <div className={styles.radarCard}>
+          <div className={styles.wrapHero}>
+            <div className={styles.cardHead}>
+              <span className={styles.cardTitle}>THE WEEKLY WRAP</span>
+              <Link to="/weekly-summary" className={styles.cardLink}>
+                READ IT →
+              </Link>
+            </div>
+            <div className={styles.wrapHeroBody}>
+              {weeklyIndex.isLoading ? (
+                <p className={styles.wrapHeroHeadline}>{savage ? "PULLING THE BOT'S NOTES…" : "loading this week's recap…"}</p>
+              ) : weeklyIndex.error ? (
+                <p className={styles.wrapHeroHeadline}>
+                  {savage ? "HQ COULDN'T REACH THE BOT." : "Couldn't load the recap right now."}
+                </p>
+              ) : latestWeekly ? (
+                <>
+                  <span className={styles.wrapWeek}>
+                    {latestWeekly.season} · WEEK {latestWeekly.week || '—'}
+                  </span>
+                  <p className={styles.wrapHeroHeadline}>{latestWeekly.headline}</p>
+                </>
+              ) : (
+                <p className={styles.wrapHeroHeadline}>
+                  {savage ? 'THE BOT HAS NOTHING FILED YET.' : 'No recap filed yet — check back soon.'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.sideCol}>
+          <div className={styles.intelCard}>
+            <span className={styles.cardTitle}>INTEL FEED</span>
+            <div className={styles.intelLines}>
+              {intel.map((ln, i) => (
+                <div key={i} className={styles.intelLine}>
+                  <span className={styles.prompt}>&gt;</span> {ln.p1}
+                  <span style={{ color: ln.hiCol }}>{ln.hi}</span>
+                  {ln.p2}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.radarMini}>
             <div className={styles.radarDish}>
               <div className={styles.radarRing1} />
               <div className={styles.radarRing2} />
@@ -267,21 +314,6 @@ export function HomePage() {
                   ))
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.sideCol}>
-          <div className={styles.intelCard}>
-            <span className={styles.cardTitle}>INTEL FEED</span>
-            <div className={styles.intelLines}>
-              {intel.map((ln, i) => (
-                <div key={i} className={styles.intelLine}>
-                  <span className={styles.prompt}>&gt;</span> {ln.p1}
-                  <span style={{ color: ln.hiCol }}>{ln.hi}</span>
-                  {ln.p2}
-                </div>
-              ))}
             </div>
           </div>
 

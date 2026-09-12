@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WeeklySummaryRouteImport } from './routes/weekly-summary'
 import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as StandingsRouteImport } from './routes/standings'
 import { Route as RulesRouteImport } from './routes/rules'
@@ -22,6 +23,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsOwnerIdRouteImport } from './routes/teams.$ownerId'
 
+const WeeklySummaryRoute = WeeklySummaryRouteImport.update({
+  id: '/weekly-summary',
+  path: '/weekly-summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuggestRoute = SuggestRouteImport.update({
   id: '/suggest',
   path: '/suggest',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/rules': typeof RulesRoute
   '/standings': typeof StandingsRoute
   '/suggest': typeof SuggestRoute
+  '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams/': typeof TeamsIndexRoute
 }
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/rules': typeof RulesRoute
   '/standings': typeof StandingsRoute
   '/suggest': typeof SuggestRoute
+  '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams': typeof TeamsIndexRoute
 }
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/rules': typeof RulesRoute
   '/standings': typeof StandingsRoute
   '/suggest': typeof SuggestRoute
+  '/weekly-summary': typeof WeeklySummaryRoute
   '/teams/$ownerId': typeof TeamsOwnerIdRoute
   '/teams/': typeof TeamsIndexRoute
 }
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/rules'
     | '/standings'
     | '/suggest'
+    | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams/'
   fileRoutesByTo: FileRoutesByTo
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/rules'
     | '/standings'
     | '/suggest'
+    | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams'
   id:
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/rules'
     | '/standings'
     | '/suggest'
+    | '/weekly-summary'
     | '/teams/$ownerId'
     | '/teams/'
   fileRoutesById: FileRoutesById
@@ -182,12 +194,20 @@ export interface RootRouteChildren {
   RulesRoute: typeof RulesRoute
   StandingsRoute: typeof StandingsRoute
   SuggestRoute: typeof SuggestRoute
+  WeeklySummaryRoute: typeof WeeklySummaryRoute
   TeamsOwnerIdRoute: typeof TeamsOwnerIdRoute
   TeamsIndexRoute: typeof TeamsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/weekly-summary': {
+      id: '/weekly-summary'
+      path: '/weekly-summary'
+      fullPath: '/weekly-summary'
+      preLoaderRoute: typeof WeeklySummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/suggest': {
       id: '/suggest'
       path: '/suggest'
@@ -286,6 +306,7 @@ const rootRouteChildren: RootRouteChildren = {
   RulesRoute: RulesRoute,
   StandingsRoute: StandingsRoute,
   SuggestRoute: SuggestRoute,
+  WeeklySummaryRoute: WeeklySummaryRoute,
   TeamsOwnerIdRoute: TeamsOwnerIdRoute,
   TeamsIndexRoute: TeamsIndexRoute,
 }

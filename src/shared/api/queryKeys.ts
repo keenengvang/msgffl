@@ -14,4 +14,6 @@ export const qk = {
   seasonBundle: (leagueId: string) => ['league', leagueId, 'season-bundle'] as const,
   stats: (season: string) => ['stats', season] as const,
   players: ['players-trimmed'] as const,
+  weeklySummaryIndex: ['weekly-summary', 'index'] as const,
+  weeklySummary: (file: string) => ['weekly-summary', file] as const,
 };
