@@ -29,7 +29,7 @@ vi.mock('./lib/players', () => ({
   seasonStats: vi.fn(async () => ({})),
 }));
 
-const { default: handler } = await import('./functions/chat');
+const { default: handler, withTimeout } = await import('./functions/chat');
 
 const post = (body: unknown, ip = '1.2.3.4') =>
   new Request('http://local/.netlify/functions/chat', {
@@ -215,6 +215,24 @@ describe('chat function', () => {
       expect(res.status).toBe(200);
       expect(systemText()).toContain('unavailable');
       expect(create.mock.calls[0]![0].tools).toBeUndefined();
+    });
+
+    // The handler wraps snapshot() in this, so a stalled Sleeper request can't
+    // burn the whole execution window before the fallback above can run.
+    // Tested directly rather than through the handler: driving it end to end
+    // means waiting out the real budget, which costs seconds per run.
+    describe('withTimeout', () => {
+      it('passes a value through when it arrives in time', async () => {
+        await expect(withTimeout(Promise.resolve('ok'), 1000, 'x')).resolves.toBe('ok');
+      });
+
+      it('rejects a promise that never settles', async () => {
+        await expect(withTimeout(new Promise(() => {}), 10, 'snapshot')).rejects.toThrow('snapshot timed out');
+      });
+
+      it('treats an already-spent budget as no time at all', async () => {
+        await expect(withTimeout(new Promise(() => {}), -5_000, 'snapshot')).rejects.toThrow('timed out');
+      });
     });
 
     it('matches the persona to the site snark toggle', async () => {

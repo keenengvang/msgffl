@@ -82,6 +82,17 @@ function clampReply(text: string): string {
   return (lastStop > MAX_CHARS * 0.6 ? cut.slice(0, lastStop + 1) : cut.trimEnd()) + '…';
 }
 
+/** Reject after `ms` so one stalled upstream can't eat the whole execution
+    window. The underlying work keeps running and its warm-cache slot still
+    resolves, so a later request gets the benefit of the fetch we gave up on. */
+export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const bell = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), Math.max(0, ms));
+  });
+  return Promise.race([p, bell]).finally(() => clearTimeout(timer));
+}
+
 /** Narrow untrusted JSON to the message shape the API expects. */
 function parseMessages(raw: unknown): Anthropic.MessageParam[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_TURNS) return null;
@@ -149,10 +160,15 @@ export default async function handler(req: Request): Promise<Response> {
 
   // League data is best-effort: if Sleeper is down the analyst still talks, it
   // just says so instead of inventing a standings table.
-  const snap = await snapshot().catch((err) => {
-    console.error('league snapshot failed', err);
-    return null;
-  });
+  // Bounded, not just started-before: an unbounded await here could burn the
+  // whole window on one stalled Sleeper request and never reach the fallback
+  // below. Leave at least MIN_CALL_MS so there is still time to say something.
+  const snap = await withTimeout(snapshot(), deadline - Date.now() - MIN_CALL_MS, 'snapshot').catch(
+    (err) => {
+      console.error('league snapshot unavailable', err);
+      return null;
+    },
+  );
 
   const client = new Anthropic({ apiKey });
   const system = systemFor(snark, snap ? leagueBrief(snap) : null);
