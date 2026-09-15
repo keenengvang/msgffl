@@ -18,7 +18,7 @@ const persister = createSyncStoragePersister({
 });
 
 /** Bump to invalidate every persisted query after a cache-shape change. */
-const CACHE_BUSTER = 'v1';
+const CACHE_BUSTER = 'v2';
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   return (
