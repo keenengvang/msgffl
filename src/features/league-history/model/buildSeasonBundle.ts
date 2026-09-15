@@ -1,6 +1,7 @@
 import { api } from '@/shared/api/sleeper';
 import type { BracketGame, League, LeagueUser, Matchup, Roster, TrimmedMatchup } from '@/shared/api/types';
 import { computeStandings, usersById } from '@/entities/team/lib/computeStandings';
+import { bracketPlacements, finalFinishOrder } from '@/entities/bracket/lib/placements';
 import type { StandingRow } from '@/entities/team/model/types';
 
 export interface BundleName {
@@ -14,6 +15,7 @@ export interface SeasonBundle {
   season: string;
   status: League['status'];
   names: Record<number, BundleName>;
+  /** Final finish order once the season is complete (playoff bracket beats regular-season record); regular-season order while the season is live. */
   standings: StandingRow[];
   /** weeks[wi] = week wi+1, trimmed entries. */
   weeks: TrimmedMatchup[][];
@@ -37,7 +39,11 @@ export async function buildSeasonBundle(lg: League): Promise<SeasonBundle> {
     ),
   ]);
 
-  const standings = computeStandings(rosters, usersById(users));
+  // Regular-season order is only a tiebreak fallback for teams that missed the
+  // playoffs — once the bracket has decided a season, its placements win.
+  const regularStandings = computeStandings(rosters, usersById(users));
+  const standings =
+    lg.status === 'complete' ? finalFinishOrder(regularStandings, bracketPlacements(winners)) : regularStandings;
   const names: Record<number, BundleName> = {};
   standings.forEach((r) => (names[r.rosterId] = { team: r.team, owner: r.owner, ownerId: r.ownerId, av: r.avatar }));
   const weeks = weeksArr.map((wl) => (wl ?? []).map((m) => ({ m: m.matchup_id, r: m.roster_id, p: m.points || 0 })));

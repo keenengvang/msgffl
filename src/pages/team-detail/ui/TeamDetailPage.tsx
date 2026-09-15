@@ -44,7 +44,12 @@ export function TeamDetailPage() {
 
   const { champRoster } = titleGame(brackets.data?.winners);
   const isChamp = champRoster != null && row.rosterId === champRoster;
-  const rank = standings.indexOf(row) + 1;
+  // Once the season's bracket is settled, its final finish (from the history
+  // bundle) beats plain regular-season sort — same rule as the Career Ledger below.
+  const seasonBundle = history.bundles?.find((b) => b.season === season);
+  const rank = seasonBundle
+    ? seasonBundle.standings.findIndex((r) => r.ownerId === ownerId) + 1
+    : standings.indexOf(row) + 1;
 
   const roster = rosters.data?.find((r) => r.owner_id === ownerId);
   const db = playersDb.data;
