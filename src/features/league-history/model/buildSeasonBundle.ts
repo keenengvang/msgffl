@@ -17,6 +17,8 @@ export interface SeasonBundle {
   names: Record<number, BundleName>;
   /** Final finish order once the season is complete (playoff bracket beats regular-season record); regular-season order while the season is live. */
   standings: StandingRow[];
+  /** Always regular-season record order (wins desc, PF desc) — a seed, not a finish. Consumers that mean "who won the bracket" want `standings`/`champ`/`ru`, not this. */
+  regularSeasonStandings: StandingRow[];
   /** weeks[wi] = week wi+1, trimmed entries. */
   weeks: TrimmedMatchup[][];
   champ: BundleName | null;
@@ -53,6 +55,7 @@ export async function buildSeasonBundle(lg: League): Promise<SeasonBundle> {
     status: lg.status,
     names,
     standings,
+    regularSeasonStandings: regularStandings,
     weeks,
     champ: fin && typeof fin.w === 'number' ? (names[fin.w] ?? null) : null,
     ru: fin && typeof fin.l === 'number' ? (names[fin.l] ?? null) : null,

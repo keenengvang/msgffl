@@ -29,6 +29,7 @@ const bundle = (season: string, standings: StandingRow[], weeks: SeasonBundle['w
     status: 'complete',
     names,
     standings,
+    regularSeasonStandings: standings,
     weeks,
     champ: champRow ? names[champRow.rosterId]! : null,
     ru: null,

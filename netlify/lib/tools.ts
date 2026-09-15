@@ -137,16 +137,16 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
     // 0-0 record and a seed that is only sort order.
     .filter(hasStarted)
     .map((b) => {
-      const i = b.standings.findIndex((r) => r.ownerId === who.ownerId);
+      const i = b.regularSeasonStandings.findIndex((r) => r.ownerId === who.ownerId);
       if (i < 0) return null;
-      const r = b.standings[i]!;
+      const r = b.regularSeasonStandings[i]!;
       return {
         season: b.season,
-        // Standings order, not final placement: the bracket decides the
+        // Regular-season order, not final placement: the bracket decides the
         // postseason, so a champion can sit mid-table here. Naming it "finish"
         // invited the model to report a title winner as having finished 5th.
         regularSeasonSeed: i + 1,
-        of: b.standings.length,
+        of: b.regularSeasonStandings.length,
         record: `${r.w}-${r.l}${r.t ? `-${r.t}` : ''}`,
         pf: n2(r.pf),
         pa: n2(r.pa),

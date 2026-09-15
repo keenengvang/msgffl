@@ -56,6 +56,7 @@ function bundle(season: string, status: SeasonBundle['status'], weeks: TrimmedMa
     status,
     names: names(),
     standings: s,
+    regularSeasonStandings: s,
     weeks: Array.from({ length: 17 }, (_, i) => weeks[i] ?? EMPTY),
     champ: status === 'complete' ? (names()[1] ?? null) : null,
     ru: status === 'complete' ? (names()[3] ?? null) : null,
