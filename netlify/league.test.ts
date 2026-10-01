@@ -40,13 +40,15 @@ const MOVES: Record<string, Move[]> = {
     mv({ id: 'w3', season: '2024', week: 2, type: 'waiver', rosterIds: [3], adds: { p4: 3 }, bid: 40, at: 70 }),
   ],
 };
+// Set a season here to simulate Sleeper failing one of its legs.
+const HOLE = { season: '' };
 function mv(m: Partial<Move> & Pick<Move, 'id' | 'season' | 'week' | 'type' | 'rosterIds'>): Move {
   return { failed: false, adds: {}, drops: {}, bid: null, faab: [], picks: [], at: 0, ...m };
 }
 
 vi.mock('./lib/league', async (orig) => ({
   ...(await orig<typeof import('./lib/league')>()),
-  movesFor: vi.fn(async (lg: { season: string }) => MOVES[lg.season] ?? []),
+  movesFor: vi.fn(async (lg: { season: string }) => ({ moves: MOVES[lg.season] ?? [], whole: lg.season !== HOLE.season })),
   rostersFor: vi.fn(async () => ({
     // p3 (no projection) listed first, p1 second — the tool must reorder.
     rosters: [{ roster_id: 1, owner_id: 'a', players: ['p3', 'p1', 'p4'], starters: ['p1'] }],
@@ -232,8 +234,10 @@ describe('tools', () => {
     expect(data.matches).toBe(5); // the losing claim isn't a move
   });
 
-  it('get_transactions lists losing bids only when asked', async () => {
-    const { data } = await call('get_transactions', { type: 'waiver', include_failed: true, limit: 1 });
+  it('get_transactions lists ONLY losing bids when asked, so winning ones cannot crowd them out', async () => {
+    const { data } = await call('get_transactions', { type: 'waiver', failed_only: true, sort: 'recent' });
+    expect(data.moves).toHaveLength(1);
+    expect(data.matches).toBe(1);
     expect(data.moves[0]).toMatchObject({ manager: 'bob', faabBid: 70, failed: true });
     expect(data.managers.find((m: { manager: string }) => m.manager === 'bob')).toBeUndefined();
   });
@@ -258,6 +262,19 @@ describe('tools', () => {
       { manager: 'cara', team: 'Chaos Theory', received: ['Hurt Guy'], faabReceived: 0, picksReceived: [] },
       { manager: 'dan', team: 'Dust Bowl', received: ['Joe Burrow'], faabReceived: 10, picksReceived: ["2024 round 1 (originally cara's)"] },
     ]);
+  });
+
+  it('get_transactions refuses to total a season Sleeper only partly returned', async () => {
+    HOLE.season = '2023';
+    try {
+      const all = await call('get_transactions', { type: 'waiver', sort: 'bid', limit: 1 });
+      expect(all.isError).toBe(true);
+      expect(all.data).toContain('2023');
+      // A season that did load in full still answers.
+      expect((await call('get_transactions', { season: '2024' })).isError).toBe(false);
+    } finally {
+      HOLE.season = '';
+    }
   });
 
   it('get_transactions rejects an unknown season and hands back candidates for an ambiguous team', async () => {

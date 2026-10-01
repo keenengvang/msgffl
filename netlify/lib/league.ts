@@ -63,7 +63,7 @@ let chainSlot: Slot<League[]> | null = null;
 let nflSlot: Slot<NflState | null> | null = null;
 const bundleSlots = new Map<string, Slot<SeasonBundle>>();
 const rosterSlots = new Map<string, Slot<{ rosters: Roster[]; users: LeagueUser[] }>>();
-const moveSlots = new Map<string, Slot<{ moves: Move[]; whole: boolean }>>();
+const moveSlots = new Map<string, Slot<SeasonMoves>>();
 
 /** Needs the NFL state: without it there is no forward auto-discovery, and the
     chain stops at whatever season LEAGUE_ID names — which is a season behind
@@ -126,11 +126,18 @@ export function rostersFor(lg: League): Promise<{ rosters: Roster[]; users: Leag
     moves land in leg 1, so there is no leg 0 to ask for. */
 const TX_LEGS = 18;
 
+export interface SeasonMoves {
+  moves: Move[];
+  /** False when any leg failed to load. A missing week looks exactly like a
+      quiet one, so callers must refuse to total a season that isn't whole. */
+  whole: boolean;
+}
+
 /** Every waiver claim, free-agent pickup and trade in one season. Lazy — only
     the get_transactions tool pays for these 18 requests — and cached like a
-    bundle: a finished season forever, unless a leg failed to load, in which
-    case it's retried on the live TTL instead of holding a hole forever. */
-export function movesFor(lg: League): Promise<Move[]> {
+    bundle: a finished season forever, but a season with a failed leg is never
+    kept, so the very next question refetches it. */
+export function movesFor(lg: League): Promise<SeasonMoves> {
   const ttl = lg.status === 'complete' ? Infinity : LIVE_TTL;
   const slot = keep(
     moveSlots.get(lg.league_id) ?? null,
@@ -147,10 +154,10 @@ export function movesFor(lg: League): Promise<Move[]> {
       );
       return { moves: trimMoves(legs.flat(), lg.season), whole };
     },
-    (v) => (v.whole ? ttl : LIVE_TTL),
+    (v) => (v.whole ? ttl : 0),
   );
   moveSlots.set(lg.league_id, slot);
-  return slot.p.then((v) => v.moves);
+  return slot.p;
 }
 
 /** A season counts toward a career only once it is being played. Sleeper mints

@@ -209,8 +209,9 @@ blip isn't cached for an hour). A cold snapshot is ~80 Sleeper requests and land
 under a second. `players.ts` loads `/players/nfl` **lazily** — only tools that need a
 player name pay for it, and it's trimmed on arrival like `usePlayersDb`. Transactions
 are lazy the same way: `movesFor` (18 legs per season, trimmed by
-`entities/transaction/lib/moves.ts`) runs only when `get_transactions` does, and a season
-with a failed leg is retried on the live TTL instead of being kept forever.
+`entities/transaction/lib/moves.ts`) runs only when `get_transactions` does. A season
+with a failed leg is never cached, and the tool **refuses** to total it — a missing week
+looks exactly like a quiet one, so partial FAAB totals would be wrong and look authoritative.
 
 Loop control: `MAX_TOOL_ROUNDS` hops, and past `DEADLINE_MS` the tools are dropped from
 the request so the model must answer in words instead of starting a round there's no time

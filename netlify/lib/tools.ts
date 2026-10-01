@@ -117,9 +117,10 @@ export const TOOLS: Anthropic.Tool[] = [
           enum: ['bid', 'recent'],
           description: 'bid = biggest FAAB bid first, recent = newest first. Defaults to bid for waivers, recent otherwise.',
         },
-        include_failed: {
+        failed_only: {
           type: 'boolean',
-          description: 'Also list waiver claims that lost (outbid, roster full). Only for questions about losing bids.',
+          description:
+            'List ONLY waiver claims that lost (outbid, roster full), e.g. the biggest losing bid. The manager summary still counts winning claims.',
         },
         limit: { type: 'number', description: 'How many moves to list, 1-25. Default 10.' },
       },
@@ -456,7 +457,7 @@ interface TxArgs {
   player?: string;
   type?: string;
   sort?: string;
-  includeFailed?: boolean;
+  failedOnly?: boolean;
   limit?: number;
 }
 
@@ -475,12 +476,21 @@ async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcom
     who = hit;
   }
 
-  const [perSeason, index] = await Promise.all([
+  const [loaded, index] = await Promise.all([
     Promise.all(leagues.map(movesFor)),
     // Names are what make a move readable, but a players-db failure shouldn't
     // sink the FAAB numbers — those don't need a single name.
     playerIndex().catch(() => null),
   ]);
+  // A week Sleeper failed to return is indistinguishable from a quiet week, so
+  // totals over it would be wrong while looking authoritative. Refuse instead.
+  const holes = leagues.filter((_, i) => !loaded[i]!.whole).map((l) => l.season);
+  if (holes.length > 0)
+    return fail(
+      `Sleeper did not return every week of transactions for ${holes.join(', ')}. ` +
+        'Tell the user the transaction history is unavailable right now and to ask again in a minute — do not give partial totals.',
+    );
+  const perSeason = loaded.map((s) => s.moves);
   const nameOf = (id: string): string => index?.db[id]?.n ?? index?.benched[id]?.n ?? `unknown player (${id})`;
   const ownerOf = (m: Move, rosterId: number) => bundleOf(snap, m.season)?.names[rosterId];
 
@@ -536,7 +546,7 @@ async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcom
     .sort((a, b) => (b.faabSpent ?? 0) - (a.faabSpent ?? 0) || (b.trades ?? 0) - (a.trades ?? 0));
 
   const sort = args.sort ?? (args.type === 'waiver' ? 'bid' : 'recent');
-  const listed = (args.includeFailed ? inScope : done)
+  const listed = (args.failedOnly ? inScope.filter((m) => m.failed) : done)
     .slice()
     .sort(sort === 'bid' ? byBid : (a, b) => b.at - a.at)
     .slice(0, Math.min(Math.max(Math.trunc(args.limit ?? 10), 1), 25));
@@ -574,7 +584,7 @@ async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcom
     seasons: leagues.map((l) => ({ season: l.season, faabBudget: l.settings?.waiver_budget ?? null })),
     note: 'faabSpent counts winning waiver bids only. Week is the week Sleeper processed the move; offseason moves show as week 1.',
     managers,
-    matches: args.includeFailed ? inScope.length : done.length,
+    matches: args.failedOnly ? inScope.filter((m) => m.failed).length : done.length,
     sortedBy: sort === 'bid' ? 'biggest FAAB bid' : 'most recent',
     moves,
   });
@@ -608,7 +618,7 @@ export async function runTool(name: string, input: unknown, snap: Snapshot): Pro
           player: a.player == null ? undefined : String(a.player),
           type: a.type == null ? undefined : String(a.type),
           sort: a.sort == null ? undefined : String(a.sort),
-          includeFailed: a.include_failed === true,
+          failedOnly: a.failed_only === true,
           limit: a.limit == null ? undefined : Number(a.limit),
         });
       default:
