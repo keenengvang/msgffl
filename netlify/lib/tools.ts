@@ -16,7 +16,8 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { ptsKey } from '@/entities/league/lib/ptsKey';
 import { pairMatchups } from '@/entities/matchup/lib/pairMatchups';
 import { weekTags } from '@/entities/matchup/lib/weekTags';
-import { bundleOf, hasStarted, rostersFor, type Snapshot } from './league';
+import { byBid, faabSpend, type Move } from '@/entities/transaction/lib/moves';
+import { bundleOf, hasStarted, leagueOfSeason, movesFor, rostersFor, type Snapshot } from './league';
 import { people, resolvePerson, type Person } from './names';
 import { playerIndex, seasonStats, weekProjections, type Projections } from './players';
 
@@ -89,6 +90,39 @@ export const TOOLS: Anthropic.Tool[] = [
           description: 'Filter by position.',
         },
         limit: { type: 'number', description: 'How many to return, 1-15. Default 5.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_transactions',
+    description:
+      "Waiver claims (with their FAAB bids), free-agent pickups and trades, across every season or one. Also returns a per-manager summary for the moves in scope: FAAB spent, biggest winning bid, claims, pickups and trades. Use for any question about FAAB, waivers, pickups, adds/drops or trades — e.g. the biggest FAAB bid ever (type waiver, sort bid, limit 1), who spent the most FAAB in a season, or who picked up a player. FAAB spent counts winning bids only; a losing bid costs nothing.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        season: {
+          type: 'string',
+          description: 'Four-digit season, e.g. "2024". Omit for the whole league history.',
+        },
+        team: { type: 'string', description: 'Only moves involving this team or manager.' },
+        player: { type: 'string', description: 'Only moves that added or dropped a player matching this name.' },
+        type: {
+          type: 'string',
+          enum: ['waiver', 'free_agent', 'trade'],
+          description: 'waiver = FAAB claim, free_agent = no-bid pickup, trade = trade. Omit for all.',
+        },
+        sort: {
+          type: 'string',
+          enum: ['bid', 'recent'],
+          description: 'bid = biggest FAAB bid first, recent = newest first. Defaults to bid for waivers, recent otherwise.',
+        },
+        failed_only: {
+          type: 'boolean',
+          description:
+            'List ONLY waiver claims that lost (outbid, roster full), e.g. the biggest losing bid. The manager summary still counts winning claims.',
+        },
+        limit: { type: 'number', description: 'How many moves to list, 1-25. Default 10.' },
       },
       required: [],
     },
@@ -417,6 +451,148 @@ async function searchPlayers(
   });
 }
 
+interface TxArgs {
+  season?: string;
+  team?: string;
+  player?: string;
+  type?: string;
+  sort?: string;
+  failedOnly?: boolean;
+  limit?: number;
+}
+
+async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcome> {
+  // Only a waiver claim can lose. Sleeper also leaves trades pending or failed,
+  // and those must not turn up in a list of losing bids, sorted by date.
+  if (args.failedOnly) args = { ...args, type: 'waiver' };
+  const seasons = args.season ? [leagueOfSeason(snap, args.season)] : snap.chain;
+  if (seasons.some((l) => !l))
+    return fail(`No season ${args.season} in this league. Seasons: ${snap.chain.map((l) => l.season).join(', ')}.`);
+  const leagues = seasons.filter((l): l is NonNullable<typeof l> => !!l);
+  if (args.type && !['waiver', 'free_agent', 'trade'].includes(args.type))
+    return fail('type must be waiver, free_agent or trade.');
+
+  let who: Person | null = null;
+  if (args.team) {
+    const hit = personOr(args.team, people(snap));
+    if (isOutcome(hit)) return hit;
+    who = hit;
+  }
+
+  const [loaded, index] = await Promise.all([
+    Promise.all(leagues.map(movesFor)),
+    // Names are what make a move readable, but a players-db failure shouldn't
+    // sink the FAAB numbers — those don't need a single name.
+    playerIndex().catch(() => null),
+  ]);
+  // A week Sleeper failed to return is indistinguishable from a quiet week, so
+  // totals over it would be wrong while looking authoritative. Refuse instead.
+  const holes = leagues.filter((_, i) => !loaded[i]!.whole).map((l) => l.season);
+  if (holes.length > 0)
+    return fail(
+      `Sleeper did not return every week of transactions for ${holes.join(', ')}. ` +
+        'Tell the user the transaction history is unavailable right now and to ask again in a minute — do not give partial totals.',
+    );
+  const perSeason = loaded.map((s) => s.moves);
+  const nameOf = (id: string): string => index?.db[id]?.n ?? index?.benched[id]?.n ?? `unknown player (${id})`;
+  const ownerOf = (m: Move, rosterId: number) => bundleOf(snap, m.season)?.names[rosterId];
+
+  let playerIds: Set<string> | null = null;
+  if (args.player) {
+    if (!index) return fail('The player database is unavailable right now, so moves cannot be searched by player.');
+    const q = args.player.toLowerCase().trim();
+    playerIds = new Set(
+      Object.entries({ ...index.benched, ...index.db })
+        .filter(([, p]) => p.n.toLowerCase().includes(q))
+        .map(([id]) => id),
+    );
+    if (playerIds.size === 0) return fail(`No player named like "${args.player}".`);
+  }
+
+  const inScope = perSeason
+    .flat()
+    .filter((m) => !args.type || m.type === args.type)
+    .filter((m) => !who || m.rosterIds.some((r) => ownerOf(m, r)?.ownerId === who.ownerId))
+    .filter((m) => !playerIds || [...Object.keys(m.adds), ...Object.keys(m.drops)].some((id) => playerIds.has(id)));
+  const done = inScope.filter((m) => !m.failed);
+
+  // Per-manager summary, keyed by owner so a manager's seasons add up even
+  // when their roster id changed. A team filter narrows it to that manager.
+  const meta = snap.allTime.ownerMeta;
+  const faab = faabSpend(done, (m) => ownerOf(m, m.rosterIds[0]!)?.ownerId);
+  const tally: Record<string, { freeAgentAdds: number; trades: number }> = {};
+  done.forEach((m) =>
+    m.rosterIds.forEach((r) => {
+      const id = ownerOf(m, r)?.ownerId;
+      if (!id || (who && id !== who.ownerId)) return;
+      const t = (tally[id] ??= { freeAgentAdds: 0, trades: 0 });
+      if (m.type === 'free_agent') t.freeAgentAdds += 1;
+      if (m.type === 'trade') t.trades += 1;
+    }),
+  );
+  const managers = [...new Set([...Object.keys(faab), ...Object.keys(tally)])]
+    .filter((id) => !who || id === who.ownerId)
+    // A type filter means the other columns were never counted — reporting
+    // them as 0 would tell the model a manager has never made a trade.
+    .map((id) => ({
+      manager: meta[id]?.owner ?? people(snap).find((p) => p.ownerId === id)?.owner ?? id,
+      ...(!args.type || args.type === 'waiver'
+        ? {
+            faabSpent: faab[id]?.spent ?? 0,
+            biggestWinningBid: faab[id]?.biggest ?? 0,
+            waiverClaimsWon: faab[id]?.claims ?? 0,
+          }
+        : {}),
+      ...(!args.type || args.type === 'free_agent' ? { freeAgentAdds: tally[id]?.freeAgentAdds ?? 0 } : {}),
+      ...(!args.type || args.type === 'trade' ? { trades: tally[id]?.trades ?? 0 } : {}),
+    }))
+    .sort((a, b) => (b.faabSpent ?? 0) - (a.faabSpent ?? 0) || (b.trades ?? 0) - (a.trades ?? 0));
+
+  const sort = args.sort ?? (args.type === 'waiver' ? 'bid' : 'recent');
+  const listed = (args.failedOnly ? inScope.filter((m) => m.failed) : done)
+    .slice()
+    .sort(sort === 'bid' ? byBid : (a, b) => b.at - a.at)
+    .slice(0, Math.min(Math.max(Math.trunc(args.limit ?? 10), 1), 25));
+
+  const label = (m: Move, r: number) => ownerOf(m, r)?.owner ?? `roster ${r}`;
+  const moves = listed.map((m) => {
+    const base = { season: m.season, week: m.week, type: m.type };
+    if (m.type === 'trade') {
+      return {
+        ...base,
+        sides: m.rosterIds.map((r) => ({
+          manager: label(m, r),
+          team: ownerOf(m, r)?.team ?? '?',
+          received: Object.keys(m.adds).filter((id) => m.adds[id] === r).map(nameOf),
+          faabReceived: m.faab.filter((f) => f.to === r).reduce((t, f) => t + f.amount, 0),
+          picksReceived: m.picks
+            .filter((p) => p.to === r)
+            .map((p) => `${p.season} round ${p.round} (originally ${label(m, p.originalRosterId)}'s)`),
+        })),
+      };
+    }
+    const r = m.rosterIds[0]!;
+    return {
+      ...base,
+      manager: label(m, r),
+      team: ownerOf(m, r)?.team ?? '?',
+      added: Object.keys(m.adds).map(nameOf),
+      dropped: Object.keys(m.drops).map(nameOf),
+      ...(m.type === 'waiver' ? { faabBid: m.bid } : {}),
+      ...(m.failed ? { failed: true, reason: m.note ?? null } : {}),
+    };
+  });
+
+  return ok({
+    seasons: leagues.map((l) => ({ season: l.season, faabBudget: l.settings?.waiver_budget ?? null })),
+    note: 'faabSpent counts winning waiver bids only. Week is the week Sleeper processed the move; offseason moves show as week 1.',
+    managers,
+    matches: args.failedOnly ? inScope.filter((m) => m.failed).length : done.length,
+    sortedBy: sort === 'bid' ? 'biggest FAAB bid' : 'most recent',
+    moves,
+  });
+}
+
 /** Dispatch one tool_use block. Anything that throws comes back as an error
     result rather than a 502 — a bad tool call should cost a turn, not the chat. */
 export async function runTool(name: string, input: unknown, snap: Snapshot): Promise<ToolOutcome> {
@@ -438,6 +614,16 @@ export async function runTool(name: string, input: unknown, snap: Snapshot): Pro
           a.position == null ? undefined : String(a.position),
           a.limit == null ? undefined : Number(a.limit),
         );
+      case 'get_transactions':
+        return await getTransactions(snap, {
+          season: a.season == null ? undefined : String(a.season),
+          team: a.team == null ? undefined : String(a.team),
+          player: a.player == null ? undefined : String(a.player),
+          type: a.type == null ? undefined : String(a.type),
+          sort: a.sort == null ? undefined : String(a.sort),
+          failedOnly: a.failed_only === true,
+          limit: a.limit == null ? undefined : Number(a.limit),
+        });
       default:
         return fail(`No tool named ${name}.`);
     }

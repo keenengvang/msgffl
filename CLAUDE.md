@@ -192,8 +192,10 @@ The analyst knows the league two ways, both built in `netlify/lib/`:
   and the live week, rendered to ~1000 tokens of plain text into the system prompt on
   every turn. Most questions never touch a tool, which is the point: a synchronous
   Netlify function has ~10s, and each extra hop is another round trip.
-- **Five tools** (`tools.ts`) — `get_team`, `get_matchups`, `get_head_to_head`,
-  `get_season`, `search_players`. Shaped like the questions people ask, **not** like the
+- **Six tools** (`tools.ts`) — `get_team`, `get_matchups`, `get_head_to_head`,
+  `get_season`, `search_players`, `get_transactions` (waiver claims with FAAB bids,
+  free-agent pickups and trades, one season or all, plus a per-manager FAAB summary that
+  counts **winning bids only** — Sleeper keeps the bid on failed claims too). Shaped like the questions people ask, **not** like the
   Sleeper endpoints: `/matchups/{week}` is 28 rows of `{matchup_id, roster_id, points}`
   with no names, so endpoint-shaped tools would cost three round trips and a join for
   "who played who". Team arguments are free text resolved by `names.ts`, which returns
@@ -205,7 +207,11 @@ module-scope cache on the function instance, with the client's freshness rules (
 completed season ∞, live season 5 min, a rejected fetch evicted immediately so one Sleeper
 blip isn't cached for an hour). A cold snapshot is ~80 Sleeper requests and lands in well
 under a second. `players.ts` loads `/players/nfl` **lazily** — only tools that need a
-player name pay for it, and it's trimmed on arrival like `usePlayersDb`.
+player name pay for it, and it's trimmed on arrival like `usePlayersDb`. Transactions
+are lazy the same way: `movesFor` (18 legs per season, trimmed by
+`entities/transaction/lib/moves.ts`) runs only when `get_transactions` does. A season
+with a failed leg is never cached, and the tool **refuses** to total it — a missing week
+looks exactly like a quiet one, so partial FAAB totals would be wrong and look authoritative.
 
 Loop control: `MAX_TOOL_ROUNDS` hops, and past `DEADLINE_MS` the tools are dropped from
 the request so the model must answer in words instead of starting a round there's no time

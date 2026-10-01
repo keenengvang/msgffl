@@ -4,6 +4,7 @@ import { leagueBrief } from './lib/brief';
 import { looksWhole, settleBundles } from './lib/league';
 import { people, resolvePerson } from './lib/names';
 import { runTool, TOOLS } from './lib/tools';
+import type { Move } from '@/entities/transaction/lib/moves';
 
 // The tools that reach past the bundles (rosters, the 5MB player db) are the
 // only place these tests would hit the network — faked here so the suite stays
@@ -25,8 +26,30 @@ vi.mock('./lib/players', () => ({
 }));
 
 
+// alice's $55 in 2023 is the biggest WINNING bid; bob's $70 on the same
+// player lost, and a losing bid is not money spent.
+const MOVES: Record<string, Move[]> = {
+  '2023': [
+    mv({ id: 'w1', season: '2023', week: 3, type: 'waiver', rosterIds: [1], adds: { p1: 1 }, drops: { p3: 1 }, bid: 55, at: 30 }),
+    mv({ id: 'w1x', season: '2023', week: 3, type: 'waiver', rosterIds: [2], adds: { p1: 2 }, bid: 70, failed: true, note: 'This player was claimed by another owner.', at: 30 }),
+    mv({ id: 'fa1', season: '2023', week: 4, type: 'free_agent', rosterIds: [2], adds: { p3: 2 }, at: 40 }),
+    mv({ id: 'tr1', season: '2023', week: 5, type: 'trade', rosterIds: [3, 4], adds: { p2: 4, p4: 3 }, drops: { p2: 3, p4: 4 }, faab: [{ from: 3, to: 4, amount: 10 }], picks: [{ season: '2024', round: 1, originalRosterId: 3, from: 3, to: 4 }], at: 50 }),
+  ],
+  '2024': [
+    mv({ id: 'trx', season: '2024', week: 2, type: 'trade', rosterIds: [1, 2], adds: { p1: 2 }, failed: true, at: 99 }),
+    mv({ id: 'w2', season: '2024', week: 1, type: 'waiver', rosterIds: [1], adds: { p2: 1 }, bid: 12, at: 60 }),
+    mv({ id: 'w3', season: '2024', week: 2, type: 'waiver', rosterIds: [3], adds: { p4: 3 }, bid: 40, at: 70 }),
+  ],
+};
+// Set a season here to simulate Sleeper failing one of its legs.
+const HOLE = { season: '' };
+function mv(m: Partial<Move> & Pick<Move, 'id' | 'season' | 'week' | 'type' | 'rosterIds'>): Move {
+  return { failed: false, adds: {}, drops: {}, bid: null, faab: [], picks: [], at: 0, ...m };
+}
+
 vi.mock('./lib/league', async (orig) => ({
   ...(await orig<typeof import('./lib/league')>()),
+  movesFor: vi.fn(async (lg: { season: string }) => ({ moves: MOVES[lg.season] ?? [], whole: lg.season !== HOLE.season })),
   rostersFor: vi.fn(async () => ({
     // p3 (no projection) listed first, p1 second — the tool must reorder.
     rosters: [{ roster_id: 1, owner_id: 'a', players: ['p3', 'p1', 'p4'], starters: ['p1'] }],
@@ -188,8 +211,82 @@ describe('tools', () => {
       'get_matchups',
       'get_season',
       'get_team',
+      'get_transactions',
       'search_players',
     ]);
+  });
+
+  it('get_transactions answers "biggest FAAB bid ever" with the biggest WINNING bid', async () => {
+    const { data } = await call('get_transactions', { type: 'waiver', sort: 'bid', limit: 1 });
+    expect(data.moves).toEqual([
+      { season: '2023', week: 3, type: 'waiver', manager: 'alice', team: 'Boom Squad', added: ['Josh Allen'], dropped: ['Benched Guy'], faabBid: 55 },
+    ]);
+    // Every season, newest first, with each season's budget.
+    expect(data.seasons.map((s: { season: string }) => s.season)).toEqual(['2024', '2023']);
+  });
+
+  it('get_transactions totals FAAB per manager across seasons, winning bids only', async () => {
+    const { data } = await call('get_transactions', {});
+    const by = Object.fromEntries(data.managers.map((m: { manager: string }) => [m.manager, m]));
+    expect(by.alice).toMatchObject({ faabSpent: 67, biggestWinningBid: 55, waiverClaimsWon: 2 });
+    expect(by.bob).toMatchObject({ faabSpent: 0, freeAgentAdds: 1 });
+    expect(by.cara).toMatchObject({ faabSpent: 40, trades: 1 });
+    expect(data.managers[0].manager).toBe('alice'); // biggest spender first
+    expect(data.matches).toBe(5); // the losing claim isn't a move
+  });
+
+  it('get_transactions lists ONLY losing bids when asked, so winning ones cannot crowd them out', async () => {
+    const { data } = await call('get_transactions', { type: 'waiver', failed_only: true, sort: 'recent' });
+    expect(data.moves).toHaveLength(1);
+    // Without a type, a failed trade must still stay out, and the sort is by bid.
+    const untyped = (await call('get_transactions', { failed_only: true })).data;
+    expect(untyped.moves.map((m: { type: string }) => m.type)).toEqual(['waiver']);
+    expect(untyped.sortedBy).toBe('biggest FAAB bid');
+    expect(data.matches).toBe(1);
+    expect(data.moves[0]).toMatchObject({ manager: 'bob', faabBid: 70, failed: true });
+    expect(data.managers.find((m: { manager: string }) => m.manager === 'bob')).toBeUndefined();
+  });
+
+  it('get_transactions leaves out summary columns a type filter never counted', async () => {
+    const { data } = await call('get_transactions', { type: 'waiver' });
+    expect(Object.keys(data.managers[0]).sort()).toEqual(['biggestWinningBid', 'faabSpent', 'manager', 'waiverClaimsWon']);
+    const trades = (await call('get_transactions', { type: 'trade' })).data.managers;
+    expect(trades.map((m: { manager: string; trades: number }) => [m.manager, m.trades]).sort()).toEqual([
+      ['cara', 1],
+      ['dan', 1],
+    ]);
+  });
+
+  it('get_transactions filters by season, team and player, and spells out trades', async () => {
+    expect((await call('get_transactions', { season: '2024' })).data.matches).toBe(2);
+    expect((await call('get_transactions', { team: 'cara' })).data.managers).toHaveLength(1);
+    expect((await call('get_transactions', { player: 'allen' })).data.matches).toBe(1);
+
+    const { data } = await call('get_transactions', { type: 'trade' });
+    expect(data.moves[0].sides).toEqual([
+      { manager: 'cara', team: 'Chaos Theory', received: ['Hurt Guy'], faabReceived: 0, picksReceived: [] },
+      { manager: 'dan', team: 'Dust Bowl', received: ['Joe Burrow'], faabReceived: 10, picksReceived: ["2024 round 1 (originally cara's)"] },
+    ]);
+  });
+
+  it('get_transactions refuses to total a season Sleeper only partly returned', async () => {
+    HOLE.season = '2023';
+    try {
+      const all = await call('get_transactions', { type: 'waiver', sort: 'bid', limit: 1 });
+      expect(all.isError).toBe(true);
+      expect(all.data).toContain('2023');
+      // A season that did load in full still answers.
+      expect((await call('get_transactions', { season: '2024' })).isError).toBe(false);
+    } finally {
+      HOLE.season = '';
+    }
+  });
+
+  it('get_transactions rejects an unknown season and hands back candidates for an ambiguous team', async () => {
+    expect((await call('get_transactions', { season: '1999' })).isError).toBe(true);
+    const amb = await call('get_transactions', { team: 'squad' });
+    expect(amb.isError).toBe(true);
+    expect(amb.data).toContain('Ask the user');
   });
 
   it('get_team returns history, rivalries and the current roster', async () => {

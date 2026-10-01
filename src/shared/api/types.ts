@@ -134,3 +134,23 @@ export interface TrimmedMatchup {
 
 /** Weeks 1–17 keyed by week number. */
 export type SeasonWeeks = Record<number, TrimmedMatchup[]>;
+
+/** One row of `/league/{id}/transactions/{leg}`. `adds`/`drops` map
+    player_id → roster_id; a failed waiver claim still carries its bid. */
+export interface Transaction {
+  transaction_id: string;
+  type: 'waiver' | 'free_agent' | 'trade' | 'commissioner';
+  status: 'complete' | 'failed' | string;
+  /** The week it was processed in. Offseason moves land in leg 1. */
+  leg: number;
+  created: number;
+  status_updated?: number;
+  roster_ids: number[];
+  adds: Record<string, number> | null;
+  drops: Record<string, number> | null;
+  settings?: { waiver_bid?: number; seq?: number } | null;
+  /** FAAB that changed hands in a trade. */
+  waiver_budget?: { sender: number; receiver: number; amount: number }[];
+  draft_picks?: { season: string; round: number; roster_id: number; previous_owner_id: number; owner_id: number }[];
+  metadata?: { notes?: string } | null;
+}
