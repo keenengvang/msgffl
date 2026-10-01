@@ -20,7 +20,8 @@ import { buildSeasonBundle, type SeasonBundle } from '@/features/league-history/
 import { aggregateAllTime, type AllTime } from '@/features/league-history/model/aggregateAllTime';
 import { recordBook, type RecordBook } from '@/features/league-history/model/recordBook';
 import { h2h, type H2hRecord } from '@/features/league-history/model/h2h';
-import type { League, LeagueUser, NflState, Roster } from '@/shared/api/types';
+import { trimMoves, type Move } from '@/entities/transaction/lib/moves';
+import type { League, LeagueUser, NflState, Roster, Transaction } from '@/shared/api/types';
 import type { StandingRow } from '@/entities/team/model/types';
 
 const HOUR = 60 * 60_000;
@@ -62,6 +63,7 @@ let chainSlot: Slot<League[]> | null = null;
 let nflSlot: Slot<NflState | null> | null = null;
 const bundleSlots = new Map<string, Slot<SeasonBundle>>();
 const rosterSlots = new Map<string, Slot<{ rosters: Roster[]; users: LeagueUser[] }>>();
+const moveSlots = new Map<string, Slot<{ moves: Move[]; whole: boolean }>>();
 
 /** Needs the NFL state: without it there is no forward auto-discovery, and the
     chain stops at whatever season LEAGUE_ID names — which is a season behind
@@ -118,6 +120,37 @@ export function rostersFor(lg: League): Promise<{ rosters: Roster[]; users: Leag
   });
   rosterSlots.set(lg.league_id, slot);
   return slot.p;
+}
+
+/** Sleeper files transactions by leg; playoff moves can run to 18. Offseason
+    moves land in leg 1, so there is no leg 0 to ask for. */
+const TX_LEGS = 18;
+
+/** Every waiver claim, free-agent pickup and trade in one season. Lazy — only
+    the get_transactions tool pays for these 18 requests — and cached like a
+    bundle: a finished season forever, unless a leg failed to load, in which
+    case it's retried on the live TTL instead of holding a hole forever. */
+export function movesFor(lg: League): Promise<Move[]> {
+  const ttl = lg.status === 'complete' ? Infinity : LIVE_TTL;
+  const slot = keep(
+    moveSlots.get(lg.league_id) ?? null,
+    ttl,
+    async () => {
+      let whole = true;
+      const legs = await Promise.all(
+        Array.from({ length: TX_LEGS }, (_, i) =>
+          api<Transaction[]>(`/league/${lg.league_id}/transactions/${i + 1}`).catch(() => {
+            whole = false;
+            return [] as Transaction[];
+          }),
+        ),
+      );
+      return { moves: trimMoves(legs.flat(), lg.season), whole };
+    },
+    (v) => (v.whole ? ttl : LIVE_TTL),
+  );
+  moveSlots.set(lg.league_id, slot);
+  return slot.p.then((v) => v.moves);
 }
 
 /** A season counts toward a career only once it is being played. Sleeper mints
