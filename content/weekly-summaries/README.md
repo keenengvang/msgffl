@@ -26,6 +26,29 @@ Written by the weekly-summary managed agent via its GitHub MCP toolset
 - `headline`: one line, shows on the Home page card and atop the full page.
 - `sections`: as many as you want — each renders as its own card on `/weekly-summary`.
 
+### One section is mandatory: the full-roster roll call
+
+Whatever else the week earns, **every recap must include a section that walks all
+14 teams one at a time, ranked by that week's score**, with a praise-or-roast
+paragraph for each. Everyone in the league should find themselves in the recap by
+name every single week — that's the point of it, so nobody gets to feel left out
+because their week was boring.
+
+The 2026 week 3 recap has the reference version, headed
+`THE FULL FOURTEEN: EVERYBODY GETS A TURN 🎤`. The shape that works:
+
+- One paragraph per team, `<rank>. <manager> — <score>, won/LOST by <margin>.`
+  then the jokes. Rank strictly by points scored that week, not by record.
+- Give each team a *specific* reason: a real player's real number, a bench blunder,
+  a waiver hit, a kicker outscoring a first-rounder. Never a generic jab — if the
+  line would read the same for any other team, it isn't finished.
+- Winners still get roasted for bad calls and losers still get credit for good
+  ones. A 150-point win with a 39-point quarterback benched is both at once.
+- Keep each entry to two or three sentences. Fourteen teams is already the longest
+  section in the file; it should stay skimmable.
+
+The other sections stay free-form — as many as the week earns, no fixed set.
+
 ## 2. A prepended entry in the manifest
 
 `content/weekly-summaries/index.json` — one row per week ever filed, across every
