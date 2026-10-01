@@ -462,6 +462,9 @@ interface TxArgs {
 }
 
 async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcome> {
+  // Only a waiver claim can lose. Sleeper also leaves trades pending or failed,
+  // and those must not turn up in a list of losing bids, sorted by date.
+  if (args.failedOnly) args = { ...args, type: 'waiver' };
   const seasons = args.season ? [leagueOfSeason(snap, args.season)] : snap.chain;
   if (seasons.some((l) => !l))
     return fail(`No season ${args.season} in this league. Seasons: ${snap.chain.map((l) => l.season).join(', ')}.`);

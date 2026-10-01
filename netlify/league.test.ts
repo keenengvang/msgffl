@@ -36,6 +36,7 @@ const MOVES: Record<string, Move[]> = {
     mv({ id: 'tr1', season: '2023', week: 5, type: 'trade', rosterIds: [3, 4], adds: { p2: 4, p4: 3 }, drops: { p2: 3, p4: 4 }, faab: [{ from: 3, to: 4, amount: 10 }], picks: [{ season: '2024', round: 1, originalRosterId: 3, from: 3, to: 4 }], at: 50 }),
   ],
   '2024': [
+    mv({ id: 'trx', season: '2024', week: 2, type: 'trade', rosterIds: [1, 2], adds: { p1: 2 }, failed: true, at: 99 }),
     mv({ id: 'w2', season: '2024', week: 1, type: 'waiver', rosterIds: [1], adds: { p2: 1 }, bid: 12, at: 60 }),
     mv({ id: 'w3', season: '2024', week: 2, type: 'waiver', rosterIds: [3], adds: { p4: 3 }, bid: 40, at: 70 }),
   ],
@@ -237,6 +238,10 @@ describe('tools', () => {
   it('get_transactions lists ONLY losing bids when asked, so winning ones cannot crowd them out', async () => {
     const { data } = await call('get_transactions', { type: 'waiver', failed_only: true, sort: 'recent' });
     expect(data.moves).toHaveLength(1);
+    // Without a type, a failed trade must still stay out, and the sort is by bid.
+    const untyped = (await call('get_transactions', { failed_only: true })).data;
+    expect(untyped.moves.map((m: { type: string }) => m.type)).toEqual(['waiver']);
+    expect(untyped.sortedBy).toBe('biggest FAAB bid');
     expect(data.matches).toBe(1);
     expect(data.moves[0]).toMatchObject({ manager: 'bob', faabBid: 70, failed: true });
     expect(data.managers.find((m: { manager: string }) => m.manager === 'bob')).toBeUndefined();
