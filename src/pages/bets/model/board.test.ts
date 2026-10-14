@@ -11,7 +11,6 @@ const bet = (id: string, week: number, over: Partial<BetRecord> = {}): BetRecord
   stakes: 'a keg',
   terms: { kind: 'matchup' },
   winner: null,
-  paidTo: null,
   createdBy: 'k',
   createdAt: '',
   updatedBy: 'k',
@@ -52,10 +51,10 @@ describe('buildBoard', () => {
     expect(w5!.entries[0]).toMatchObject({ outcome: { kind: 'live', leader: 'A' }, locked: true });
     expect(w6!.entries[0]).toMatchObject({ outcome: { kind: 'upcoming' }, locked: false });
     expect(board.shredded.map((e) => e.bet.id)).toEqual(['d']);
-    // the deleted week-4 bet would also have settled — it must not hit the tab
-    expect(board.tab.map((r) => [r.ownerId, r.owes.length, r.owed.length])).toEqual([
-      ['ub', 1, 0],
-      ['ua', 0, 1],
+    // the deleted week-4 bet would also have settled — it must not count
+    expect(board.record.map((r) => [r.ownerId, r.won.length, r.lost.length])).toEqual([
+      ['ua', 1, 0],
+      ['ub', 0, 1],
     ]);
   });
 });

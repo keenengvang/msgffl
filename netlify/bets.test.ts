@@ -45,7 +45,6 @@ describe('bets function', () => {
     expect(bet).toMatchObject({
       ...draft,
       winner: null,
-      paidTo: null,
       createdBy: 'Keeneng',
       createdAt: '2025-10-10T12:00:00.000Z',
       deletedAt: null,
@@ -109,16 +108,13 @@ describe('bets function', () => {
   it('freezes the wager once live, but still lets you settle up', async () => {
     let live = false;
     const { handler } = setup({ locked: () => live });
-    let bet = await create(handler, { terms: { kind: 'custom', text: 'first to bench a 0' } });
+    const bet = await create(handler, { terms: { kind: 'custom', text: 'first to bench a 0' } });
     live = true;
     expect((await handler(patch(bet, { stakes: 'a high noon' }))).status).toBe(423);
 
-    let res = await handler(patch(bet, { winner: 'B' }));
+    const res = await handler(patch(bet, { winner: 'B' }));
     expect(res.status).toBe(200);
-    bet = ((await res.json()) as { bet: BetRecord }).bet;
-    res = await handler(patch(bet, { paidTo: 'B' }));
-    expect(res.status).toBe(200);
-    expect(((await res.json()) as { bet: BetRecord }).bet).toMatchObject({ winner: 'B', paidTo: 'B', stakes: 'a keg' });
+    expect(((await res.json()) as { bet: BetRecord }).bet).toMatchObject({ winner: 'B', stakes: 'a keg' });
   });
 
   it("won't move an open bet into a week that's already started", async () => {
@@ -128,12 +124,10 @@ describe('bets function', () => {
     expect((await handler(patch(bet, { sideB: 'ua' }))).status).toBe(400);
   });
 
-  it('rewriting the wager clears a ruling and payment made on the old terms', async () => {
+  it('rewriting the wager clears a ruling made on the old terms', async () => {
     const { handler } = setup();
     let bet = await create(handler, { terms: { kind: 'custom', text: 'first to bench a 0' } });
     let res = await handler(patch(bet, { winner: 'A' }));
-    bet = ((await res.json()) as { bet: BetRecord }).bet;
-    res = await handler(patch(bet, { paidTo: 'A' }));
     bet = ((await res.json()) as { bet: BetRecord }).bet;
 
     res = await handler(patch(bet, { sideA: 'uc', stakes: 'two kegs' }));
@@ -141,15 +135,13 @@ describe('bets function', () => {
       sideA: 'uc',
       stakes: 'two kegs',
       winner: null,
-      paidTo: null,
     });
   });
 
-  it('rejects a patch that rewrites the wager and settles it at once', async () => {
+  it('rejects a patch that rewrites the wager and rules on it at once', async () => {
     const { handler } = setup();
     const bet = await create(handler, { terms: { kind: 'custom', text: 'x' } });
     expect((await handler(patch(bet, { stakes: 'two kegs', winner: 'A' }))).status).toBe(400);
-    expect((await handler(patch(bet, { sideA: 'uc', paidTo: 'A' }))).status).toBe(400);
   });
 
   it('matchup bets take no manual ruling', async () => {
@@ -173,8 +165,8 @@ describe('bets function', () => {
   it('404s an unknown bet and 400s a malformed address', async () => {
     const { handler } = setup();
     const bet = await create(handler);
-    expect((await handler(req('PATCH', { patch: { paidTo: 'A' }, version: 'v1', by: 'x' }, '?season=2025&id=nope'))).status).toBe(404);
-    expect((await handler(req('PATCH', { patch: { paidTo: 'A' }, version: 'v1', by: 'x' }, '?season=../&id=x'))).status).toBe(400);
-    expect((await handler(req('PATCH', { patch: { paidTo: 'A' }, by: 'x' }, `?season=2025&id=${bet.id}`))).status).toBe(400);
+    expect((await handler(req('PATCH', { patch: { deleted: true }, version: 'v1', by: 'x' }, '?season=2025&id=nope'))).status).toBe(404);
+    expect((await handler(req('PATCH', { patch: { deleted: true }, version: 'v1', by: 'x' }, '?season=../&id=x'))).status).toBe(400);
+    expect((await handler(req('PATCH', { patch: { deleted: true }, by: 'x' }, `?season=2025&id=${bet.id}`))).status).toBe(400);
   });
 });

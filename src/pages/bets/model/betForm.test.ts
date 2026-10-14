@@ -11,7 +11,6 @@ const rec = (over: Partial<BetRecord> = {}): BetRecord => ({
   stakes: 'a keg',
   terms: { kind: 'matchup' },
   winner: null,
-  paidTo: null,
   createdBy: 'k',
   createdAt: '',
   updatedBy: 'k',

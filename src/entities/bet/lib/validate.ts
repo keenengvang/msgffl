@@ -85,11 +85,9 @@ export function validatePatch(v: unknown): Result<BetPatch> {
     if (!t.ok) return t;
     out.terms = t.value;
   }
-  for (const k of ['winner', 'paidTo'] as const) {
-    if (k in v) {
-      if (v[k] !== null && v[k] !== 'A' && v[k] !== 'B') return { ok: false, error: `${k} must be A, B or null` };
-      out[k] = v[k] as BetSide | null;
-    }
+  if ('winner' in v) {
+    if (v.winner !== null && v.winner !== 'A' && v.winner !== 'B') return { ok: false, error: 'winner must be A, B or null' };
+    out.winner = v.winner as BetSide | null;
   }
   if ('deleted' in v) {
     if (typeof v.deleted !== 'boolean') return { ok: false, error: 'deleted must be true or false' };
@@ -100,7 +98,7 @@ export function validatePatch(v: unknown): Result<BetPatch> {
 }
 
 /** Fields that define the wager itself. Once a bet is locked these are frozen;
-    settling up (`winner`, `paidTo`) and the tombstone stay editable. */
+    the ruling (`winner`) and the tombstone stay editable. */
 export const TERM_FIELDS = ['week', 'sideA', 'sideB', 'stakes', 'terms'] as const;
 
 export function touchesTerms(p: BetPatch): boolean {

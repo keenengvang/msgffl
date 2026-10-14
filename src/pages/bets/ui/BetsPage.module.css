@@ -230,29 +230,17 @@
   color: var(--text-bright);
 }
 
-.tabDebts {
-  display: flex;
-  gap: 10px;
-  font-family: var(--font-cond);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.14em;
+.tabRecord {
+  font-size: 14px;
+  color: var(--text-dim);
 }
 
-.owes {
-  color: var(--loss);
-}
-
-.owed {
+.won {
   color: var(--win);
 }
 
-.tabStakes {
-  grid-column: 2 / -1;
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: var(--text-muted);
-  overflow-wrap: anywhere;
+.lost {
+  color: var(--loss);
 }
 
 /* ── board ── */

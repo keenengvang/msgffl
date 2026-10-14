@@ -80,51 +80,33 @@ export function resolveBet(bet: Pick<Bet, 'terms' | 'winner'>, scores: SideScore
   return { kind: 'live', a, b, leader: a === b ? null : a > b ? 'A' : 'B' };
 }
 
-/** Settled, and paid to the side that (still) won it. */
-export function isPaid(bet: Pick<Bet, 'paidTo'>, outcome: BetOutcome): boolean {
-  return outcome.kind === 'settled' && bet.paidTo === outcome.winner;
+/** Settled or pushed — nothing left to happen. Everything else is pending. */
+export function isComplete(outcome: BetOutcome): boolean {
+  return outcome.kind === 'settled' || outcome.kind === 'push';
 }
 
-/** Paid out to the side that has since lost — a stat correction flipped it. */
-export function paidWrongWay(bet: Pick<Bet, 'paidTo'>, outcome: BetOutcome): boolean {
-  return outcome.kind === 'settled' && bet.paidTo !== null && bet.paidTo !== outcome.winner;
-}
-
-/** Who pays whom on a settled bet. */
-export function debtOf(bet: Pick<Bet, 'sideA' | 'sideB'>, outcome: BetOutcome): { debtor: string; creditor: string } | null {
-  if (outcome.kind !== 'settled') return null;
-  return outcome.winner === 'A'
-    ? { debtor: bet.sideB, creditor: bet.sideA }
-    : { debtor: bet.sideA, creditor: bet.sideB };
-}
-
-export interface LedgerRow<B extends Bet = Bet> {
+export interface RecordRow<B extends Bet = Bet> {
   ownerId: string;
-  /** Unpaid bets this manager lost. */
-  owes: B[];
-  /** Unpaid bets this manager won. */
-  owed: B[];
+  won: B[];
+  lost: B[];
 }
 
-/** The tab: every unpaid, settled, non-deleted bet, per manager. A payment to
-    the side that has since lost doesn't count — the corrected debt shows. Stakes are
-    free text ("a keg", "$20"), so this lists debts rather than summing them.
-    Worst offenders first. */
-export function ledger<B extends Bet>(entries: Array<{ bet: B; outcome: BetOutcome }>): LedgerRow<B>[] {
-  const rows = new Map<string, LedgerRow<B>>();
+/** Each manager's bet record for the season: settled, non-deleted bets won and
+    lost. Best bettor first. */
+export function betRecord<B extends Bet>(entries: Array<{ bet: B; outcome: BetOutcome }>): RecordRow<B>[] {
+  const rows = new Map<string, RecordRow<B>>();
   const row = (id: string) => {
     let r = rows.get(id);
-    if (!r) rows.set(id, (r = { ownerId: id, owes: [], owed: [] }));
+    if (!r) rows.set(id, (r = { ownerId: id, won: [], lost: [] }));
     return r;
   };
   for (const { bet, outcome } of entries) {
-    if (bet.deletedAt || isPaid(bet, outcome)) continue;
-    const d = debtOf(bet, outcome);
-    if (!d) continue;
-    row(d.debtor).owes.push(bet);
-    row(d.creditor).owed.push(bet);
+    if (bet.deletedAt || outcome.kind !== 'settled') continue;
+    const [winner, loser] = outcome.winner === 'A' ? [bet.sideA, bet.sideB] : [bet.sideB, bet.sideA];
+    row(winner).won.push(bet);
+    row(loser).lost.push(bet);
   }
   return [...rows.values()].sort(
-    (x, y) => y.owes.length - x.owes.length || x.owed.length - y.owed.length || x.ownerId.localeCompare(y.ownerId),
+    (x, y) => y.won.length - x.won.length || x.lost.length - y.lost.length || x.ownerId.localeCompare(y.ownerId),
   );
 }

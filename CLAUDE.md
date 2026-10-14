@@ -195,8 +195,9 @@ each other. Requires `BETS_PIN` in the Netlify UI env vars (shared league PIN, h
 the keg they lost. A bet **locks** once either side has points on the board or the week is
 final (`isLocked` in `entities/bet/lib/resolveBet.ts`, checked server-side against live
 Sleeper via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess). Locked
-bets can still be ruled on (`winner`, custom bets only), marked paid (`paidTo` — the side paid, so a stat correction that flips the winner
-puts the debt back instead of crediting the wrong payer), or shredded.
+bets can still be ruled on (`winner`, custom bets only) or shredded. There is no payment
+tracking: a bet's status is just PENDING or COMPLETED ✓ (decided or pushed), and the page's
+side panel is each manager's season bet record (`betRecord`), not a debt ledger.
 Matchup bets ("higher score that week") are **never stored settled** — the winner is
 derived from scores by `resolveBet`, same as every other derived number.
 

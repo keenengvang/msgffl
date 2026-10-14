@@ -10,7 +10,7 @@
  *
  * Writes need the league PIN in `x-bets-pin` (BETS_PIN env var). Reads are
  * public. Once either side has points on the board the wager is locked: only
- * the ruling, `paidTo` and the tombstone can change after that.
+ * the ruling and the tombstone can change after that.
  */
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { touchesTerms, validateDraft, validatePatch, validateWho } from '@/entities/bet/lib/validate';
@@ -125,7 +125,6 @@ export function makeBetsHandler(deps: BetsDeps) {
         ...draft.value,
         id: randomUUID(),
         winner: null,
-        paidTo: null,
         createdBy: who.value,
         createdAt: stamp,
         updatedBy: who.value,
@@ -151,17 +150,17 @@ export function makeBetsHandler(deps: BetsDeps) {
       return json(409, { error: 'someone else edited this bet first', bet: record(current) });
     }
 
-    // Rewriting the wager and settling it are separate acts: a combined patch
-    // could carry an old ruling or payment onto new terms.
-    if (touchesTerms(patch.value) && ('winner' in patch.value || 'paidTo' in patch.value)) {
-      return json(400, { error: 'settle up separately from rewriting the wager' });
+    // Rewriting the wager and ruling on it are separate acts: a combined patch
+    // could carry an old ruling onto new terms.
+    if (touchesTerms(patch.value) && 'winner' in patch.value) {
+      return json(400, { error: 'rule on a bet separately from rewriting it' });
     }
 
     const { deleted, ...fields } = patch.value;
     const next: Bet = { ...current.bet, ...fields, updatedBy: who.value, updatedAt: stamp };
-    // A rewritten wager is a new wager: a ruling or payment on the old terms
-    // (custom bets can be ruled before kickoff) must not carry over to it.
-    if (touchesTerms(patch.value)) Object.assign(next, { winner: null, paidTo: null });
+    // A rewritten wager is a new wager: a ruling on the old terms (custom bets
+    // can be ruled before kickoff) must not carry over to it.
+    if (touchesTerms(patch.value)) next.winner = null;
     if (deleted === true && !current.bet.deletedAt) Object.assign(next, { deletedAt: stamp, deletedBy: who.value });
     if (deleted === false) Object.assign(next, { deletedAt: null, deletedBy: null });
 

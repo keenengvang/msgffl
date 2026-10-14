@@ -1,5 +1,5 @@
 import type { TrimmedMatchup } from '@/shared/api/types';
-import { isLocked, ledger, resolveBet, sideScores, type BetOutcome, type LedgerRow, type SideScores } from '@/entities/bet/lib/resolveBet';
+import { betRecord, isLocked, resolveBet, sideScores, type BetOutcome, type RecordRow, type SideScores } from '@/entities/bet/lib/resolveBet';
 import type { BetRecord } from '@/entities/bet/model/types';
 
 export interface BoardEntry {
@@ -14,7 +14,8 @@ export interface Board {
   weeks: Array<{ week: number; entries: BoardEntry[] }>;
   /** Tombstoned bets — shown apart, restorable. */
   shredded: BoardEntry[];
-  tab: LedgerRow<BetRecord>[];
+  /** Season bet record per manager (settled bets won/lost). */
+  record: RecordRow<BetRecord>[];
 }
 
 /** Score, settle and lock every bet against the season's matchups. Pure: the
@@ -40,6 +41,6 @@ export function buildBoard(
   return {
     weeks: [...byWeek.entries()].sort(([a], [b]) => b - a).map(([week, list]) => ({ week, entries: list })),
     shredded: entries.filter((e) => e.bet.deletedAt),
-    tab: ledger(live),
+    record: betRecord(live),
   };
 }

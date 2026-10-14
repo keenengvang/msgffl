@@ -6,7 +6,7 @@ import { useStandings } from '@/entities/team/api/useStandings';
 import { useLiveWeek, useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
 import { liveWeekFor } from '@/entities/matchup/lib/liveWeek';
 import { useBets, useCreateBet, useUpdateBet, BetApiError } from '@/entities/bet/api/useBets';
-import { isPaid, weekIsFinal } from '@/entities/bet/lib/resolveBet';
+import { weekIsFinal } from '@/entities/bet/lib/resolveBet';
 import type { BetDraft, BetPatch, BetRecord } from '@/entities/bet/model/types';
 import { BetCard, type BetSideView } from '@/entities/bet/ui/BetCard';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
@@ -161,14 +161,8 @@ export function BetsPage() {
       out.push(btn(`${a.toUpperCase()} WON`, () => act(bet, { winner: 'A' })));
       out.push(btn(`${b.toUpperCase()} WON`, () => act(bet, { winner: 'B' })));
     }
-    if (outcome.kind === 'settled') {
-      const paid = isPaid(bet, outcome);
-      out.push(
-        paid
-          ? btn(savage ? 'UN-PAY (LIAR)' : 'MARK UNPAID', () => act(bet, { paidTo: null }))
-          : btn(savage ? 'PAID UP' : 'MARK PAID', () => act(bet, { paidTo: outcome.winner }), 'red'),
-      );
-      if (bet.terms.kind === 'custom' && !paid) out.push(btn(savage ? 'OVERTURN' : 'UNDO RULING', () => act(bet, { winner: null })));
+    if (bet.terms.kind === 'custom' && outcome.kind === 'settled') {
+      out.push(btn(savage ? 'OVERTURN' : 'UNDO RULING', () => act(bet, { winner: null })));
     }
     if (!locked) {
       out.push(
@@ -232,36 +226,24 @@ export function BetsPage() {
           savage={savage}
         />
 
-        <Panel label={savage ? 'THE TAB · WHO OWES WHAT' : 'OUTSTANDING DEBTS'}>
+        <Panel label={savage ? 'BET RECORD · WHO CASHES' : 'BET RECORD'}>
           {!board ? (
             <span className={styles.dim}>{bets.isError ? '—' : 'running the numbers…'}</span>
-          ) : board.tab.length === 0 ? (
+          ) : board.record.length === 0 ? (
             <span className={styles.dim}>
-              {savage ? 'Nobody owes anybody. Suspiciously honest league.' : 'All square — no unpaid bets.'}
+              {savage ? 'No bets decided yet. Everyone is still undefeated and insufferable.' : 'No bets have been decided yet.'}
             </span>
           ) : (
             <ul className={styles.tab}>
-              {board.tab.map((r) => {
+              {board.record.map((r) => {
                 const v = view(r.ownerId);
                 return (
                   <li key={r.ownerId} className={styles.tabRow}>
                     <TeamAvatar src={v.avatar} size={26} />
                     <span className={styles.tabName}>{v.name}</span>
-                    <span className={styles.tabDebts}>
-                      {r.owes.length > 0 && (
-                        <span className={styles.owes}>
-                          OWES <span className="uMono">{r.owes.length}</span>
-                        </span>
-                      )}
-                      {r.owed.length > 0 && (
-                        <span className={styles.owed}>
-                          OWED <span className="uMono">{r.owed.length}</span>
-                        </span>
-                      )}
+                    <span className={`uMono ${styles.tabRecord}`}>
+                      <span className={styles.won}>{r.won.length}</span>–<span className={styles.lost}>{r.lost.length}</span>
                     </span>
-                    {r.owes.length > 0 && (
-                      <span className={styles.tabStakes}>{r.owes.map((b) => `${b.stakes} → ${view(b.sideA === r.ownerId ? b.sideB : b.sideA).name}`).join(' · ')}</span>
-                    )}
                   </li>
                 );
               })}
