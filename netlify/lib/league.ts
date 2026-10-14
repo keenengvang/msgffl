@@ -78,7 +78,15 @@ function chain(ns: NflState | null): Promise<League[]> {
 
 function nflState(): Promise<NflState | null> {
   // Same shape as useNflState: a failure here must not sink the whole answer.
-  nflSlot = keep(nflSlot, 5 * 60_000, () => api<NflState>('/state/nfl').catch(() => null));
+  // A failure resolves null rather than rejecting, so keep()'s eviction never
+  // fires; drop the TTL to 0 instead, or one blip would fail every bet write
+  // (and blind the chain) for five minutes after Sleeper is back.
+  nflSlot = keep(
+    nflSlot,
+    5 * 60_000,
+    () => api<NflState>('/state/nfl').catch(() => null),
+    (ns) => (ns ? 5 * 60_000 : 0),
+  );
   return nflSlot.p;
 }
 
