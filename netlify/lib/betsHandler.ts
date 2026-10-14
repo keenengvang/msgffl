@@ -151,14 +151,17 @@ export function makeBetsHandler(deps: BetsDeps) {
       return json(409, { error: 'someone else edited this bet first', bet: record(current) });
     }
 
+    // Rewriting the wager and settling it are separate acts: a combined patch
+    // could carry an old ruling or payment onto new terms.
+    if (touchesTerms(patch.value) && ('winner' in patch.value || 'paidTo' in patch.value)) {
+      return json(400, { error: 'settle up separately from rewriting the wager' });
+    }
+
     const { deleted, ...fields } = patch.value;
     const next: Bet = { ...current.bet, ...fields, updatedBy: who.value, updatedAt: stamp };
     // A rewritten wager is a new wager: a ruling or payment on the old terms
     // (custom bets can be ruled before kickoff) must not carry over to it.
-    if (touchesTerms(patch.value)) {
-      if (!('winner' in fields)) next.winner = null;
-      if (!('paidTo' in fields)) next.paidTo = null;
-    }
+    if (touchesTerms(patch.value)) Object.assign(next, { winner: null, paidTo: null });
     if (deleted === true && !current.bet.deletedAt) Object.assign(next, { deletedAt: stamp, deletedBy: who.value });
     if (deleted === false) Object.assign(next, { deletedAt: null, deletedBy: null });
 

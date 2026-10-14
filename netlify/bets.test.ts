@@ -145,6 +145,13 @@ describe('bets function', () => {
     });
   });
 
+  it('rejects a patch that rewrites the wager and settles it at once', async () => {
+    const { handler } = setup();
+    const bet = await create(handler, { terms: { kind: 'custom', text: 'x' } });
+    expect((await handler(patch(bet, { stakes: 'two kegs', winner: 'A' }))).status).toBe(400);
+    expect((await handler(patch(bet, { sideA: 'uc', paidTo: 'A' }))).status).toBe(400);
+  });
+
   it('matchup bets take no manual ruling', async () => {
     const { handler } = setup();
     const bet = await create(handler);
