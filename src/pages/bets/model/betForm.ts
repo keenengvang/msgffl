@@ -46,7 +46,10 @@ export function rebaseForm(form: FormState, base: BetRecord, fresh: BetRecord): 
   const now = fromBet(fresh);
   const out = { ...form };
   for (const group of GROUPS) {
-    const touched = group.includes('kind') ? termsKey(form) !== termsKey(was) : group.some((k) => form[k] !== was[k]);
+    // Compare what would be submitted (trimmed), not raw keystrokes.
+    const touched = group.includes('kind')
+      ? termsKey(form) !== termsKey(was)
+      : group.some((k) => (k === 'stakes' ? form.stakes.trim() !== was.stakes.trim() : form[k] !== was[k]));
     if (!touched) for (const k of group) Object.assign(out, { [k]: now[k] });
   }
   return out;

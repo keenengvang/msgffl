@@ -45,6 +45,12 @@ describe('rebaseForm', () => {
     expect(rebaseForm(mine, base, fresh)).toMatchObject({ kind: 'custom', text: 'first to bench a 0' });
   });
 
+  it('whitespace-only stakes changes are not an edit', () => {
+    const base = rec();
+    const fresh = rec({ stakes: 'two kegs', version: 'v2' });
+    expect(rebaseForm({ ...fromBet(base), stakes: ' a keg  ' }, base, fresh).stakes).toBe('two kegs');
+  });
+
   it('moves kind and text together', () => {
     const base = rec();
     const fresh = rec({ terms: { kind: 'custom', text: 'first to bench a 0' }, version: 'v2' });
