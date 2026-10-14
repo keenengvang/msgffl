@@ -38,6 +38,13 @@ describe('rebaseForm', () => {
     expect(rebaseForm({ ...fromBet(base), stakes: 'two kegs' }, base, fresh).stakes).toBe('two kegs');
   });
 
+  it('custom text abandoned by switching back to HIGHER SCORE is not an edit', () => {
+    const base = rec(); // matchup
+    const fresh = rec({ terms: { kind: 'custom', text: 'first to bench a 0' }, version: 'v2' });
+    const mine = { ...fromBet(base), kind: 'matchup' as const, text: 'typed then abandoned' };
+    expect(rebaseForm(mine, base, fresh)).toMatchObject({ kind: 'custom', text: 'first to bench a 0' });
+  });
+
   it('moves kind and text together', () => {
     const base = rec();
     const fresh = rec({ terms: { kind: 'custom', text: 'first to bench a 0' }, version: 'v2' });

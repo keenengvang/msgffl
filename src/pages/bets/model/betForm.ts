@@ -33,6 +33,10 @@ export function diff(before: BetRecord, d: BetDraft): BetPatch {
 /** Field groups that move together (kind + text are one "terms" edit). */
 const GROUPS: Array<Array<keyof FormState>> = [['sideA'], ['sideB'], ['week'], ['stakes'], ['kind', 'text']];
 
+/** The terms a form would actually submit — custom text left behind after
+    switching back to HIGHER SCORE isn't part of it. */
+const termsKey = (f: FormState) => (f.kind === 'matchup' ? 'matchup' : `custom:${f.text.trim()}`);
+
 /** After an edit conflict: keep what this user changed since `base`, take
     everything else from `fresh`. Without this, the retry would send this
     form's stale copy of fields someone else just changed — silently
@@ -42,7 +46,7 @@ export function rebaseForm(form: FormState, base: BetRecord, fresh: BetRecord): 
   const now = fromBet(fresh);
   const out = { ...form };
   for (const group of GROUPS) {
-    const touched = group.some((k) => form[k] !== was[k]);
+    const touched = group.includes('kind') ? termsKey(form) !== termsKey(was) : group.some((k) => form[k] !== was[k]);
     if (!touched) for (const k of group) Object.assign(out, { [k]: now[k] });
   }
   return out;
