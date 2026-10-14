@@ -38,14 +38,21 @@ export function BetsPage() {
   const nflState = useNflState();
   const { standings, isLoading, error } = useStandings(league);
   const pws = league?.settings?.playoff_week_start ?? 15;
-  const liveWeek = liveWeekFor({
-    status: league?.status,
-    playoffWeekStart: pws,
-    nflSeason: nflState.data?.season,
-    nflWeek: nflState.data?.week,
-    season,
-  });
   const weeks = useSeasonWeeks(league);
+  const scoredThrough = lastScoredWeek(weeks.data);
+  // useNflState resolves null when /state/nfl fails, and liveWeekFor would then
+  // fall back to week 1 — polling a finished week while this one freezes. Mid-
+  // season, the latest week with points on the board is the best stand-in.
+  const nflDown = nflState.isSuccess && !nflState.data && league?.status === 'in_season';
+  const liveWeek = nflDown
+    ? Math.max(1, scoredThrough)
+    : liveWeekFor({
+        status: league?.status,
+        playoffWeekStart: pws,
+        nflSeason: nflState.data?.season,
+        nflWeek: nflState.data?.week,
+        season,
+      });
   const live = useLiveWeek(league, liveWeek);
   const bets = useBets(season);
   const create = useCreateBet();
@@ -65,7 +72,6 @@ export function BetsPage() {
     setEditing(null);
   }
 
-  const scoredThrough = lastScoredWeek(weeks.data);
   const board = useMemo(() => {
     if (!bets.data || !standings || !season) return null;
     const rosterOf: Record<string, number> = {};

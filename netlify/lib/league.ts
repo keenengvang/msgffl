@@ -69,7 +69,10 @@ const moveSlots = new Map<string, Slot<SeasonMoves>>();
     chain stops at whatever season LEAGUE_ID names — which is a season behind
     for most of the year. */
 function chain(ns: NflState | null): Promise<League[]> {
-  chainSlot = keep(chainSlot, HOUR, () => fetchChain(ns));
+  // A chain walked without NFL state can't discover the newest season, so it
+  // only earns the live TTL — cached for an hour, it would hide the current
+  // season from every caller long after /state/nfl recovers.
+  chainSlot = keep(chainSlot, ns ? HOUR : LIVE_TTL, () => fetchChain(ns));
   return chainSlot.p;
 }
 
@@ -252,8 +255,12 @@ export async function snapshot(): Promise<Snapshot> {
 /** One season's league plus the NFL state, without building any bundles —
     for callers (the bets function) that need a roster map and a week, not the
     whole record book. undefined when the chain has no such season. */
-export async function leagueForSeason(season: string): Promise<{ league: League; nfl: NflState | null } | undefined> {
+export async function leagueForSeason(season: string): Promise<{ league: League; nfl: NflState } | undefined> {
   const nfl = await nflState();
+  // Without NFL state the chain may be missing the newest season, and the
+  // caller would report a season that exists as unknown. Fail instead (the
+  // bets function turns this into a 503).
+  if (!nfl) throw new Error('NFL state unavailable');
   const league = (await chain(nfl)).find((l) => l.season === season);
   return league ? { league, nfl } : undefined;
 }

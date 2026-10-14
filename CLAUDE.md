@@ -223,7 +223,8 @@ The analyst knows the league two ways, both built in `netlify/lib/`:
   every number after it.
 
 `league.ts` is the server's answer to TanStack Query: the same fetches behind a warm
-module-scope cache on the function instance, with the client's freshness rules (chain 1 h,
+module-scope cache on the function instance, with the client's freshness rules (chain 1 h —
+only 5 min when walked without NFL state, since it then misses the newest season —
 completed season ∞, live season 5 min, a rejected fetch evicted immediately so one Sleeper
 blip isn't cached for an hour). A cold snapshot is ~80 Sleeper requests and lands in well
 under a second. `players.ts` loads `/players/nfl` **lazily** — only tools that need a

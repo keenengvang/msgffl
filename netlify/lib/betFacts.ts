@@ -24,9 +24,6 @@ export const sleeperFacts: FactsFor = async (season, week) => {
   const found = await leagueForSeason(season);
   if (!found) return null;
   const { league, nfl } = found;
-  // Without NFL state an in-season week can't be called final, and treating
-  // "unknown" as "not final" would unlock a past week. Fail closed (→ 503).
-  if (!nfl && league.status !== 'complete') throw new Error('NFL state unavailable');
   const [{ rosters }, raw] = await Promise.all([
     rostersFor(league),
     // Uncached on purpose: this is the one number the lock turns on, and
@@ -37,7 +34,7 @@ export const sleeperFacts: FactsFor = async (season, week) => {
   rosters.forEach((r) => (rosterOf[r.owner_id] = r.roster_id));
   const rows = raw.map((m) => ({ m: m.matchup_id, r: m.roster_id, p: m.points || 0 }));
   const final = weekIsFinal(
-    { status: league.status, season, nflSeason: nfl?.season, nflWeek: nfl?.week },
+    { status: league.status, season, nflSeason: nfl.season, nflWeek: nfl.week },
     week,
   );
   return {
