@@ -162,6 +162,18 @@ describe('bets function', () => {
     expect(((await res.json()) as { bet: BetRecord }).bet).toMatchObject({ deletedAt: null, deletedBy: null });
   });
 
+  it('a shredded bet takes no edits until restored', async () => {
+    const { handler } = setup();
+    const bet = await create(handler, { terms: { kind: 'custom', text: 'x' } });
+    const gone = ((await (await handler(patch(bet, { deleted: true }))).json()) as { bet: BetRecord }).bet;
+    for (const p of [{ stakes: 'two kegs' }, { winner: 'A' }, { deleted: false, stakes: 'two kegs' }]) {
+      const res = await handler(patch(gone, p));
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { bet: BetRecord }).bet.deletedAt).toBeTruthy();
+    }
+    expect((await handler(patch(gone, { deleted: false }))).status).toBe(200);
+  });
+
   it('404s an unknown bet and 400s a malformed address', async () => {
     const { handler } = setup();
     const bet = await create(handler);

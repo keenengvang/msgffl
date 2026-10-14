@@ -137,7 +137,8 @@ export function BetsPage() {
           // retry carries the fresh version (the typed fields are kept).
           if (e instanceof BetApiError && e.fresh) {
             const fresh = e.fresh;
-            setEditing((cur) => (cur?.id === bet.id ? fresh : cur));
+            // Shredded meanwhile: close the editor rather than offer a retry.
+            setEditing((cur) => (cur?.id === bet.id ? (fresh.deletedAt ? null : fresh) : cur));
           }
           setStatus({ tone: 'err', text: errText(e, savage) });
         },

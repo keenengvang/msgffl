@@ -150,6 +150,14 @@ export function makeBetsHandler(deps: BetsDeps) {
       return json(409, { error: 'someone else edited this bet first', bet: record(current) });
     }
 
+    // A shredded bet is frozen until restored: the only patch it takes is
+    // { deleted: false }. Otherwise an editor left open across a shred could
+    // rewrite a wager that's sitting in the Shredder.
+    const p = patch.value;
+    if (current.bet.deletedAt && !(Object.keys(p).length === 1 && p.deleted === false)) {
+      return json(409, { error: 'that bet was shredded — restore it first', bet: record(current) });
+    }
+
     // Rewriting the wager and ruling on it are separate acts: a combined patch
     // could carry an old ruling onto new terms.
     if (touchesTerms(patch.value) && 'winner' in patch.value) {
