@@ -128,6 +128,23 @@ describe('bets function', () => {
     expect((await handler(patch(bet, { sideB: 'ua' }))).status).toBe(400);
   });
 
+  it('rewriting the wager clears a ruling and payment made on the old terms', async () => {
+    const { handler } = setup();
+    let bet = await create(handler, { terms: { kind: 'custom', text: 'first to bench a 0' } });
+    let res = await handler(patch(bet, { winner: 'A' }));
+    bet = ((await res.json()) as { bet: BetRecord }).bet;
+    res = await handler(patch(bet, { paidTo: 'A' }));
+    bet = ((await res.json()) as { bet: BetRecord }).bet;
+
+    res = await handler(patch(bet, { sideA: 'uc', stakes: 'two kegs' }));
+    expect(((await res.json()) as { bet: BetRecord }).bet).toMatchObject({
+      sideA: 'uc',
+      stakes: 'two kegs',
+      winner: null,
+      paidTo: null,
+    });
+  });
+
   it('matchup bets take no manual ruling', async () => {
     const { handler } = setup();
     const bet = await create(handler);

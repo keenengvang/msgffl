@@ -56,6 +56,14 @@ export function BetsPage() {
   const [formKey, setFormKey] = useState(0);
   const [status, setStatus] = useState<Status>(null);
   const [cardError, setCardError] = useState<{ id: string; text: string } | null>(null);
+  // The route stays mounted when the header switches seasons; an editor opened
+  // on another season's bet must not follow along and PATCH a bet that's no
+  // longer on the board. Close it (state adjusted during render, not in an effect).
+  const [editSeason, setEditSeason] = useState(season);
+  if (editSeason !== season) {
+    setEditSeason(season);
+    setEditing(null);
+  }
 
   const board = useMemo(() => {
     if (!bets.data || !standings || !season) return null;
