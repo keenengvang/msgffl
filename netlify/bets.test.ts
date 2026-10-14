@@ -8,12 +8,13 @@ const URL_ = 'http://local/.netlify/functions/bets';
 
 const draft = { season: '2025', week: 6, sideA: 'ua', sideB: 'ub', stakes: 'a keg', terms: { kind: 'matchup' } };
 
-function setup(opts: { locked?: (week: number) => boolean; down?: boolean } = {}) {
+function setup(opts: { locked?: (week: number) => boolean; down?: boolean; members?: Set<string> } = {}) {
   const store = memoryBetStore();
+  const members = opts.members ?? new Set(['ua', 'ub', 'uc']);
   const facts: FactsFor = async (season, week) => {
     if (opts.down) throw new Error('sleeper down');
     if (season !== '2025') return null;
-    return { members: new Set(['ua', 'ub', 'uc']), locked: () => opts.locked?.(week) ?? false };
+    return { members, locked: () => opts.locked?.(week) ?? false };
   };
   const handler = makeBetsHandler({ store: () => store, facts, now: () => new Date('2025-10-10T12:00:00Z') });
   return { store, handler };
@@ -142,6 +143,20 @@ describe('bets function', () => {
     const { handler } = setup();
     const bet = await create(handler, { terms: { kind: 'custom', text: 'x' } });
     expect((await handler(patch(bet, { stakes: 'two kegs', winner: 'A' }))).status).toBe(400);
+  });
+
+  it('a bet whose manager left the league can still be repaired', async () => {
+    const members = new Set(['ua', 'ub', 'uc']);
+    const { handler } = setup({ members });
+    const bet = await create(handler); // ua vs ub
+    members.delete('ua'); // ua's roster changed owners mid-season
+    const res = await handler(patch(bet, { stakes: 'two kegs' }));
+    expect(res.status).toBe(200); // untouched sides aren't re-checked
+    const edited = ((await res.json()) as { bet: BetRecord }).bet;
+    const swap = await handler(patch(edited, { sideA: 'uc' })); // swap in the new owner
+    expect(swap.status).toBe(200);
+    const swapped = ((await swap.json()) as { bet: BetRecord }).bet;
+    expect((await handler(patch(swapped, { sideB: 'nobody' }))).status).toBe(400); // new sides still checked
   });
 
   it('matchup bets take no manual ruling', async () => {

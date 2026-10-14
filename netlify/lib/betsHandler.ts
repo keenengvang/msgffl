@@ -73,12 +73,17 @@ export function makeBetsHandler(deps: BetsDeps) {
     }
   }
 
-  /** The wager can't be (re)written once it's live, and both sides must be in
-      the league that season. */
-  async function checkWager(bet: Pick<Bet, 'season' | 'week' | 'sideA' | 'sideB'>): Promise<Response | null> {
+  /** The wager can't be (re)written once it's live, and the sides named in
+      `mustBeMembers` must be in the league that season. Only sides being set
+      need checking: a bet whose manager has since left (a roster changed
+      owners) must stay editable, or it could never be repaired. */
+  async function checkWager(
+    bet: Pick<Bet, 'season' | 'week' | 'sideA' | 'sideB'>,
+    mustBeMembers: string[],
+  ): Promise<Response | null> {
     const f = await factsOr(bet.season, bet.week);
     if (f instanceof Response) return f;
-    if (!f.members.has(bet.sideA) || !f.members.has(bet.sideB)) {
+    if (mustBeMembers.some((s) => !f.members.has(s))) {
       return json(400, { error: `both sides must be in the ${bet.season} league` });
     }
     if (f.locked(bet)) return json(423, { error: 'that one already kicked off — the wager is locked' });
@@ -119,7 +124,7 @@ export function makeBetsHandler(deps: BetsDeps) {
     if (req.method === 'POST') {
       const draft = validateDraft(payload.bet);
       if (!draft.ok) return json(400, { error: draft.error });
-      const blocked = await checkWager(draft.value);
+      const blocked = await checkWager(draft.value, [draft.value.sideA, draft.value.sideB]);
       if (blocked) return blocked;
       const bet: Bet = {
         ...draft.value,
@@ -181,7 +186,8 @@ export function makeBetsHandler(deps: BetsDeps) {
     if (touchesTerms(patch.value)) {
       // Locked as it stands, or locked where it's being moved to.
       const moved = (['season', 'week', 'sideA', 'sideB'] as const).some((k) => next[k] !== current.bet[k]);
-      const blocked = (await checkWager(current.bet)) ?? (moved ? await checkWager(next) : null);
+      const newSides = (['sideA', 'sideB'] as const).filter((k) => next[k] !== current.bet[k]).map((k) => next[k]);
+      const blocked = (await checkWager(current.bet, [])) ?? (moved ? await checkWager(next, newSides) : null);
       if (blocked) return blocked;
     }
 
