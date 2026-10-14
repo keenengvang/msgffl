@@ -56,7 +56,13 @@ export function BetsPage() {
   const live = useLiveWeek(league, liveWeek);
   const bets = useBets(season);
   const create = useCreateBet();
+  // Two mutation instances, never more than one write in flight on each.
+  // TanStack only runs per-mutate() callbacks for an instance's latest call, so
+  // a card action sharing the form's instance would swallow the form's
+  // success/conflict handling. The form is frozen while pending; card actions
+  // are all disabled while any one is.
   const update = useUpdateBet();
+  const cardUpdate = useUpdateBet();
   const { creds, set: setCreds, ready } = useBetCreds();
 
   const [editing, setEditing] = useState<BetRecord | null>(null);
@@ -145,10 +151,12 @@ export function BetsPage() {
       setCardError({ id: bet.id, text: savage ? 'Pick your name and enter the PIN up top first.' : 'Enter your name and the league PIN in the form first.' });
       return;
     }
-    update.mutate({ bet, patch, creds }, { onError: (e) => setCardError({ id: bet.id, text: errText(e, savage) }) });
+    cardUpdate.mutate({ bet, patch, creds }, { onError: (e) => setCardError({ id: bet.id, text: errText(e, savage) }) });
   };
 
-  const busy = (id: string) => update.isPending && update.variables?.bet.id === id;
+  // Any card write in flight disables every card's actions (see cardUpdate),
+  // and a bet open in the form can't be acted on mid-save.
+  const busy = (id: string) => cardUpdate.isPending || (update.isPending && update.variables?.bet.id === id);
 
   const actions = ({ bet, outcome, locked }: BoardEntry) => {
     const btn = (label: string, onClick: () => void, tone: 'plain' | 'red' = 'plain') => (
