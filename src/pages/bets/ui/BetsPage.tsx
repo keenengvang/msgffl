@@ -110,14 +110,19 @@ export function BetsPage() {
     update.mutate(
       { bet, patch, creds },
       {
+        // Functional updates: by the time this lands the user may have opened
+        // a different bet — only touch the editor if it's still this one.
         onSuccess: () => {
-          setEditing(null);
+          setEditing((cur) => (cur?.id === bet.id ? null : cur));
           setStatus({ tone: 'ok', text: savage ? 'Amended. The fine print grows.' : 'Bet updated.' });
         },
         onError: (e) => {
           // Lost a race: point the open editor at the winner's copy so the
           // retry carries the fresh version (the typed fields are kept).
-          if (e instanceof BetApiError && e.fresh) setEditing(e.fresh);
+          if (e instanceof BetApiError && e.fresh) {
+            const fresh = e.fresh;
+            setEditing((cur) => (cur?.id === bet.id ? fresh : cur));
+          }
           setStatus({ tone: 'err', text: errText(e, savage) });
         },
       },
