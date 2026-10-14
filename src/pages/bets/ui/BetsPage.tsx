@@ -16,7 +16,7 @@ import { SectionLabel } from '@/shared/ui/SectionLabel/SectionLabel';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
 import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
-import { buildBoard, type BoardEntry } from '../model/board';
+import { buildBoard, lastScoredWeek, type BoardEntry } from '../model/board';
 import { useBetCreds } from '../model/useBetCreds';
 import { BetForm } from './BetForm';
 import styles from './BetsPage.module.css';
@@ -65,6 +65,7 @@ export function BetsPage() {
     setEditing(null);
   }
 
+  const scoredThrough = lastScoredWeek(weeks.data);
   const board = useMemo(() => {
     if (!bets.data || !standings || !season) return null;
     const rosterOf: Record<string, number> = {};
@@ -73,10 +74,13 @@ export function BetsPage() {
       rosterOf,
       // The live week polls on its own; the 17-week bundle covers the rest.
       rowsFor: (w) => (w === liveWeek && live.data?.length ? live.data : weeks.data?.[w]),
+      // Or a later week has started: covers a failed /state/nfl (useNflState
+      // resolves null), which would otherwise leave every past week "live".
       isFinal: (w) =>
-        weekIsFinal({ status: league?.status, season, nflSeason: nflState.data?.season, nflWeek: nflState.data?.week }, w),
+        weekIsFinal({ status: league?.status, season, nflSeason: nflState.data?.season, nflWeek: nflState.data?.week }, w) ||
+        w < scoredThrough,
     });
-  }, [bets.data, standings, season, liveWeek, live.data, weeks.data, league?.status, nflState.data]);
+  }, [bets.data, standings, season, liveWeek, live.data, weeks.data, league?.status, nflState.data, scoredThrough]);
 
   if (error) return <ErrorPanel error={error} />;
   if (isLoading || !standings || !season || nflState.isLoading) return <LoadingQuip />;

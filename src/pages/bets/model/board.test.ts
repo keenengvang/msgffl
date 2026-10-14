@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BetRecord } from '@/entities/bet/model/types';
-import { buildBoard } from './board';
+import { buildBoard, lastScoredWeek } from './board';
 
 const bet = (id: string, week: number, over: Partial<BetRecord> = {}): BetRecord => ({
   id,
@@ -56,5 +56,18 @@ describe('buildBoard', () => {
       ['ua', 1, 0],
       ['ub', 0, 1],
     ]);
+  });
+});
+
+describe('lastScoredWeek', () => {
+  it('finds the latest week with points on the board', () => {
+    expect(lastScoredWeek(undefined)).toBe(0);
+    expect(
+      lastScoredWeek({
+        1: [{ m: 1, r: 1, p: 100 }],
+        2: [{ m: 1, r: 1, p: -1 }], // negative still counts
+        3: [{ m: 1, r: 1, p: 0 }], // scheduled, not started
+      }),
+    ).toBe(2);
   });
 });

@@ -1,4 +1,4 @@
-import type { TrimmedMatchup } from '@/shared/api/types';
+import type { SeasonWeeks, TrimmedMatchup } from '@/shared/api/types';
 import { betRecord, isLocked, resolveBet, sideScores, type BetOutcome, type RecordRow, type SideScores } from '@/entities/bet/lib/resolveBet';
 import type { BetRecord } from '@/entities/bet/model/types';
 
@@ -43,4 +43,15 @@ export function buildBoard(
     shredded: entries.filter((e) => e.bet.deletedAt),
     record: betRecord(live),
   };
+}
+
+/** The latest week with any points on the board (0 if none). A week is over
+    once a later one has started — a signal straight from the scores, so the
+    board still settles past weeks when Sleeper's NFL-state call fails. */
+export function lastScoredWeek(weeks: SeasonWeeks | undefined): number {
+  let last = 0;
+  for (const [w, rows] of Object.entries(weeks ?? {})) {
+    if (rows.some((r) => (r.p || 0) !== 0)) last = Math.max(last, Number(w));
+  }
+  return last;
 }

@@ -76,100 +76,104 @@ export function BetForm(props: BetFormProps) {
     <div className={`${styles.form} ${editing ? styles.formEditing : ''}`}>
       <span className={styles.formLabel}>{editing ? (savage ? 'AMEND THE WAGER' : 'EDIT BET') : 'PLACE A BET'}</span>
 
-      <div className={styles.row2}>
-        <select
-          value={creds.by}
-          onChange={(e) => setCreds({ by: e.target.value })}
-          className={styles.select}
-          aria-label="Who's booking this"
-        >
-          <option value="">— {savage ? 'who’s the bookie?' : 'who are you?'} —</option>
-          {managers.map((m) => (
-            <option key={m.ownerId} value={m.owner}>
-              {m.owner}
-            </option>
-          ))}
-          {/* The remembered name may not be in this season's league (or the
-              manager renamed since) — still show who you're acting as. */}
-          {creds.by && !managers.some((m) => m.owner === creds.by) && <option value={creds.by}>{creds.by}</option>}
-        </select>
-        <input
-          type="password"
-          value={creds.pin}
-          onChange={(e) => setCreds({ pin: e.target.value })}
-          placeholder="league PIN"
-          autoComplete="off"
-          className={styles.input}
-          aria-label="League PIN"
-        />
-      </div>
-
-      <div className={styles.versus}>
-        {pick('sideA', 'side A')}
-        <span className={styles.vs}>VS</span>
-        {pick('sideB', 'side B')}
-      </div>
-
-      <div className={styles.row2}>
-        <select
-          value={form.week}
-          onChange={(e) => set({ week: Number(e.target.value) })}
-          className={styles.select}
-          aria-label="Week"
-        >
-          {Array.from({ length: 17 }, (_, i) => i + 1).map((w) => (
-            <option key={w} value={w}>
-              WEEK {w}
-            </option>
-          ))}
-        </select>
-        <div className={styles.kinds} role="radiogroup" aria-label="Bet type">
-          {(
-            [
-              ['matchup', savage ? 'HIGH SCORE' : 'HIGHER SCORE'],
-              ['custom', 'CUSTOM'],
-            ] as const
-          ).map(([k, label]) => (
-            <button
-              key={k}
-              type="button"
-              role="radio"
-              aria-checked={form.kind === k}
-              className={form.kind === k ? `${styles.kind} ${styles.kindActive}` : styles.kind}
-              onClick={() => set({ kind: k })}
-            >
-              {label}
-            </button>
-          ))}
+      {/* Frozen while a save is in flight: the success path remounts or closes
+          the form, so anything typed meanwhile would be silently dropped. */}
+      <fieldset disabled={pending} className={styles.fields}>
+        <div className={styles.row2}>
+          <select
+            value={creds.by}
+            onChange={(e) => setCreds({ by: e.target.value })}
+            className={styles.select}
+            aria-label="Who's booking this"
+          >
+            <option value="">— {savage ? 'who’s the bookie?' : 'who are you?'} —</option>
+            {managers.map((m) => (
+              <option key={m.ownerId} value={m.owner}>
+                {m.owner}
+              </option>
+            ))}
+            {/* The remembered name may not be in this season's league (or the
+                manager renamed since) — still show who you're acting as. */}
+            {creds.by && !managers.some((m) => m.owner === creds.by) && <option value={creds.by}>{creds.by}</option>}
+          </select>
+          <input
+            type="password"
+            value={creds.pin}
+            onChange={(e) => setCreds({ pin: e.target.value })}
+            placeholder="league PIN"
+            autoComplete="off"
+            className={styles.input}
+            aria-label="League PIN"
+          />
         </div>
-      </div>
 
-      {form.kind === 'custom' ? (
-        <textarea
-          value={form.text}
-          onChange={(e) => set({ text: e.target.value })}
-          maxLength={BET_LIMITS.terms}
-          rows={2}
-          placeholder={savage ? "e.g. 'first to start a guy on bye'" : "e.g. 'more points from their QB'"}
-          className={styles.textarea}
-          aria-label="Terms"
+        <div className={styles.versus}>
+          {pick('sideA', 'side A')}
+          <span className={styles.vs}>VS</span>
+          {pick('sideB', 'side B')}
+        </div>
+
+        <div className={styles.row2}>
+          <select
+            value={form.week}
+            onChange={(e) => set({ week: Number(e.target.value) })}
+            className={styles.select}
+            aria-label="Week"
+          >
+            {Array.from({ length: 17 }, (_, i) => i + 1).map((w) => (
+              <option key={w} value={w}>
+                WEEK {w}
+              </option>
+            ))}
+          </select>
+          <div className={styles.kinds} role="radiogroup" aria-label="Bet type">
+            {(
+              [
+                ['matchup', savage ? 'HIGH SCORE' : 'HIGHER SCORE'],
+                ['custom', 'CUSTOM'],
+              ] as const
+            ).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={form.kind === k}
+                className={form.kind === k ? `${styles.kind} ${styles.kindActive}` : styles.kind}
+                onClick={() => set({ kind: k })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {form.kind === 'custom' ? (
+          <textarea
+            value={form.text}
+            onChange={(e) => set({ text: e.target.value })}
+            maxLength={BET_LIMITS.terms}
+            rows={2}
+            placeholder={savage ? "e.g. 'first to start a guy on bye'" : "e.g. 'more points from their QB'"}
+            className={styles.textarea}
+            aria-label="Terms"
+          />
+        ) : (
+          <span className={styles.hint}>
+            {savage
+              ? 'Higher score that week wins — Sleeper settles it, no appeals.'
+              : 'Higher score that week wins. Settled automatically from Sleeper.'}
+          </span>
+        )}
+
+        <input
+          value={form.stakes}
+          onChange={(e) => set({ stakes: e.target.value })}
+          maxLength={BET_LIMITS.stakes}
+          placeholder="stakes — a keg, $20, wears a Cowboys jersey to work"
+          className={styles.input}
+          aria-label="Stakes"
         />
-      ) : (
-        <span className={styles.hint}>
-          {savage
-            ? 'Higher score that week wins — Sleeper settles it, no appeals.'
-            : 'Higher score that week wins. Settled automatically from Sleeper.'}
-        </span>
-      )}
-
-      <input
-        value={form.stakes}
-        onChange={(e) => set({ stakes: e.target.value })}
-        maxLength={BET_LIMITS.stakes}
-        placeholder="stakes — a keg, $20, wears a Cowboys jersey to work"
-        className={styles.input}
-        aria-label="Stakes"
-      />
+      </fieldset>
 
       <div className={styles.formActions}>
         <button type="button" className={styles.submit} onClick={submit} disabled={!valid || pending}>
