@@ -36,7 +36,9 @@ describe('validateDraft', () => {
 
 describe('validatePatch', () => {
   it('keeps only known keys and validates each', () => {
-    expect(validatePatch({ paid: true, hack: 1 })).toEqual({ ok: true, value: { paid: true } });
+    expect(validatePatch({ paidTo: 'A', hack: 1 })).toEqual({ ok: true, value: { paidTo: 'A' } });
+    expect(validatePatch({ paidTo: null })).toEqual({ ok: true, value: { paidTo: null } });
+    expect(validatePatch({ paidTo: true }).ok).toBe(false);
     expect(validatePatch({ winner: null })).toEqual({ ok: true, value: { winner: null } });
     expect(validatePatch({ winner: 'C' }).ok).toBe(false);
     expect(validatePatch({ deleted: 'yes' }).ok).toBe(false);
@@ -45,7 +47,7 @@ describe('validatePatch', () => {
   });
   it('knows which patches rewrite the wager', () => {
     expect(touchesTerms({ stakes: 'two kegs' })).toBe(true);
-    expect(touchesTerms({ paid: true, winner: 'A', deleted: true })).toBe(false);
+    expect(touchesTerms({ paidTo: 'A', winner: 'A', deleted: true })).toBe(false);
   });
 });
 

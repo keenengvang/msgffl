@@ -6,7 +6,7 @@ import { useStandings } from '@/entities/team/api/useStandings';
 import { useLiveWeek, useSeasonWeeks } from '@/entities/matchup/api/useSeasonWeeks';
 import { liveWeekFor } from '@/entities/matchup/lib/liveWeek';
 import { useBets, useCreateBet, useUpdateBet, BetApiError } from '@/entities/bet/api/useBets';
-import { weekIsFinal } from '@/entities/bet/lib/resolveBet';
+import { isPaid, weekIsFinal } from '@/entities/bet/lib/resolveBet';
 import type { BetDraft, BetPatch, BetRecord } from '@/entities/bet/model/types';
 import { BetCard, type BetSideView } from '@/entities/bet/ui/BetCard';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
@@ -149,12 +149,13 @@ export function BetsPage() {
       out.push(btn(`${b.toUpperCase()} WON`, () => act(bet, { winner: 'B' })));
     }
     if (outcome.kind === 'settled') {
+      const paid = isPaid(bet, outcome);
       out.push(
-        bet.paid
-          ? btn(savage ? 'UN-PAY (LIAR)' : 'MARK UNPAID', () => act(bet, { paid: false }))
-          : btn(savage ? 'PAID UP' : 'MARK PAID', () => act(bet, { paid: true }), 'red'),
+        paid
+          ? btn(savage ? 'UN-PAY (LIAR)' : 'MARK UNPAID', () => act(bet, { paidTo: null }))
+          : btn(savage ? 'PAID UP' : 'MARK PAID', () => act(bet, { paidTo: outcome.winner }), 'red'),
       );
-      if (bet.terms.kind === 'custom' && !bet.paid) out.push(btn(savage ? 'OVERTURN' : 'UNDO RULING', () => act(bet, { winner: null })));
+      if (bet.terms.kind === 'custom' && !paid) out.push(btn(savage ? 'OVERTURN' : 'UNDO RULING', () => act(bet, { winner: null })));
     }
     if (!locked) {
       out.push(

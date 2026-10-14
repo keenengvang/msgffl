@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Bet } from '../model/types';
-import { debtOf, isLocked, ledger, resolveBet, sideScores, weekIsFinal } from './resolveBet';
+import { debtOf, isLocked, isPaid, ledger, paidWrongWay, resolveBet, sideScores, weekIsFinal } from './resolveBet';
 
 const bet = (over: Partial<Bet> = {}): Bet => ({
   id: 'x',
@@ -11,7 +11,7 @@ const bet = (over: Partial<Bet> = {}): Bet => ({
   stakes: 'a keg',
   terms: { kind: 'matchup' },
   winner: null,
-  paid: false,
+  paidTo: null,
   createdBy: 'a',
   createdAt: '',
   updatedBy: 'a',
@@ -113,7 +113,7 @@ describe('debtOf / ledger', () => {
       { bet: bet({ id: '1', sideA: 'ua', sideB: 'ub' }), outcome: won('A') }, // ub owes ua
       { bet: bet({ id: '2', sideA: 'uc', sideB: 'ub' }), outcome: won('A') }, // ub owes uc
       { bet: bet({ id: '3', sideA: 'ua', sideB: 'uc' }), outcome: won('B') }, // ua owes uc
-      { bet: bet({ id: '4', paid: true }), outcome: won('A') }, // paid → gone
+      { bet: bet({ id: '4', paidTo: 'A' }), outcome: won('A') }, // paid → gone
       { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // shredded → gone
       { bet: bet({ id: '6' }), outcome: { kind: 'push', a: 1, b: 1 } as const }, // push → nothing
     ];
@@ -123,5 +123,18 @@ describe('debtOf / ledger', () => {
       ['ua', ['3'], ['1']],
       ['uc', [], ['2', '3']],
     ]);
+  });
+
+  it('a payment to the side that has since lost (stat correction) does not clear the debt', () => {
+    const flipped = bet({ paidTo: 'B' });
+    const now = { kind: 'settled', winner: 'A' } as const;
+    expect(isPaid(flipped, now)).toBe(false);
+    expect(paidWrongWay(flipped, now)).toBe(true);
+    expect(ledger([{ bet: flipped, outcome: now }]).map((r) => [r.ownerId, r.owes.length])).toEqual([
+      ['ub', 1],
+      ['ua', 0],
+    ]);
+    expect(isPaid(bet({ paidTo: 'A' }), now)).toBe(true);
+    expect(paidWrongWay(bet({ paidTo: null }), now)).toBe(false);
   });
 });

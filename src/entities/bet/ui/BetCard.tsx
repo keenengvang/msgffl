@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { Badge, type BadgeTone } from '@/shared/ui/Badge/Badge';
 import { fmt } from '@/shared/lib/format';
-import type { BetOutcome, SideScores } from '../lib/resolveBet';
+import { isPaid, paidWrongWay, type BetOutcome, type SideScores } from '../lib/resolveBet';
 import type { Bet } from '../model/types';
 import styles from './BetCard.module.css';
 
@@ -44,7 +44,12 @@ function verdict(bet: Bet, o: BetOutcome, a: BetSideView, b: BetSideView, savage
   const [win, lose] = o.kind === 'settled' ? (o.winner === 'A' ? [a, b] : [b, a]) : [null, null];
   switch (o.kind) {
     case 'settled':
-      if (bet.paid) return savage ? `${lose!.name} paid up. Debt cleared, dignity not.` : `${lose!.name} paid ${win!.name}.`;
+      if (paidWrongWay(bet, o)) {
+        return savage
+          ? `Stat correction flipped it — ${lose!.name} owes ${win!.name} ${bet.stakes}. Sort out the refund.`
+          : `A stat correction changed the result — ${lose!.name} now owes ${win!.name} ${bet.stakes}.`;
+      }
+      if (isPaid(bet, o)) return savage ? `${lose!.name} paid up. Debt cleared, dignity not.` : `${lose!.name} paid ${win!.name}.`;
       return savage ? `${lose!.name} owes ${win!.name} ${bet.stakes}. Tick tock.` : `${lose!.name} owes ${win!.name} ${bet.stakes}.`;
     case 'push':
       return savage ? 'Dead even. Nobody wins, everybody’s mad.' : 'A tie — nobody owes anything.';
@@ -66,7 +71,7 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, actions }:
   // A shredded bet is off the books: no status, no dunning — just the record.
   const [tone, label]: [BadgeTone, string] = bet.deletedAt
     ? ['neutral', savage ? 'SHREDDED' : 'DELETED']
-    : status(outcome, bet.paid, savage);
+    : status(outcome, isPaid(bet, outcome), savage);
   const showScores = bet.terms.kind === 'matchup' && ((scores.a ?? 0) !== 0 || (scores.b ?? 0) !== 0);
   const winner = outcome.kind === 'settled' ? outcome.winner : outcome.kind === 'live' ? outcome.leader : null;
   const line = bet.deletedAt ? null : verdict(bet, outcome, a, b, savage);

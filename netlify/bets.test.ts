@@ -45,7 +45,7 @@ describe('bets function', () => {
     expect(bet).toMatchObject({
       ...draft,
       winner: null,
-      paid: false,
+      paidTo: null,
       createdBy: 'Keeneng',
       createdAt: '2025-10-10T12:00:00.000Z',
       deletedAt: null,
@@ -116,9 +116,9 @@ describe('bets function', () => {
     let res = await handler(patch(bet, { winner: 'B' }));
     expect(res.status).toBe(200);
     bet = ((await res.json()) as { bet: BetRecord }).bet;
-    res = await handler(patch(bet, { paid: true }));
+    res = await handler(patch(bet, { paidTo: 'B' }));
     expect(res.status).toBe(200);
-    expect(((await res.json()) as { bet: BetRecord }).bet).toMatchObject({ winner: 'B', paid: true, stakes: 'a keg' });
+    expect(((await res.json()) as { bet: BetRecord }).bet).toMatchObject({ winner: 'B', paidTo: 'B', stakes: 'a keg' });
   });
 
   it("won't move an open bet into a week that's already started", async () => {
@@ -149,8 +149,8 @@ describe('bets function', () => {
   it('404s an unknown bet and 400s a malformed address', async () => {
     const { handler } = setup();
     const bet = await create(handler);
-    expect((await handler(req('PATCH', { patch: { paid: true }, version: 'v1', by: 'x' }, '?season=2025&id=nope'))).status).toBe(404);
-    expect((await handler(req('PATCH', { patch: { paid: true }, version: 'v1', by: 'x' }, '?season=../&id=x'))).status).toBe(400);
-    expect((await handler(req('PATCH', { patch: { paid: true }, by: 'x' }, `?season=2025&id=${bet.id}`))).status).toBe(400);
+    expect((await handler(req('PATCH', { patch: { paidTo: 'A' }, version: 'v1', by: 'x' }, '?season=2025&id=nope'))).status).toBe(404);
+    expect((await handler(req('PATCH', { patch: { paidTo: 'A' }, version: 'v1', by: 'x' }, '?season=../&id=x'))).status).toBe(400);
+    expect((await handler(req('PATCH', { patch: { paidTo: 'A' }, by: 'x' }, `?season=2025&id=${bet.id}`))).status).toBe(400);
   });
 });

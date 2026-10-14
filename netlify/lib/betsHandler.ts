@@ -10,7 +10,7 @@
  *
  * Writes need the league PIN in `x-bets-pin` (BETS_PIN env var). Reads are
  * public. Once either side has points on the board the wager is locked: only
- * the ruling, `paid` and the tombstone can change after that.
+ * the ruling, `paidTo` and the tombstone can change after that.
  */
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { touchesTerms, validateDraft, validatePatch, validateWho } from '@/entities/bet/lib/validate';
@@ -125,7 +125,7 @@ export function makeBetsHandler(deps: BetsDeps) {
         ...draft.value,
         id: randomUUID(),
         winner: null,
-        paid: false,
+        paidTo: null,
         createdBy: who.value,
         createdAt: stamp,
         updatedBy: who.value,

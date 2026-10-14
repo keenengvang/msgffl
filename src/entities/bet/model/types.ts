@@ -22,7 +22,10 @@ export interface Bet {
   /** Manual ruling — custom bets only. A matchup bet's winner is derived from
       the scores and never stored. */
   winner: BetSide | null;
-  paid: boolean;
+  /** The side that was paid. A payment only counts while that side is still
+      the winner — a Sleeper stat correction can flip a close matchup bet, and
+      a bare `paid: true` would then claim the NEW loser had paid. */
+  paidTo: BetSide | null;
   createdBy: string;
   createdAt: string;
   updatedBy: string;
@@ -55,6 +58,6 @@ export interface BetPatch {
   stakes?: string;
   terms?: BetTerms;
   winner?: BetSide | null;
-  paid?: boolean;
+  paidTo?: BetSide | null;
   deleted?: boolean;
 }

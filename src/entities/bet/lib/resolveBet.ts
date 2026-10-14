@@ -80,6 +80,16 @@ export function resolveBet(bet: Pick<Bet, 'terms' | 'winner'>, scores: SideScore
   return { kind: 'live', a, b, leader: a === b ? null : a > b ? 'A' : 'B' };
 }
 
+/** Settled, and paid to the side that (still) won it. */
+export function isPaid(bet: Pick<Bet, 'paidTo'>, outcome: BetOutcome): boolean {
+  return outcome.kind === 'settled' && bet.paidTo === outcome.winner;
+}
+
+/** Paid out to the side that has since lost — a stat correction flipped it. */
+export function paidWrongWay(bet: Pick<Bet, 'paidTo'>, outcome: BetOutcome): boolean {
+  return outcome.kind === 'settled' && bet.paidTo !== null && bet.paidTo !== outcome.winner;
+}
+
 /** Who pays whom on a settled bet. */
 export function debtOf(bet: Pick<Bet, 'sideA' | 'sideB'>, outcome: BetOutcome): { debtor: string; creditor: string } | null {
   if (outcome.kind !== 'settled') return null;
@@ -96,7 +106,8 @@ export interface LedgerRow<B extends Bet = Bet> {
   owed: B[];
 }
 
-/** The tab: every unpaid, settled, non-deleted bet, per manager. Stakes are
+/** The tab: every unpaid, settled, non-deleted bet, per manager. A payment to
+    the side that has since lost doesn't count — the corrected debt shows. Stakes are
     free text ("a keg", "$20"), so this lists debts rather than summing them.
     Worst offenders first. */
 export function ledger<B extends Bet>(entries: Array<{ bet: B; outcome: BetOutcome }>): LedgerRow<B>[] {
@@ -107,7 +118,7 @@ export function ledger<B extends Bet>(entries: Array<{ bet: B; outcome: BetOutco
     return r;
   };
   for (const { bet, outcome } of entries) {
-    if (bet.paid || bet.deletedAt) continue;
+    if (bet.deletedAt || isPaid(bet, outcome)) continue;
     const d = debtOf(bet, outcome);
     if (!d) continue;
     row(d.debtor).owes.push(bet);

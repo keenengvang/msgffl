@@ -11,7 +11,7 @@ const bet = (id: string, week: number, over: Partial<BetRecord> = {}): BetRecord
   stakes: 'a keg',
   terms: { kind: 'matchup' },
   winner: null,
-  paid: false,
+  paidTo: null,
   createdBy: 'k',
   createdAt: '',
   updatedBy: 'k',
