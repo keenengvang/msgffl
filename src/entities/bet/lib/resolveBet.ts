@@ -47,7 +47,9 @@ export function weekIsFinal(
   return input.season === input.nflSeason && input.nflWeek != null && input.nflWeek > week;
 }
 
-const started = (s: SideScores) => (s.a ?? 0) > 0 || (s.b ?? 0) > 0;
+// Nonzero, not positive: a Thursday kicker's missed PAT can open a team at -1,
+// and that game has very much started.
+const started = (s: SideScores) => (s.a ?? 0) !== 0 || (s.b ?? 0) !== 0;
 
 /** A bet's wager is frozen once either side has points on the board (or the
     week is over): editing the stakes at halftime is exactly what this stops.
@@ -68,7 +70,7 @@ export function resolveBet(bet: Pick<Bet, 'terms' | 'winner'>, scores: SideScore
   }
 
   if (final) {
-    // 0–0 in a "final" week means nobody played (bye, eliminated, not posted) —
+    // 0 and 0 in a "final" week means nobody played (bye, eliminated, not posted) —
     // calling that a push would settle a bet on nothing.
     if (scores.a == null || scores.b == null || !started(scores)) return { kind: 'unknown' };
     if (a === b) return { kind: 'push', a, b };

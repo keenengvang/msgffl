@@ -67,7 +67,7 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, actions }:
   const [tone, label]: [BadgeTone, string] = bet.deletedAt
     ? ['neutral', savage ? 'SHREDDED' : 'DELETED']
     : status(outcome, bet.paid, savage);
-  const showScores = bet.terms.kind === 'matchup' && (scores.a ?? 0) + (scores.b ?? 0) > 0;
+  const showScores = bet.terms.kind === 'matchup' && ((scores.a ?? 0) !== 0 || (scores.b ?? 0) !== 0);
   const winner = outcome.kind === 'settled' ? outcome.winner : outcome.kind === 'live' ? outcome.leader : null;
   const line = bet.deletedAt ? null : verdict(bet, outcome, a, b, savage);
 

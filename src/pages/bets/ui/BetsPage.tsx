@@ -106,7 +106,12 @@ export function BetsPage() {
           setEditing(null);
           setStatus({ tone: 'ok', text: savage ? 'Amended. The fine print grows.' : 'Bet updated.' });
         },
-        onError: (e) => setStatus({ tone: 'err', text: errText(e, savage) }),
+        onError: (e) => {
+          // Lost a race: point the open editor at the winner's copy so the
+          // retry carries the fresh version (the typed fields are kept).
+          if (e instanceof BetApiError && e.fresh) setEditing(e.fresh);
+          setStatus({ tone: 'err', text: errText(e, savage) });
+        },
       },
     );
   };

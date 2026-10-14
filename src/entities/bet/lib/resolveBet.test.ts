@@ -58,6 +58,9 @@ describe('isLocked', () => {
     expect(isLocked({ a: 0, b: 3.2 }, false)).toBe(true);
     expect(isLocked({ a: 0, b: 0 }, true)).toBe(true);
   });
+  it('a negative total has started too (missed PAT on Thursday)', () => {
+    expect(isLocked({ a: -1, b: 0 }, false)).toBe(true);
+  });
 });
 
 describe('resolveBet — matchup', () => {
@@ -76,6 +79,10 @@ describe('resolveBet — matchup', () => {
   it('never settles on missing or all-zero scores', () => {
     expect(resolveBet(bet(), { a: 100, b: null }, true)).toEqual({ kind: 'unknown' });
     expect(resolveBet(bet(), { a: 0, b: 0 }, true)).toEqual({ kind: 'unknown' });
+  });
+  it('settles and goes live on negative totals', () => {
+    expect(resolveBet(bet(), { a: -2, b: 0 }, true)).toEqual({ kind: 'settled', winner: 'B' });
+    expect(resolveBet(bet(), { a: -1, b: 0 }, false)).toEqual({ kind: 'live', a: -1, b: 0, leader: 'B' });
   });
   it('ignores a stored winner — the scores decide', () => {
     expect(resolveBet(bet({ winner: 'B' }), { a: 120, b: 99 }, true)).toEqual({ kind: 'settled', winner: 'A' });
