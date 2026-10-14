@@ -249,6 +249,15 @@ export async function snapshot(): Promise<Snapshot> {
   };
 }
 
+/** One season's league plus the NFL state, without building any bundles —
+    for callers (the bets function) that need a roster map and a week, not the
+    whole record book. undefined when the chain has no such season. */
+export async function leagueForSeason(season: string): Promise<{ league: League; nfl: NflState | null } | undefined> {
+  const nfl = await nflState();
+  const league = (await chain(nfl)).find((l) => l.season === season);
+  return league ? { league, nfl } : undefined;
+}
+
 export function bundleOf(snap: Snapshot, season: string): SeasonBundle | undefined {
   return snap.bundles.find((b) => b.season === season);
 }

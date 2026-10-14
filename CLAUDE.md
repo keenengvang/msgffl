@@ -39,7 +39,7 @@ widgets/   root-layout chrome only: header, ticker, footer
 features/  league-history — the ONLY feature. Composes several entities across
            all seasons; consumed by both /history and /teams/$ownerId.
 entities/  one slice per Sleeper domain: league, team, matchup, player, draft,
-           bracket, suggestion. Each: api/ (query hooks), lib/ (pure functions),
+           bracket, suggestion, bet (our own data — Netlify Blobs, not Sleeper). Each: api/ (query hooks), lib/ (pure functions),
            ui/ (dumb display components), model/ (types).
 shared/    api (fetch wrapper, wire types, query-key factory), config, lib,
            styles (tokens/global/keyframes), ui primitives.
@@ -88,6 +88,7 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
   | players-trimmed | 7 days | yes | see below |
   | season-bundle | complete ? ∞ : 10 min | yes | history feature |
   | weekly-summary (index + files) | 5 min | **no** | recap changes weekly; see below |
+| bets/{season} | 30 s, refetch on focus | **no** | shared mutable state; writes patch the cache from the response |
 
 - **Never cache raw `/players/nfl`** — it's ~5MB. `usePlayersDb` trims inside the
   queryFn (QB/RB/WR/TE/K/DEF, active-only except DEF) so only ~200KB enters the
@@ -95,8 +96,9 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
 - Persistence: `PersistQueryClientProvider` + localStorage under `msgffl-query-cache`,
   `maxAge: Infinity`, cache **buster `'v1'`** — bump the buster in
   `app/providers/QueryProvider.tsx` whenever a cached shape changes.
-- **Two key prefixes are never persisted** (`shouldDehydrateQuery`): `nfl-state`
-  (cheap, always refetched) and `weekly-summary`. Because `maxAge` is `Infinity`,
+- **Three key prefixes are never persisted** (`shouldDehydrateQuery`): `nfl-state`
+  (cheap, always refetched), `weekly-summary`, and `bets` (other people edit it, and a
+  persisted copy carries stale edit versions). Because `maxAge` is `Infinity`,
   a persisted entry never ages out on its own — fine for immutable past seasons,
   wrong for the recap, which is rewritten every week. Persisting it meant a
   returning visitor saw the previous week's recap until `staleTime` lapsed, with
@@ -159,7 +161,8 @@ variants — savage and polite — switched by `useSavage()` / `useVibes().snark
 
 ## localStorage
 
-Owned keys: `msgffl-query-cache` (persister), `msg_vibes_v1` (motion/snark). The legacy
+Owned keys: `msgffl-query-cache` (persister), `msg_vibes_v1` (motion/snark),
+`msg_bets_v1` (betting board name + league PIN — convenience only, the server checks it). The legacy
 site's `msg1_*` keys and the old `msg_suggestions_v1` docket are abandoned — **never
 clear keys this app didn't write.**
 
@@ -180,6 +183,21 @@ the created issue. The old localStorage docket is retired — GitHub *is* the do
 (`SUGGESTIONS_URL` in shared/config/constants). The function is a plain
 `Request → Response` handler, unit-tested in vitest with a mocked fetch — no Netlify
 CLI needed for tests.
+
+**Betting board backend**: `netlify/functions/bets.ts` (logic in `netlify/lib/betsHandler.ts`)
+— GET `?season=` lists (no season = full export, the way off Netlify), POST creates,
+PATCH `?season=&id=` edits with the etag the client last saw (stale → 409 with the fresh
+copy). Storage is Netlify Blobs behind the `BetStore` interface (`netlify/lib/betStore.ts`),
+**one key per bet** (`<season>/<id>`) — never a shared array, concurrent saves would eat
+each other. Requires `BETS_PIN` in the Netlify UI env vars (shared league PIN, header
+`x-bets-pin`, wrong guesses rate-limited 10/hour/IP); reads are public. Rules: delete is a
+**tombstone** (`patch.deleted`), restorable and shown on the page — nobody quietly erases
+the keg they lost. A bet **locks** once either side has points on the board or the week is
+final (`isLocked` in `entities/bet/lib/resolveBet.ts`, checked server-side against live
+Sleeper via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess). Locked
+bets can still be ruled on (`winner`, custom bets only), marked `paid`, or shredded.
+Matchup bets ("higher score that week") are **never stored settled** — the winner is
+derived from scores by `resolveBet`, same as every other derived number.
 
 **Chatbot backend**: `netlify/functions/chat.ts` — POST `{messages, snark}` → `{text}`.
 Requires `ANTHROPIC_API_KEY` in the Netlify UI env vars (never a `VITE_` var — those ship

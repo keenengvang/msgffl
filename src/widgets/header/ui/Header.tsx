@@ -19,6 +19,7 @@ const NAV: Array<[to: string, label: string]> = [
   ['/bracket', 'PLAYOFFS'],
   ['/history', 'RECORDS'],
   ['/rules', 'RULE BOOK'],
+  ['/bets', 'BETTING BOARD'],
   ['/suggest', 'SUGGESTION BOX'],
 ];
 

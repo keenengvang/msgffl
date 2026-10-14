@@ -19,4 +19,6 @@ export const qk = {
   players: ['players-trimmed'] as const,
   weeklySummaryIndex: ['weekly-summary', 'index'] as const,
   weeklySummary: (file: string) => ['weekly-summary', file] as const,
+  /** Betting board — our own data (Netlify Blobs), not Sleeper's. Never persisted. */
+  bets: (season: string) => ['bets', season] as const,
 };
