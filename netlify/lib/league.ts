@@ -269,7 +269,14 @@ export async function leagueForSeason(season: string): Promise<{ league: League;
   // caller would report a season that exists as unknown. Fail instead (the
   // bets function turns this into a 503).
   if (!nfl) throw new Error('NFL state unavailable');
-  const league = (await chain(nfl)).find((l) => l.season === season);
+  let league = (await chain(nfl)).find((l) => l.season === season);
+  // fetchChain swallows a failed forward discovery and returns the backward
+  // chain, which would then hide the current season for the full hour. If the
+  // season the NFL is in right now is missing, walk once more before saying so.
+  if (!league && season === nfl.season) {
+    chainSlot = null;
+    league = (await chain(nfl)).find((l) => l.season === season);
+  }
   return league ? { league, nfl } : undefined;
 }
 

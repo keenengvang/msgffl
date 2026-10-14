@@ -54,10 +54,14 @@ const writeInit = (method: string, creds: Credentials, body: object): RequestIni
     response is authoritative, so there's no refetch round trip. */
 function useApplyBet() {
   const qc = useQueryClient();
-  return (bet: BetRecord) =>
+  return async (bet: BetRecord) => {
+    // A focus refetch that started before this write would otherwise land after
+    // it and overwrite the server's answer with the pre-write list.
+    await qc.cancelQueries({ queryKey: qk.bets(bet.season) });
     qc.setQueryData<BetRecord[]>(qk.bets(bet.season), (prev = []) =>
       prev.some((b) => b.id === bet.id) ? prev.map((b) => (b.id === bet.id ? bet : b)) : [bet, ...prev],
     );
+  };
 }
 
 export function useCreateBet() {
@@ -80,7 +84,7 @@ export function useUpdateBet() {
     onSuccess: apply,
     // Lost a race: show the winner's version so the next try has a fresh etag.
     onError: (e) => {
-      if (e instanceof BetApiError && e.fresh) apply(e.fresh);
+      if (e instanceof BetApiError && e.fresh) void apply(e.fresh);
     },
   });
 }
