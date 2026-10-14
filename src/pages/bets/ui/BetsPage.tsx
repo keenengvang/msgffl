@@ -212,7 +212,7 @@ export function BetsPage() {
 
       <div className={styles.grid}>
         <BetForm
-          key={editing?.id ?? `new-${formKey}`}
+          key={editing?.id ?? `new-${season}-${formKey}`}
           season={season}
           defaultWeek={defaultWeek}
           managers={managers}

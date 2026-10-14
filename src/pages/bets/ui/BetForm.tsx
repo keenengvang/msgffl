@@ -1,38 +1,10 @@
 import { useState } from 'react';
 import { BET_LIMITS } from '@/entities/bet/lib/validate';
-import type { BetDraft, BetPatch, BetRecord, BetTerms } from '@/entities/bet/model/types';
+import type { BetDraft, BetPatch, BetRecord } from '@/entities/bet/model/types';
 import type { StandingRow } from '@/entities/team/model/types';
 import type { Credentials } from '@/entities/bet/api/useBets';
+import { diff, fromBet, rebaseForm, type FormState } from '../model/betForm';
 import styles from './BetsPage.module.css';
-
-interface FormState {
-  sideA: string;
-  sideB: string;
-  week: number;
-  kind: BetTerms['kind'];
-  text: string;
-  stakes: string;
-}
-
-const fromBet = (b: BetRecord): FormState => ({
-  sideA: b.sideA,
-  sideB: b.sideB,
-  week: b.week,
-  kind: b.terms.kind,
-  text: b.terms.kind === 'custom' ? b.terms.text : '',
-  stakes: b.stakes,
-});
-
-/** Only what changed — an edit that doesn't touch the wager shouldn't trip the kickoff lock. */
-function diff(before: BetRecord, d: BetDraft): BetPatch {
-  const p: BetPatch = {};
-  if (d.week !== before.week) p.week = d.week;
-  if (d.sideA !== before.sideA) p.sideA = d.sideA;
-  if (d.sideB !== before.sideB) p.sideB = d.sideB;
-  if (d.stakes !== before.stakes) p.stakes = d.stakes;
-  if (JSON.stringify(d.terms) !== JSON.stringify(before.terms)) p.terms = d.terms;
-  return p;
-}
 
 interface BetFormProps {
   season: string;
@@ -56,6 +28,14 @@ export function BetForm(props: BetFormProps) {
   const [form, setForm] = useState<FormState>(() => (
     editing ? fromBet(editing) : { sideA: '', sideB: '', week: props.defaultWeek, kind: 'matchup', text: '', stakes: '' }
   ));
+  // A conflict hands us a fresher copy of the same bet (same key, so no
+  // remount): rebase the user's edits onto it rather than resending stale
+  // values for fields someone else just changed.
+  const [base, setBase] = useState(editing);
+  if (editing && base && editing.version !== base.version) {
+    setBase(editing);
+    setForm(rebaseForm(form, base, editing));
+  }
 
   const set = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
   const draft: BetDraft = {
