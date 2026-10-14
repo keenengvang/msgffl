@@ -16,6 +16,11 @@ export interface Bet {
   week: number;
   sideA: string;
   sideB: string;
+  /** The roster each side managed that season, captured when the side was
+      set. Scores resolve by roster, so a team changing owners later doesn't
+      orphan a decided bet. null → fall back to the current owner mapping. */
+  rosterA: number | null;
+  rosterB: number | null;
   /** Free text: "a keg", "$20", "wears a Cowboys jersey to work". */
   stakes: string;
   terms: BetTerms;

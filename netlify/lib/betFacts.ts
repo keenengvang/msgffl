@@ -13,7 +13,9 @@ import { leagueForSeason, rostersFor } from './league';
 export interface WeekFacts {
   /** owner_ids with a roster that season. */
   members: Set<string>;
-  locked(bet: Pick<Bet, 'sideA' | 'sideB'>): boolean;
+  /** owner_id → roster_id that season, recorded on the bet when a side is set. */
+  rosterOf: Record<string, number>;
+  locked(bet: Pick<Bet, 'sideA' | 'sideB'> & Partial<Pick<Bet, 'rosterA' | 'rosterB'>>): boolean;
 }
 
 /** null when the league has no such season. Rejects when Sleeper is
@@ -39,6 +41,7 @@ export const sleeperFacts: FactsFor = async (season, week) => {
   );
   return {
     members: new Set(Object.keys(rosterOf)),
+    rosterOf,
     locked: (bet) => isLocked(sideScores(bet, rows, rosterOf), final),
   };
 };

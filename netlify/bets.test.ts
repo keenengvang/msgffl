@@ -14,7 +14,7 @@ function setup(opts: { locked?: (week: number) => boolean; down?: boolean; membe
   const facts: FactsFor = async (season, week) => {
     if (opts.down) throw new Error('sleeper down');
     if (season !== '2025') return null;
-    return { members, locked: () => opts.locked?.(week) ?? false };
+    return { members, rosterOf: { ua: 1, ub: 2, uc: 3 }, locked: () => opts.locked?.(week) ?? false };
   };
   const handler = makeBetsHandler({ store: () => store, facts, now: () => new Date('2025-10-10T12:00:00Z') });
   return { store, handler };
@@ -51,6 +51,7 @@ describe('bets function', () => {
       deletedAt: null,
     });
     expect(bet.id).toMatch(/^[\w-]+$/);
+    expect(bet).toMatchObject({ rosterA: 1, rosterB: 2 }); // rosters recorded at booking
     expect(bet.version).toBeTruthy();
 
     const list = await handler(new Request(`${URL_}?season=2025`));
@@ -156,6 +157,7 @@ describe('bets function', () => {
     const swap = await handler(patch(edited, { sideA: 'uc' })); // swap in the new owner
     expect(swap.status).toBe(200);
     const swapped = ((await swap.json()) as { bet: BetRecord }).bet;
+    expect(swapped).toMatchObject({ sideA: 'uc', rosterA: 3, rosterB: 2 }); // new side's roster, old side's kept
     expect((await handler(patch(swapped, { sideB: 'nobody' }))).status).toBe(400); // new sides still checked
   });
 

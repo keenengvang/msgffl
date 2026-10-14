@@ -8,6 +8,8 @@ const bet = (over: Partial<Bet> = {}): Bet => ({
   week: 5,
   sideA: 'ua',
   sideB: 'ub',
+  rosterA: null,
+  rosterB: null,
   stakes: 'a keg',
   terms: { kind: 'matchup' },
   winner: null,
@@ -31,6 +33,14 @@ describe('sideScores', () => {
     expect(sideScores(bet({ sideB: 'uc' }), rows, rosterOf)).toEqual({ a: 101.5, b: null });
     expect(sideScores(bet({ sideA: 'ghost' }), rows, rosterOf).a).toBeNull();
     expect(sideScores(bet(), undefined, rosterOf)).toEqual({ a: null, b: null });
+  });
+  it('prefers the roster recorded on the bet (a team that changed owners still scores)', () => {
+    const rows = [
+      { m: 1, r: 1, p: 90 },
+      { m: 1, r: 7, p: 120 },
+    ];
+    // ua's roster 7 now belongs to someone else; the bet recorded it
+    expect(sideScores(bet({ rosterA: 7 }), rows, { ub: 1 })).toEqual({ a: 120, b: 90 });
   });
 });
 

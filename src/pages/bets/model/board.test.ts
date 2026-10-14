@@ -8,6 +8,8 @@ const bet = (id: string, week: number, over: Partial<BetRecord> = {}): BetRecord
   week,
   sideA: 'ua',
   sideB: 'ub',
+  rosterA: null,
+  rosterB: null,
   stakes: 'a keg',
   terms: { kind: 'matchup' },
   winner: null,

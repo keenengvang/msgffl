@@ -78,16 +78,16 @@ export function makeBetsHandler(deps: BetsDeps) {
       need checking: a bet whose manager has since left (a roster changed
       owners) must stay editable, or it could never be repaired. */
   async function checkWager(
-    bet: Pick<Bet, 'season' | 'week' | 'sideA' | 'sideB'>,
+    bet: Pick<Bet, 'season' | 'week' | 'sideA' | 'sideB'> & Partial<Pick<Bet, 'rosterA' | 'rosterB'>>,
     mustBeMembers: string[],
-  ): Promise<Response | null> {
+  ): Promise<Response | WeekFacts> {
     const f = await factsOr(bet.season, bet.week);
     if (f instanceof Response) return f;
     if (mustBeMembers.some((s) => !f.members.has(s))) {
       return json(400, { error: `both sides must be in the ${bet.season} league` });
     }
     if (f.locked(bet)) return json(423, { error: 'that one already kicked off — the wager is locked' });
-    return null;
+    return f;
   }
 
   async function body(req: Request): Promise<Record<string, unknown> | null> {
@@ -124,10 +124,12 @@ export function makeBetsHandler(deps: BetsDeps) {
     if (req.method === 'POST') {
       const draft = validateDraft(payload.bet);
       if (!draft.ok) return json(400, { error: draft.error });
-      const blocked = await checkWager(draft.value, [draft.value.sideA, draft.value.sideB]);
-      if (blocked) return blocked;
+      const facts = await checkWager(draft.value, [draft.value.sideA, draft.value.sideB]);
+      if (facts instanceof Response) return facts;
       const bet: Bet = {
         ...draft.value,
+        rosterA: facts.rosterOf[draft.value.sideA] ?? null,
+        rosterB: facts.rosterOf[draft.value.sideB] ?? null,
         id: randomUUID(),
         winner: null,
         createdBy: who.value,
@@ -186,9 +188,19 @@ export function makeBetsHandler(deps: BetsDeps) {
     if (touchesTerms(patch.value)) {
       // Locked as it stands, or locked where it's being moved to.
       const moved = (['season', 'week', 'sideA', 'sideB'] as const).some((k) => next[k] !== current.bet[k]);
-      const newSides = (['sideA', 'sideB'] as const).filter((k) => next[k] !== current.bet[k]).map((k) => next[k]);
-      const blocked = (await checkWager(current.bet, [])) ?? (moved ? await checkWager(next, newSides) : null);
-      if (blocked) return blocked;
+      const changed = (['sideA', 'sideB'] as const).filter((k) => next[k] !== current.bet[k]);
+      const was = await checkWager(current.bet, []);
+      if (was instanceof Response) return was;
+      if (moved) {
+        // A side that changed gets its roster for the (possibly new) season;
+        // an unchanged side keeps the roster recorded when it was set.
+        if (next.season !== current.bet.season) Object.assign(next, { rosterA: null, rosterB: null });
+        for (const k of changed) next[k === 'sideA' ? 'rosterA' : 'rosterB'] = null;
+        const facts = await checkWager(next, changed.map((k) => next[k]));
+        if (facts instanceof Response) return facts;
+        next.rosterA ??= facts.rosterOf[next.sideA] ?? null;
+        next.rosterB ??= facts.rosterOf[next.sideB] ?? null;
+      }
     }
 
     const saved = await store.replace(next, current.version);

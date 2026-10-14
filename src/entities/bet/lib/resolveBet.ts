@@ -21,17 +21,17 @@ export type BetOutcome =
   | { kind: 'unknown' };
 
 export function sideScores(
-  bet: Pick<Bet, 'sideA' | 'sideB'>,
+  bet: Pick<Bet, 'sideA' | 'sideB'> & Partial<Pick<Bet, 'rosterA' | 'rosterB'>>,
   rows: TrimmedMatchup[] | undefined,
   rosterOf: Record<string, number>,
 ): SideScores {
-  const pts = (owner: string) => {
-    const rid = rosterOf[owner];
+  const pts = (owner: string, stored: number | null | undefined) => {
+    const rid = stored ?? rosterOf[owner];
     if (rid == null) return null;
     const row = (rows ?? []).find((e) => e.r === rid);
     return row ? row.p || 0 : null;
   };
-  return { a: pts(bet.sideA), b: pts(bet.sideB) };
+  return { a: pts(bet.sideA, bet.rosterA), b: pts(bet.sideB, bet.rosterB) };
 }
 
 /** Is a week's scoring done? A complete season, an earlier season, or an NFL

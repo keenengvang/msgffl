@@ -198,7 +198,8 @@ Sleeper via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess)
 bets can still be ruled on (`winner`, custom bets only) or shredded. There is no payment
 tracking: a bet's status is just PENDING or COMPLETED ✓ (decided or pushed), and the page's
 side panel is each manager's season bet record (`betRecord`), not a debt ledger.
-Matchup bets ("higher score that week") are **never stored settled** — the winner is
+Each side stores its owner_id **and the roster_id it managed when the side was set**, so
+a team changing owners later can't orphan a decided bet. Matchup bets ("higher score that week") are **never stored settled** — the winner is
 derived from scores by `resolveBet`, same as every other derived number.
 
 **Chatbot backend**: `netlify/functions/chat.ts` — POST `{messages, snark}` → `{text}`.
