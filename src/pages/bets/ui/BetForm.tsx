@@ -89,6 +89,9 @@ export function BetForm(props: BetFormProps) {
               {m.owner}
             </option>
           ))}
+          {/* The remembered name may not be in this season's league (or the
+              manager renamed since) — still show who you're acting as. */}
+          {creds.by && !managers.some((m) => m.owner === creds.by) && <option value={creds.by}>{creds.by}</option>}
         </select>
         <input
           type="password"
