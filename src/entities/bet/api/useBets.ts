@@ -55,10 +55,17 @@ const writeInit = (method: string, creds: Credentials, body: object): RequestIni
 function useApplyBet() {
   const qc = useQueryClient();
   return async (bet: BetRecord) => {
+    const key = qk.bets(bet.season);
     // A focus refetch that started before this write would otherwise land after
     // it and overwrite the server's answer with the pre-write list.
-    await qc.cancelQueries({ queryKey: qk.bets(bet.season) });
-    qc.setQueryData<BetRecord[]>(qk.bets(bet.season), (prev = []) =>
+    await qc.cancelQueries({ queryKey: key });
+    // No list yet (first load still running, or it failed): don't invent one
+    // from this single bet — that would hide every other bet. Fetch the real one.
+    if (!qc.getQueryData<BetRecord[]>(key)) {
+      await qc.invalidateQueries({ queryKey: key });
+      return;
+    }
+    qc.setQueryData<BetRecord[]>(key, (prev = []) =>
       prev.some((b) => b.id === bet.id) ? prev.map((b) => (b.id === bet.id ? bet : b)) : [bet, ...prev],
     );
   };
