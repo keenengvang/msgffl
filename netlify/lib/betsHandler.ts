@@ -3,17 +3,19 @@
  * testable with an in-memory store and canned facts; netlify/functions/bets.ts
  * wires the real ones.
  *
- *   GET    ?season=2025            → { bets }   (no season: every bet — the export)
- *   POST   { bet, by }             → 201 { bet }
- *   PATCH  ?season=&id=  { patch, version, by } → { bet }
+ *   GET    ?season=2025                  → { bets }   (no season: every bet — the export)
+ *   POST   { bet }                       → 201 { bet }
+ *   PATCH  ?season=&id=  { patch, version } → { bet }
  *          patch.deleted true/false tombstones / restores — there is no hard delete.
  *
- * Writes need the league PIN in `x-bets-pin` (BETS_PIN env var). Reads are
- * public. Once either side has points on the board the wager is locked: only
- * the ruling and the tombstone can change after that.
+ * No PIN: anyone with the link can book, rule on or shred a bet (the league
+ * runs on trust and a single bookie). Writes are rate-limited per IP, and
+ * deletes are restorable tombstones, so vandalism is annoying, not lossy.
+ * Once either side has points on the board the wager is locked: only the
+ * ruling and the tombstone can change after that.
  */
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
-import { touchesTerms, validateDraft, validatePatch, validateWho } from '@/entities/bet/lib/validate';
+import { randomUUID } from 'node:crypto';
+import { touchesTerms, validateDraft, validatePatch } from '@/entities/bet/lib/validate';
 import type { Bet, BetRecord } from '@/entities/bet/model/types';
 import type { BetStore, Versioned } from './betStore';
 import type { FactsFor, WeekFacts } from './betFacts';
@@ -24,10 +26,10 @@ export interface BetsDeps {
   now?: () => Date;
 }
 
-// Best-effort brute-force brake on the PIN (per warm instance), same shape as
-// the suggestion box's limiter. Only wrong guesses count.
+// Best-effort spam brake (per warm function instance), same shape as the
+// suggestion box's limiter. A busy league night is a few dozen writes.
 const WINDOW_MS = 60 * 60 * 1000;
-const MAX_BAD_PINS = 10;
+const MAX_WRITES = 60;
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -40,27 +42,18 @@ const record = ({ bet, version }: Versioned): BetRecord => ({ ...bet, version })
 const SEASON = /^\d{4}$/;
 const ID = /^[\w-]{1,64}$/;
 
-function samePin(given: string, want: string): boolean {
-  const h = (s: string) => createHash('sha256').update(s).digest();
-  return timingSafeEqual(h(given), h(want));
-}
-
 export function makeBetsHandler(deps: BetsDeps) {
   const now = deps.now ?? (() => new Date());
-  const badPins = new Map<string, number[]>();
+  const writes = new Map<string, number[]>();
 
-  /** null = allowed; otherwise the response to send. */
-  function gate(req: Request): Response | null {
-    const pin = process.env.BETS_PIN;
-    if (!pin) return json(500, { error: 'betting board not configured (missing BETS_PIN)' });
+  /** true when this IP has written too much in the last hour. */
+  function rateLimited(req: Request): boolean {
     const ip = req.headers.get('x-nf-client-connection-ip') ?? 'unknown';
     const t = Date.now();
-    const recent = (badPins.get(ip) ?? []).filter((x) => t - x < WINDOW_MS);
-    if (recent.length >= MAX_BAD_PINS) return json(429, { error: 'too many wrong PINs. try again in an hour.' });
-    if (samePin(req.headers.get('x-bets-pin') ?? '', pin)) return null;
+    const recent = (writes.get(ip) ?? []).filter((x) => t - x < WINDOW_MS);
     recent.push(t);
-    badPins.set(ip, recent);
-    return json(401, { error: 'wrong league PIN' });
+    writes.set(ip, recent);
+    return recent.length > MAX_WRITES;
   }
 
   /** Sleeper facts for a season/week, or the error response. */
@@ -112,13 +105,10 @@ export function makeBetsHandler(deps: BetsDeps) {
 
     if (req.method !== 'POST' && req.method !== 'PATCH') return json(405, { error: 'GET, POST or PATCH' });
 
-    const denied = gate(req);
-    if (denied) return denied;
+    if (rateLimited(req)) return json(429, { error: 'easy, bookie. too many changes — try again in an hour.' });
 
     const payload = await body(req);
     if (!payload) return json(400, { error: 'invalid JSON' });
-    const who = validateWho(payload.by);
-    if (!who.ok) return json(400, { error: who.error });
     const stamp = now().toISOString();
 
     if (req.method === 'POST') {
@@ -132,12 +122,9 @@ export function makeBetsHandler(deps: BetsDeps) {
         rosterB: facts.rosterOf[draft.value.sideB] ?? null,
         id: randomUUID(),
         winner: null,
-        createdBy: who.value,
         createdAt: stamp,
-        updatedBy: who.value,
         updatedAt: stamp,
         deletedAt: null,
-        deletedBy: null,
       };
       return json(201, { bet: record(await deps.store().create(bet)) });
     }
@@ -172,19 +159,14 @@ export function makeBetsHandler(deps: BetsDeps) {
     }
 
     const { deleted, ...fields } = patch.value;
-    const next: Bet = { ...current.bet, ...fields, updatedBy: who.value, updatedAt: stamp };
+    const next: Bet = { ...current.bet, ...fields, updatedAt: stamp };
     // A rewritten wager is a new wager: a ruling on the old terms (custom bets
     // can be ruled before kickoff) must not carry over to it.
     if (touchesTerms(patch.value)) next.winner = null;
-    if (deleted === true && !current.bet.deletedAt) Object.assign(next, { deletedAt: stamp, deletedBy: who.value });
-    if (deleted === false) Object.assign(next, { deletedAt: null, deletedBy: null });
+    if (deleted === true && !current.bet.deletedAt) next.deletedAt = stamp;
+    if (deleted === false) next.deletedAt = null;
 
-    if (next.sideA === next.sideB) return json(400, { error: "you can't bet against yourself" });
-    if (next.terms.kind === 'matchup' && next.winner !== null) {
-      // Keep it null rather than reject when a custom bet is switched to matchup.
-      if (fields.winner) return json(400, { error: 'matchup bets are settled by the scoreboard' });
-      next.winner = null;
-    }
+    if (next.sideA === next.sideB) return json(400, { error: "a team can't bet against itself" });
     if (touchesTerms(patch.value)) {
       // Locked as it stands, or locked where it's being moved to.
       const moved = (['season', 'week', 'sideA', 'sideB'] as const).some((k) => next[k] !== current.bet[k]);

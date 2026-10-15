@@ -17,7 +17,6 @@ import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
 import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
 import { buildBoard, lastScoredWeek, type BoardEntry } from '../model/board';
-import { useBetCreds } from '../model/useBetCreds';
 import { BetForm } from './BetForm';
 import styles from './BetsPage.module.css';
 
@@ -25,7 +24,6 @@ type Status = { tone: 'ok' | 'err'; text: string } | null;
 
 const errText = (e: unknown, savage: boolean) => {
   if (e instanceof BetApiError) {
-    if (e.status === 401) return savage ? 'Wrong PIN. Nice try.' : 'That PIN is wrong.';
     if (e.status === 409) return savage ? 'Someone edited this first. Reloaded — try again.' : 'Someone else changed this bet — reloaded, please retry.';
     return e.message;
   }
@@ -63,7 +61,6 @@ export function BetsPage() {
   // are all disabled while any one is.
   const update = useUpdateBet();
   const cardUpdate = useUpdateBet();
-  const { creds, set: setCreds, ready } = useBetCreds();
 
   const [editing, setEditing] = useState<BetRecord | null>(null);
   const [formKey, setFormKey] = useState(0);
@@ -106,7 +103,7 @@ export function BetsPage() {
   const onCreate = (draft: BetDraft) => {
     setStatus(null);
     create.mutate(
-      { draft, creds },
+      { draft },
       {
         onSuccess: () => {
           setFormKey((k) => k + 1); // fresh, empty form
@@ -124,7 +121,7 @@ export function BetsPage() {
       return;
     }
     update.mutate(
-      { bet, patch, creds },
+      { bet, patch },
       {
         // Functional updates: by the time this lands the user may have opened
         // a different bet — only touch the editor if it's still this one.
@@ -148,11 +145,7 @@ export function BetsPage() {
 
   const act = (bet: BetRecord, patch: BetPatch) => {
     setCardError(null);
-    if (!ready) {
-      setCardError({ id: bet.id, text: savage ? 'Pick your name and enter the PIN up top first.' : 'Enter your name and the league PIN in the form first.' });
-      return;
-    }
-    cardUpdate.mutate({ bet, patch, creds }, { onError: (e) => setCardError({ id: bet.id, text: errText(e, savage) }) });
+    cardUpdate.mutate({ bet, patch }, { onError: (e) => setCardError({ id: bet.id, text: errText(e, savage) }) });
   };
 
   // Any card write in flight disables every card's actions (see cardUpdate),
@@ -176,12 +169,11 @@ export function BetsPage() {
     const out = [];
     const a = view(bet.sideA).name;
     const b = view(bet.sideB).name;
-    if (bet.terms.kind === 'custom' && outcome.kind !== 'settled') {
-      out.push(btn(`${a.toUpperCase()} WON`, () => act(bet, { winner: 'A' })));
-      out.push(btn(`${b.toUpperCase()} WON`, () => act(bet, { winner: 'B' })));
-    }
-    if (bet.terms.kind === 'custom' && outcome.kind === 'settled') {
+    if (outcome.kind === 'settled') {
       out.push(btn(savage ? 'OVERTURN' : 'UNDO RULING', () => act(bet, { winner: null })));
+    } else {
+      out.push(btn(`${a.toUpperCase()} WON`, () => act(bet, { winner: 'A' }), 'red'));
+      out.push(btn(`${b.toUpperCase()} WON`, () => act(bet, { winner: 'B' }), 'red'));
     }
     if (!locked) {
       out.push(
@@ -234,8 +226,6 @@ export function BetsPage() {
           season={season}
           defaultWeek={defaultWeek}
           managers={managers}
-          creds={creds}
-          setCreds={setCreds}
           editing={editing}
           onCancelEdit={() => setEditing(null)}
           onCreate={onCreate}

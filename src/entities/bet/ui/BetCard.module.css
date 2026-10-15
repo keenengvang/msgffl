@@ -76,6 +76,14 @@
   border-color: var(--win);
 }
 
+.teamTag {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+}
+
 .name {
   font-family: var(--font-cond);
   font-weight: 700;
@@ -102,20 +110,13 @@
   color: var(--red);
 }
 
-.stakes {
-  font-family: var(--font-display);
-  font-size: 19px;
-  line-height: 1.2;
-  color: var(--text-primary);
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-
 .terms {
+  margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-weight: 600;
+  font-size: 15px;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--text-bright);
   text-align: center;
   overflow-wrap: anywhere;
 }

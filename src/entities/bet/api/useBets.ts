@@ -39,15 +39,10 @@ export function useBets(season: string | undefined) {
   });
 }
 
-export interface Credentials {
-  pin: string;
-  by: string;
-}
-
-const writeInit = (method: string, creds: Credentials, body: object): RequestInit => ({
+const writeInit = (method: string, body: object): RequestInit => ({
   method,
-  headers: { 'content-type': 'application/json', 'x-bets-pin': creds.pin },
-  body: JSON.stringify({ ...body, by: creds.by }),
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
 });
 
 /** Swap one bet into the cached list (or prepend a new one) — the server's
@@ -74,8 +69,8 @@ function useApplyBet() {
 export function useCreateBet() {
   const apply = useApplyBet();
   return useMutation({
-    mutationFn: ({ draft, creds }: { draft: BetDraft; creds: Credentials }) =>
-      call<{ bet: BetRecord }>(ENDPOINT, writeInit('POST', creds, { bet: draft })).then((r) => r.bet),
+    mutationFn: ({ draft }: { draft: BetDraft }) =>
+      call<{ bet: BetRecord }>(ENDPOINT, writeInit('POST', { bet: draft })).then((r) => r.bet),
     onSuccess: apply,
   });
 }
@@ -83,10 +78,10 @@ export function useCreateBet() {
 export function useUpdateBet() {
   const apply = useApplyBet();
   return useMutation({
-    mutationFn: ({ bet, patch, creds }: { bet: BetRecord; patch: BetPatch; creds: Credentials }) =>
+    mutationFn: ({ bet, patch }: { bet: BetRecord; patch: BetPatch }) =>
       call<{ bet: BetRecord }>(
         `${ENDPOINT}?season=${bet.season}&id=${encodeURIComponent(bet.id)}`,
-        writeInit('PATCH', creds, { patch, version: bet.version }),
+        writeInit('PATCH', { patch, version: bet.version }),
       ).then((r) => r.bet),
     onSuccess: apply,
     // Lost a race: show the winner's version so the next try has a fresh etag.

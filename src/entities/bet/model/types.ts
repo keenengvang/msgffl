@@ -3,38 +3,28 @@
     are stable across seasons; roster_ids are not. */
 export type BetSide = 'A' | 'B';
 
-export type BetTerms =
-  /** Higher score that week wins — settled automatically from Sleeper. Works
-      whether or not the two actually play each other. */
-  | { kind: 'matchup' }
-  /** Anything else ("first to bench a 0"). Someone has to rule on it. */
-  | { kind: 'custom'; text: string };
-
 export interface Bet {
   id: string;
   season: string;
   week: number;
+  /** Team A / Team B — the managers' owner_ids. */
   sideA: string;
   sideB: string;
   /** The roster each side managed that season, captured when the side was
-      set. Scores resolve by roster, so a team changing owners later doesn't
-      orphan a decided bet. null → fall back to the current owner mapping. */
+      set, so the card's scores still resolve if a team later changes owners.
+      null → fall back to the current owner mapping. */
   rosterA: number | null;
   rosterB: number | null;
-  /** Free text: "a keg", "$20", "wears a Cowboys jersey to work". */
-  stakes: string;
-  terms: BetTerms;
-  /** Manual ruling — custom bets only. A matchup bet's winner is derived from
-      the scores and never stored. */
+  /** The whole wager, terms and stakes, in the league's own words: "If A loses
+      to B in Week 7, A owes B a keg of Busch Light at the draft." */
+  terms: string;
+  /** Who won — someone rules on it; nothing is settled automatically. */
   winner: BetSide | null;
-  createdBy: string;
   createdAt: string;
-  updatedBy: string;
   updatedAt: string;
   /** Soft delete: a tombstoned bet stays visible (and restorable) so nobody
       quietly erases the keg they lost. */
   deletedAt: string | null;
-  deletedBy: string | null;
 }
 
 /** A bet as the API returns it: plus the storage etag, sent back on edits so
@@ -47,8 +37,7 @@ export interface BetDraft {
   week: number;
   sideA: string;
   sideB: string;
-  stakes: string;
-  terms: BetTerms;
+  terms: string;
 }
 
 /** What an edit may change. `deleted` tombstones (true) or restores (false). */
@@ -56,8 +45,7 @@ export interface BetPatch {
   week?: number;
   sideA?: string;
   sideB?: string;
-  stakes?: string;
-  terms?: BetTerms;
+  terms?: string;
   winner?: BetSide | null;
   deleted?: boolean;
 }

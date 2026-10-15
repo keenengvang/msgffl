@@ -1,45 +1,25 @@
-import type { BetDraft, BetPatch, BetSide, BetTerms } from '../model/types';
+import type { BetDraft, BetPatch, BetSide } from '../model/types';
 
 /** Shared by the form (to disable submit) and the bets function (to reject),
     so the two can't disagree about what a valid bet is. */
-export const BET_LIMITS = { stakes: 120, terms: 280, who: 50 } as const;
+export const BET_LIMITS = { terms: 400 } as const;
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
-function terms(v: unknown): Result<BetTerms> {
-  if (!isObj(v)) return { ok: false, error: 'terms are required' };
-  if (v.kind === 'matchup') return { ok: true, value: { kind: 'matchup' } };
-  if (v.kind === 'custom') {
-    const text = str(v.text);
-    if (!text) return { ok: false, error: 'custom bets need terms' };
-    if (text.length > BET_LIMITS.terms) return { ok: false, error: `terms must be ≤ ${BET_LIMITS.terms} chars` };
-    return { ok: true, value: { kind: 'custom', text } };
-  }
-  return { ok: false, error: 'unknown bet kind' };
+function terms(v: unknown): Result<string> {
+  const s = str(v);
+  if (!s) return { ok: false, error: 'spell out the bet' };
+  if (s.length > BET_LIMITS.terms) return { ok: false, error: `keep it under ${BET_LIMITS.terms} characters` };
+  return { ok: true, value: s };
 }
 
 function week(v: unknown): Result<number> {
   return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 17
     ? { ok: true, value: v }
     : { ok: false, error: 'week must be 1–17' };
-}
-
-function stakes(v: unknown): Result<string> {
-  const s = str(v);
-  if (!s) return { ok: false, error: 'stakes are required' };
-  if (s.length > BET_LIMITS.stakes) return { ok: false, error: `stakes must be ≤ ${BET_LIMITS.stakes} chars` };
-  return { ok: true, value: s };
-}
-
-/** The acting manager's name. Unverified (the PIN is shared), but recorded. */
-export function validateWho(v: unknown): Result<string> {
-  const s = str(v);
-  if (!s) return { ok: false, error: 'who are you?' };
-  if (s.length > BET_LIMITS.who) return { ok: false, error: `name must be ≤ ${BET_LIMITS.who} chars` };
-  return { ok: true, value: s };
 }
 
 export function validateDraft(v: unknown): Result<BetDraft> {
@@ -50,13 +30,11 @@ export function validateDraft(v: unknown): Result<BetDraft> {
   if (!w.ok) return w;
   const sideA = str(v.sideA);
   const sideB = str(v.sideB);
-  if (!sideA || !sideB) return { ok: false, error: 'pick both sides' };
-  if (sideA === sideB) return { ok: false, error: "you can't bet against yourself" };
-  const s = stakes(v.stakes);
-  if (!s.ok) return s;
+  if (!sideA || !sideB) return { ok: false, error: 'pick both teams' };
+  if (sideA === sideB) return { ok: false, error: "a team can't bet against itself" };
   const t = terms(v.terms);
   if (!t.ok) return t;
-  return { ok: true, value: { season, week: w.value, sideA, sideB, stakes: s.value, terms: t.value } };
+  return { ok: true, value: { season, week: w.value, sideA, sideB, terms: t.value } };
 }
 
 /** Only the keys present are checked; unknown keys are dropped. */
@@ -71,14 +49,9 @@ export function validatePatch(v: unknown): Result<BetPatch> {
   for (const k of ['sideA', 'sideB'] as const) {
     if (k in v) {
       const s = str(v[k]);
-      if (!s) return { ok: false, error: 'pick both sides' };
+      if (!s) return { ok: false, error: 'pick both teams' };
       out[k] = s;
     }
-  }
-  if ('stakes' in v) {
-    const s = stakes(v.stakes);
-    if (!s.ok) return s;
-    out.stakes = s.value;
   }
   if ('terms' in v) {
     const t = terms(v.terms);
@@ -99,7 +72,7 @@ export function validatePatch(v: unknown): Result<BetPatch> {
 
 /** Fields that define the wager itself. Once a bet is locked these are frozen;
     the ruling (`winner`) and the tombstone stay editable. */
-export const TERM_FIELDS = ['week', 'sideA', 'sideB', 'stakes', 'terms'] as const;
+export const TERM_FIELDS = ['week', 'sideA', 'sideB', 'terms'] as const;
 
 export function touchesTerms(p: BetPatch): boolean {
   return TERM_FIELDS.some((k) => k in p);

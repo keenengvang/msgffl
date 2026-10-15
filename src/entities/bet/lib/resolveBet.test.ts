@@ -10,15 +10,11 @@ const bet = (over: Partial<Bet> = {}): Bet => ({
   sideB: 'ub',
   rosterA: null,
   rosterB: null,
-  stakes: 'a keg',
-  terms: { kind: 'matchup' },
+  terms: 'If ua loses to ub in Week 5, ua owes ub a keg.',
   winner: null,
-  createdBy: 'a',
   createdAt: '',
-  updatedBy: 'a',
   updatedAt: '',
   deletedAt: null,
-  deletedBy: null,
   ...over,
 });
 
@@ -72,50 +68,23 @@ describe('isLocked', () => {
   });
 });
 
-describe('resolveBet — matchup', () => {
-  it('upcoming before anyone scores, live with a leader mid-week', () => {
+describe('resolveBet', () => {
+  it('pending until someone rules: upcoming, then live, then asks for a ruling', () => {
     expect(resolveBet(bet(), { a: 0, b: 0 }, false)).toEqual({ kind: 'upcoming' });
-    expect(resolveBet(bet(), { a: 50, b: 61 }, false)).toEqual({ kind: 'live', a: 50, b: 61, leader: 'B' });
-    expect(resolveBet(bet(), { a: 20, b: 20 }, false)).toMatchObject({ kind: 'live', leader: null });
+    expect(resolveBet(bet(), { a: 30, b: 10 }, false)).toEqual({ kind: 'live' });
+    expect(resolveBet(bet(), { a: -1, b: 0 }, false)).toEqual({ kind: 'live' }); // a missed PAT counts as started
+    expect(resolveBet(bet(), { a: 130, b: 10 }, true)).toEqual({ kind: 'ruling' });
   });
-  it('settles on the higher score once final', () => {
-    expect(resolveBet(bet(), { a: 120.4, b: 99 }, true)).toEqual({ kind: 'settled', winner: 'A' });
-    expect(resolveBet(bet(), { a: 80, b: 99 }, true)).toEqual({ kind: 'settled', winner: 'B' });
-  });
-  it('an exact tie is a push', () => {
-    expect(resolveBet(bet(), { a: 100, b: 100 }, true)).toEqual({ kind: 'push', a: 100, b: 100 });
-  });
-  it('never settles on missing or all-zero scores', () => {
-    expect(resolveBet(bet(), { a: 100, b: null }, true)).toEqual({ kind: 'unknown' });
-    expect(resolveBet(bet(), { a: 0, b: 0 }, true)).toEqual({ kind: 'unknown' });
-  });
-  it('settles and goes live on negative totals', () => {
-    expect(resolveBet(bet(), { a: -2, b: 0 }, true)).toEqual({ kind: 'settled', winner: 'B' });
-    expect(resolveBet(bet(), { a: -1, b: 0 }, false)).toEqual({ kind: 'live', a: -1, b: 0, leader: 'B' });
-  });
-  it('ignores a stored winner — the scores decide', () => {
-    expect(resolveBet(bet({ winner: 'B' }), { a: 120, b: 99 }, true)).toEqual({ kind: 'settled', winner: 'A' });
-  });
-});
-
-describe('resolveBet — custom', () => {
-  const custom = (over: Partial<Bet> = {}) => bet({ terms: { kind: 'custom', text: 'first to bench a 0' }, ...over });
-  it('settles only on a ruling, and asks for one after the week', () => {
-    expect(resolveBet(custom(), { a: 0, b: 0 }, false)).toEqual({ kind: 'upcoming' });
-    expect(resolveBet(custom(), { a: 30, b: 10 }, false)).toEqual({ kind: 'live', a: 30, b: 10, leader: null });
-    expect(resolveBet(custom(), { a: 130, b: 10 }, true)).toEqual({ kind: 'ruling' });
-    expect(resolveBet(custom({ winner: 'B' }), { a: 130, b: 10 }, true)).toEqual({ kind: 'settled', winner: 'B' });
-    // a ruling can land before the week ends ("he already benched a 0")
-    expect(resolveBet(custom({ winner: 'A' }), { a: 0, b: 0 }, false)).toEqual({ kind: 'settled', winner: 'A' });
+  it('a ruling settles it — even before the week is over', () => {
+    expect(resolveBet(bet({ winner: 'B' }), { a: 130, b: 10 }, true)).toEqual({ kind: 'settled', winner: 'B' });
+    expect(resolveBet(bet({ winner: 'A' }), { a: 0, b: 0 }, false)).toEqual({ kind: 'settled', winner: 'A' });
   });
 });
 
 describe('isComplete / betRecord', () => {
-  it('only a decided bet or a push is complete', () => {
+  it('only a ruled-on bet is complete', () => {
     expect(isComplete({ kind: 'settled', winner: 'A' })).toBe(true);
-    expect(isComplete({ kind: 'push', a: 1, b: 1 })).toBe(true);
-    for (const kind of ['upcoming', 'ruling', 'unknown'] as const) expect(isComplete({ kind })).toBe(false);
-    expect(isComplete({ kind: 'live', a: 1, b: 0, leader: 'A' })).toBe(false);
+    for (const kind of ['upcoming', 'live', 'ruling'] as const) expect(isComplete({ kind })).toBe(false);
   });
 
   it('tallies settled bets won and lost per manager, best bettor first', () => {
@@ -125,7 +94,6 @@ describe('isComplete / betRecord', () => {
       { bet: bet({ id: '2', sideA: 'uc', sideB: 'ub' }), outcome: won('A') }, // uc beats ub
       { bet: bet({ id: '3', sideA: 'ua', sideB: 'uc' }), outcome: won('B') }, // uc beats ua
       { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // shredded → ignored
-      { bet: bet({ id: '6' }), outcome: { kind: 'push', a: 1, b: 1 } as const }, // push → no W/L
       { bet: bet({ id: '7' }), outcome: { kind: 'upcoming' } as const }, // pending → ignored
     ];
     expect(betRecord(entries).map((r) => [r.ownerId, r.won.length, r.lost.length])).toEqual([

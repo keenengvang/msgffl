@@ -9,16 +9,14 @@ export interface SideScores {
 }
 
 export type BetOutcome =
-  /** Nobody on either side has scored yet. */
+  /** Nobody on either team has scored yet. */
   | { kind: 'upcoming' }
-  /** Points on the board, week not over. `leader` is null on a tie or a custom bet. */
-  | { kind: 'live'; a: number; b: number; leader: BetSide | null }
+  /** Points on the board, week not over, no ruling yet. */
+  | { kind: 'live' }
+  /** Somebody ruled on it. */
   | { kind: 'settled'; winner: BetSide }
-  | { kind: 'push'; a: number; b: number }
-  /** Custom bet, week over, nobody has said who won. */
-  | { kind: 'ruling' }
-  /** Matchup bet, week over, but a side has no score to compare. */
-  | { kind: 'unknown' };
+  /** Week's over and nobody has said who won. */
+  | { kind: 'ruling' };
 
 export function sideScores(
   bet: Pick<Bet, 'sideA' | 'sideB'> & Partial<Pick<Bet, 'rosterA' | 'rosterB'>>,
@@ -59,30 +57,17 @@ export function isLocked(scores: SideScores, final: boolean): boolean {
   return final || started(scores);
 }
 
-export function resolveBet(bet: Pick<Bet, 'terms' | 'winner'>, scores: SideScores, final: boolean): BetOutcome {
-  const a = scores.a ?? 0;
-  const b = scores.b ?? 0;
-
-  if (bet.terms.kind === 'custom') {
-    if (bet.winner) return { kind: 'settled', winner: bet.winner };
-    if (final) return { kind: 'ruling' };
-    return started(scores) ? { kind: 'live', a, b, leader: null } : { kind: 'upcoming' };
-  }
-
-  if (final) {
-    // 0 and 0 in a "final" week means nobody played (bye, eliminated, not posted) —
-    // calling that a push would settle a bet on nothing.
-    if (scores.a == null || scores.b == null || !started(scores)) return { kind: 'unknown' };
-    if (a === b) return { kind: 'push', a, b };
-    return { kind: 'settled', winner: a > b ? 'A' : 'B' };
-  }
-  if (!started(scores)) return { kind: 'upcoming' };
-  return { kind: 'live', a, b, leader: a === b ? null : a > b ? 'A' : 'B' };
+/** Every bet is free text, so a person decides who won — the scores only say
+    how far along the week is. */
+export function resolveBet(bet: Pick<Bet, 'winner'>, scores: SideScores, final: boolean): BetOutcome {
+  if (bet.winner) return { kind: 'settled', winner: bet.winner };
+  if (final) return { kind: 'ruling' };
+  return started(scores) ? { kind: 'live' } : { kind: 'upcoming' };
 }
 
-/** Settled or pushed — nothing left to happen. Everything else is pending. */
+/** Ruled on — nothing left to happen. Everything else is pending. */
 export function isComplete(outcome: BetOutcome): boolean {
-  return outcome.kind === 'settled' || outcome.kind === 'push';
+  return outcome.kind === 'settled';
 }
 
 export interface RecordRow<B extends Bet = Bet> {

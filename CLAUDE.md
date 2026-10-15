@@ -161,8 +161,7 @@ variants — savage and polite — switched by `useSavage()` / `useVibes().snark
 
 ## localStorage
 
-Owned keys: `msgffl-query-cache` (persister), `msg_vibes_v1` (motion/snark),
-`msg_bets_v1` (betting board name + league PIN — convenience only, the server checks it). The legacy
+Owned keys: `msgffl-query-cache` (persister), `msg_vibes_v1` (motion/snark). The legacy
 site's `msg1_*` keys and the old `msg_suggestions_v1` docket are abandoned — **never
 clear keys this app didn't write.**
 
@@ -189,18 +188,21 @@ CLI needed for tests.
 PATCH `?season=&id=` edits with the etag the client last saw (stale → 409 with the fresh
 copy). Storage is Netlify Blobs behind the `BetStore` interface (`netlify/lib/betStore.ts`),
 **one key per bet** (`<season>/<id>`) — never a shared array, concurrent saves would eat
-each other. Requires `BETS_PIN` in the Netlify UI env vars (shared league PIN, header
-`x-bets-pin`, wrong guesses rate-limited 10/hour/IP); reads are public. Rules: delete is a
-**tombstone** (`patch.deleted`), restorable and shown on the page — nobody quietly erases
-the keg they lost. A bet **locks** once either side has points on the board or the week is
-final (`isLocked` in `entities/bet/lib/resolveBet.ts`, checked server-side against live
-Sleeper via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess). Locked
-bets can still be ruled on (`winner`, custom bets only) or shredded. There is no payment
-tracking: a bet's status is just PENDING or COMPLETED ✓ (decided or pushed), and the page's
-side panel is each manager's season bet record (`betRecord`), not a debt ledger.
-Each side stores its owner_id **and the roster_id it managed when the side was set**, so
-a team changing owners later can't orphan a decided bet. Matchup bets ("higher score that week") are **never stored settled** — the winner is
-derived from scores by `resolveBet`, same as every other derived number.
+each other. **No PIN and no identity**: every bet is booked by the league bookie
+(`BOOKIE` in `shared/config/constants`, Evz132), anyone with the link can write, and
+writes are rate-limited 60/hour/IP. No env vars needed.
+
+A bet is Team A vs Team B, a week, and **one free-text field** (`terms`) holding the whole
+wager, stakes included. Nothing settles automatically: a bet is PENDING until someone
+rules (`winner`), then COMPLETED ✓. The week's scores show on the card for context and
+drive the **lock**: once either team has points on the board or the week is final
+(`isLocked` in `entities/bet/lib/resolveBet.ts`, checked server-side against live Sleeper
+via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess), the wager is
+frozen and only a ruling or a shred is accepted. Delete is a **tombstone**
+(`patch.deleted`), restorable and shown on the page — nobody quietly erases the keg they
+lost; a shredded bet takes no edits until restored. Each side stores its owner_id **and the
+roster_id it managed when the side was set**, so the scores still resolve if a team
+changes owners. The side panel is each manager's season bet record (`betRecord`).
 
 **Chatbot backend**: `netlify/functions/chat.ts` — POST `{messages, snark}` → `{text}`.
 Requires `ANTHROPIC_API_KEY` in the Netlify UI env vars (never a `VITE_` var — those ship

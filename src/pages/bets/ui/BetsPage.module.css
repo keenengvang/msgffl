@@ -48,18 +48,32 @@
   opacity: 0.7;
 }
 
+.formHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bookie {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+}
+
+.bookieName {
+  color: var(--red);
+}
+
 .formLabel {
   font-family: var(--font-cond);
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.18em;
   color: var(--text-primary);
-}
-
-.row2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
 }
 
 .versus {
@@ -76,7 +90,6 @@
 }
 
 .select,
-.input,
 .textarea {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -105,37 +118,7 @@
 }
 
 .select:focus-visible,
-.input:focus-visible,
 .textarea:focus-visible {
-  border-color: var(--red);
-}
-
-.kinds {
-  display: flex;
-  gap: 6px;
-}
-
-.kind {
-  flex: 1;
-  cursor: pointer;
-  font-family: var(--font-cond);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  background: transparent;
-  border: 1px solid var(--border-14);
-  border-radius: var(--r-pill);
-  padding: 5px 8px;
-}
-
-.kind:hover {
-  border-color: var(--red);
-}
-
-.kindActive {
-  color: var(--text-primary);
-  background: var(--red);
   border-color: var(--red);
 }
 
@@ -319,8 +302,3 @@
   color: var(--text-primary);
 }
 
-@media (max-width: 480px) {
-  .row2 {
-    grid-template-columns: 1fr;
-  }
-}

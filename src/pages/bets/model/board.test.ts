@@ -10,15 +10,11 @@ const bet = (id: string, week: number, over: Partial<BetRecord> = {}): BetRecord
   sideB: 'ub',
   rosterA: null,
   rosterB: null,
-  stakes: 'a keg',
-  terms: { kind: 'matchup' },
+  terms: 'a keg',
   winner: null,
-  createdBy: 'k',
   createdAt: '',
-  updatedBy: 'k',
   updatedAt: '',
   deletedAt: null,
-  deletedBy: null,
   version: 'v1',
   ...over,
 });
@@ -42,18 +38,22 @@ describe('buildBoard', () => {
   };
 
   it('groups live bets by week (newest first), settles, locks and tallies', () => {
-    const board = buildBoard([bet('a', 4), bet('b', 5), bet('c', 6), bet('d', 4, { deletedAt: 'x' })], ctx);
+    const board = buildBoard(
+      [bet('a', 4, { winner: 'A' }), bet('e', 4), bet('b', 5), bet('c', 6), bet('d', 4, { winner: 'A', deletedAt: 'x' })],
+      ctx,
+    );
     expect(board.weeks.map((w) => [w.week, w.entries.map((e) => e.bet.id)])).toEqual([
       [6, ['c']],
       [5, ['b']],
-      [4, ['a']],
+      [4, ['a', 'e']],
     ]);
     const [w6, w5, w4] = board.weeks;
     expect(w4!.entries[0]).toMatchObject({ outcome: { kind: 'settled', winner: 'A' }, locked: true });
-    expect(w5!.entries[0]).toMatchObject({ outcome: { kind: 'live', leader: 'A' }, locked: true });
+    expect(w4!.entries[1]).toMatchObject({ outcome: { kind: 'ruling' }, locked: true }); // week over, nobody ruled
+    expect(w5!.entries[0]).toMatchObject({ outcome: { kind: 'live' }, locked: true });
     expect(w6!.entries[0]).toMatchObject({ outcome: { kind: 'upcoming' }, locked: false });
     expect(board.shredded.map((e) => e.bet.id)).toEqual(['d']);
-    // the deleted week-4 bet would also have settled — it must not count
+    // the shredded week-4 bet was ruled on too — it must not count
     expect(board.record.map((r) => [r.ownerId, r.won.length, r.lost.length])).toEqual([
       ['ua', 1, 0],
       ['ub', 0, 1],
