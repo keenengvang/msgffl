@@ -13,10 +13,21 @@ import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { PageTitle } from '@/shared/ui/PageTitle/PageTitle';
 import { Panel } from '@/shared/ui/Panel/Panel';
 import { SectionLabel } from '@/shared/ui/SectionLabel/SectionLabel';
+import { fmt0 } from '@/shared/lib/format';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
 import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
 import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
-import { buildBoard, lastScoredWeek, type BoardEntry } from '../model/board';
+import {
+  buildBoard,
+  filterBoard,
+  lastScoredWeek,
+  sortRecord,
+  winPct,
+  type BoardEntry,
+  type BoardFilter,
+  type RecordSort,
+  type RecordSortKey,
+} from '../model/board';
 import { BetForm } from './BetForm';
 import styles from './BetsPage.module.css';
 
@@ -66,6 +77,9 @@ export function BetsPage() {
   const [formKey, setFormKey] = useState(0);
   const [status, setStatus] = useState<Status>(null);
   const [cardError, setCardError] = useState<{ id: string; text: string } | null>(null);
+  const [filter, setFilter] = useState<BoardFilter>('all');
+  const [who, setWho] = useState<string | null>(null);
+  const [sort, setSort] = useState<RecordSort>({ key: 'won', dir: 'desc' });
   // The route stays mounted when the header switches seasons; an editor opened
   // on another season's bet must not follow along and PATCH a bet that's no
   // longer on the board. Close it (state adjusted during render, not in an effect).
@@ -73,6 +87,7 @@ export function BetsPage() {
   if (editSeason !== season) {
     setEditSeason(season);
     setEditing(null);
+    setWho(null); // last season's manager filter could empty this board
   }
 
   const board = useMemo(() => {
@@ -205,6 +220,7 @@ export function BetsPage() {
         outcome={e.outcome}
         locked={e.locked}
         savage={savage}
+        thisWeek={e.bet.week === liveWeek && league?.status === 'in_season'}
         actions={actions(e)}
       />
       {cardError?.id === e.bet.id && <div className={`${styles.status} ${styles.statusError} ${styles.cardError}`}>{cardError.text}</div>}
@@ -212,6 +228,37 @@ export function BetsPage() {
   );
 
   const defaultWeek = Math.max(1, Math.min(17, liveWeek));
+  const nameOf = (id: string) => view(id).name;
+  const shown = board ? filterBoard(board.bets, filter, who) : [];
+
+  // Click a header to sort by it; click again to flip. Name starts A→Z,
+  // numbers start biggest-first.
+  const head = (key: RecordSortKey, label: string, title?: string) => {
+    const on = sort.key === key;
+    return (
+      <th aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={key === 'name' ? styles.thName : undefined}>
+        <button
+          type="button"
+          title={title}
+          className={on ? `${styles.sortBtn} ${styles.sortOn}` : styles.sortBtn}
+          onClick={() =>
+            setSort(on ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' ? 'asc' : 'desc' })
+          }
+        >
+          {label}
+          <span className={styles.sortArrow} aria-hidden>
+            {on ? (sort.dir === 'asc' ? '▲' : '▼') : '▼'}
+          </span>
+        </button>
+      </th>
+    );
+  };
+
+  const FILTERS: Array<[BoardFilter, string]> = [
+    ['all', 'ALL'],
+    ['pending', 'PENDING'],
+    ['completed', 'COMPLETED ✓'],
+  ];
 
   return (
     <div className="pageEnter">
@@ -240,23 +287,50 @@ export function BetsPage() {
             <span className={styles.dim}>{bets.isError ? '—' : 'running the numbers…'}</span>
           ) : board.record.length === 0 ? (
             <span className={styles.dim}>
-              {savage ? 'No bets decided yet. Everyone is still undefeated and insufferable.' : 'No bets have been decided yet.'}
+              {savage ? 'No bets on the books. Everyone is still undefeated and insufferable.' : 'No bets on the books yet.'}
             </span>
           ) : (
-            <ul className={styles.tab}>
-              {board.record.map((r) => {
-                const v = view(r.ownerId);
-                return (
-                  <li key={r.ownerId} className={styles.tabRow}>
-                    <TeamAvatar src={v.avatar} size={26} />
-                    <span className={styles.tabName}>{v.name}</span>
-                    <span className={`uMono ${styles.tabRecord}`}>
-                      <span className={styles.won}>{r.won.length}</span>–<span className={styles.lost}>{r.lost.length}</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    {head('name', 'MANAGER')}
+                    {head('won', 'W', 'Bets won')}
+                    {head('lost', 'L', 'Bets lost')}
+                    {head('pct', 'WIN%', 'Won ÷ decided')}
+                    {head('open', 'OPEN', 'Still pending')}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortRecord(board.record, sort, nameOf).map((r) => {
+                    const v = view(r.ownerId);
+                    const pct = winPct(r);
+                    const on = who === r.ownerId;
+                    return (
+                      <tr key={r.ownerId} className={on ? styles.rowOn : undefined}>
+                        <td className={styles.tdName}>
+                          {/* The name doubles as the board's manager filter. */}
+                          <button
+                            type="button"
+                            className={styles.who}
+                            aria-pressed={on}
+                            title={on ? 'Show everyone’s bets' : `Show only ${v.name}’s bets`}
+                            onClick={() => setWho(on ? null : r.ownerId)}
+                          >
+                            <TeamAvatar src={v.avatar} size={22} />
+                            <span className={styles.whoName}>{v.name}</span>
+                          </button>
+                        </td>
+                        <td className={`uMono ${styles.won}`}>{r.won.length}</td>
+                        <td className={`uMono ${styles.lost}`}>{r.lost.length}</td>
+                        <td className="uMono">{pct === null ? '—' : `${fmt0(pct * 100)}%`}</td>
+                        <td className={`uMono ${styles.openCol}`}>{r.open.length}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Panel>
       </div>
@@ -269,22 +343,43 @@ export function BetsPage() {
         </div>
       ) : !board || weeks.isLoading ? (
         <LoadingQuip text="checking the books…" />
-      ) : board.weeks.length === 0 ? (
+      ) : board.bets.length === 0 ? (
         <div className={styles.week}>
           <EmptyState title={savage ? 'No action this season' : 'No bets yet'}>
             {savage ? 'Not a single bet. Cowards, all fourteen of you.' : 'Nobody has placed a bet this season. Add one above.'}
           </EmptyState>
         </div>
       ) : (
-        board.weeks.map(({ week, entries }) => (
-          <section key={week} className={styles.week}>
-            <SectionLabel>
-              WEEK {week}
-              {week === liveWeek && league?.status === 'in_season' ? ' · THIS WEEK' : ''}
-            </SectionLabel>
-            <div className={styles.cards}>{entries.map(card)}</div>
-          </section>
-        ))
+        <section className={styles.week}>
+          <div className={styles.boardHead}>
+            <SectionLabel>{savage ? 'THE ACTION' : 'ALL BETS'}</SectionLabel>
+            <div className={styles.filters} role="group" aria-label="Filter bets">
+              {FILTERS.map(([f, label]) => (
+                <button
+                  key={f}
+                  type="button"
+                  aria-pressed={filter === f}
+                  className={filter === f ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                  onClick={() => setFilter(f)}
+                >
+                  {label}
+                </button>
+              ))}
+              {who && (
+                <button type="button" className={`${styles.chip} ${styles.chipOn}`} onClick={() => setWho(null)}>
+                  {nameOf(who).toUpperCase()} ✕
+                </button>
+              )}
+            </div>
+          </div>
+          {shown.length === 0 ? (
+            <p className={styles.dim}>
+              {savage ? 'Nothing matches. The bookie is as bored as you are.' : 'No bets match this filter.'}
+            </p>
+          ) : (
+            <div className={styles.cards}>{shown.map(card)}</div>
+          )}
+        </section>
       )}
 
       {board && board.shredded.length > 0 && (

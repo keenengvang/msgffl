@@ -199,39 +199,6 @@
   color: var(--text-dim);
 }
 
-.tab {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.tabRow {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 4px 10px;
-  padding: 9px 0;
-  border-top: 1px solid var(--hairline);
-}
-
-.tabRow:first-child {
-  border-top: none;
-}
-
-.tabName {
-  font-family: var(--font-cond);
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--text-bright);
-}
-
-.tabRecord {
-  font-size: 14px;
-  color: var(--text-dim);
-}
-
 .won {
   color: var(--win);
 }
@@ -240,7 +207,146 @@
   color: var(--loss);
 }
 
+/* the record table */
+.tableWrap {
+  overflow-x: auto;
+  margin: -4px -4px 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 7px 6px;
+  text-align: right;
+  border-top: 1px solid var(--hairline);
+  font-size: 14px;
+  color: var(--text-body);
+}
+
+.table th {
+  border-top: none;
+  border-bottom: 1px solid var(--border-14);
+  padding-top: 0;
+}
+
+.table .thName,
+.table .tdName {
+  text-align: left;
+  width: 100%;
+}
+
+.sortBtn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+
+.sortBtn:hover,
+.sortOn {
+  color: var(--text-primary);
+}
+
+.sortArrow {
+  font-size: 11px;
+  opacity: 0.35;
+}
+
+.sortOn .sortArrow {
+  opacity: 1;
+  color: var(--red);
+}
+
+.who {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+
+.whoName {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.who:hover .whoName {
+  color: var(--red);
+}
+
+.rowOn .whoName {
+  color: var(--red);
+}
+
+.rowOn td {
+  background: var(--red-tint-08);
+}
+
+.openCol {
+  color: var(--text-dim);
+}
+
 /* ── board ── */
+.boardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  cursor: pointer;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-14);
+  border-radius: var(--r-pill);
+  padding: 5px 11px;
+}
+
+.chip:hover {
+  border-color: var(--red);
+}
+
+.chipOn {
+  color: var(--text-primary);
+  border-color: var(--red);
+  background: var(--red-tint-12);
+}
+
 .week {
   margin-top: 30px;
 }

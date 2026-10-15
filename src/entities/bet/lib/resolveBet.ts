@@ -74,19 +74,26 @@ export interface RecordRow<B extends Bet = Bet> {
   ownerId: string;
   won: B[];
   lost: B[];
+  /** Not ruled on yet — still in play. */
+  open: B[];
 }
 
-/** Each manager's bet record for the season: settled, non-deleted bets won and
-    lost. Best bettor first. */
+/** Each manager's bet record for the season: non-deleted bets won, lost and
+    still open. Anyone with a bet on the books gets a row. Best bettor first. */
 export function betRecord<B extends Bet>(entries: Array<{ bet: B; outcome: BetOutcome }>): RecordRow<B>[] {
   const rows = new Map<string, RecordRow<B>>();
   const row = (id: string) => {
     let r = rows.get(id);
-    if (!r) rows.set(id, (r = { ownerId: id, won: [], lost: [] }));
+    if (!r) rows.set(id, (r = { ownerId: id, won: [], lost: [], open: [] }));
     return r;
   };
   for (const { bet, outcome } of entries) {
-    if (bet.deletedAt || outcome.kind !== 'settled') continue;
+    if (bet.deletedAt) continue;
+    if (outcome.kind !== 'settled') {
+      row(bet.sideA).open.push(bet);
+      row(bet.sideB).open.push(bet);
+      continue;
+    }
     const [winner, loser] = outcome.winner === 'A' ? [bet.sideA, bet.sideB] : [bet.sideB, bet.sideA];
     row(winner).won.push(bet);
     row(loser).lost.push(bet);

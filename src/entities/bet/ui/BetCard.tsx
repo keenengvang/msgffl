@@ -20,6 +20,8 @@ interface BetCardProps {
   outcome: BetOutcome;
   locked: boolean;
   savage: boolean;
+  /** The league's current week — flags the card as this week's action. */
+  thisWeek?: boolean;
   /** Buttons supplied by the page — the card itself is display-only. */
   actions?: ReactNode;
 }
@@ -40,7 +42,7 @@ function verdict(o: BetOutcome, a: BetSideView, b: BetSideView, savage: boolean)
 }
 
 /** One side bet: the two teams, the wager and where it stands. */
-export function BetCard({ bet, a, b, scores, outcome, locked, savage, actions }: BetCardProps) {
+export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, actions }: BetCardProps) {
   // Two states, nothing more: ruled on → COMPLETED ✓, everything else →
   // PENDING; the line under the bet says which kind of pending.
   // A shredded bet is off the books entirely.
@@ -67,11 +69,22 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, actions }:
     <article className={`${styles.card} ${bet.deletedAt ? styles.shredded : ''}`}>
       <div className={styles.top}>
         <Badge tone={tone}>{label}</Badge>
-        {locked && !bet.deletedAt && (
-          <span className={styles.lock} title="Kicked off — the wager can't be edited">
-            🔒 {savage ? 'LOCKED IN' : 'LOCKED'}
+        <span className={styles.when}>
+          {locked && !bet.deletedAt && (
+            <span
+              className={styles.lock}
+              role="img"
+              aria-label={savage ? 'Locked in' : 'Locked'}
+              title="Kicked off — the wager can't be edited"
+            >
+              🔒
+            </span>
+          )}
+          <span className={thisWeek ? `${styles.week} ${styles.weekNow}` : styles.week}>
+            WEEK <span className="uMono">{bet.week}</span>
+            {thisWeek ? ' · THIS WEEK' : ''}
           </span>
-        )}
+        </span>
       </div>
 
       <div className={styles.matchup}>

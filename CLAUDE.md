@@ -202,7 +202,9 @@ frozen and only a ruling or a shred is accepted. Delete is a **tombstone**
 (`patch.deleted`), restorable and shown on the page — nobody quietly erases the keg they
 lost; a shredded bet takes no edits until restored. Each side stores its owner_id **and the
 roster_id it managed when the side was set**, so the scores still resolve if a team
-changes owners. The side panel is each manager's season bet record (`betRecord`).
+changes owners. The board is one flat list (newest week first, the week on each card) with ALL / PENDING /
+COMPLETED chips; the side panel is a sortable bet-record table (`betRecord` → `sortRecord`:
+W, L, WIN%, OPEN — 0–0 win% always sinks), and clicking a manager filters the board to them.
 
 **Chatbot backend**: `netlify/functions/chat.ts` — POST `{messages, snark}` → `{text}`.
 Requires `ANTHROPIC_API_KEY` in the Netlify UI env vars (never a `VITE_` var — those ship

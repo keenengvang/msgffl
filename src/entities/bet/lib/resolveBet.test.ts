@@ -87,19 +87,21 @@ describe('isComplete / betRecord', () => {
     for (const kind of ['upcoming', 'live', 'ruling'] as const) expect(isComplete({ kind })).toBe(false);
   });
 
-  it('tallies settled bets won and lost per manager, best bettor first', () => {
+  it('tallies bets won, lost and open per manager, best bettor first', () => {
     const won = (winner: 'A' | 'B') => ({ kind: 'settled', winner }) as const;
     const entries = [
       { bet: bet({ id: '1', sideA: 'ua', sideB: 'ub' }), outcome: won('A') }, // ua beats ub
       { bet: bet({ id: '2', sideA: 'uc', sideB: 'ub' }), outcome: won('A') }, // uc beats ub
       { bet: bet({ id: '3', sideA: 'ua', sideB: 'uc' }), outcome: won('B') }, // uc beats ua
       { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // shredded → ignored
-      { bet: bet({ id: '7' }), outcome: { kind: 'upcoming' } as const }, // pending → ignored
+      { bet: bet({ id: '7' }), outcome: { kind: 'upcoming' } as const }, // pending → open for both
+      { bet: bet({ id: '8', sideA: 'ud', sideB: 'ua' }), outcome: { kind: 'ruling' } as const }, // week over, unruled → still open
     ];
-    expect(betRecord(entries).map((r) => [r.ownerId, r.won.length, r.lost.length])).toEqual([
-      ['uc', 2, 0],
-      ['ua', 1, 1],
-      ['ub', 0, 2],
+    expect(betRecord(entries).map((r) => [r.ownerId, r.won.length, r.lost.length, r.open.length])).toEqual([
+      ['uc', 2, 0, 0],
+      ['ua', 1, 1, 2],
+      ['ud', 0, 0, 1], // only an open bet — still gets a row
+      ['ub', 0, 2, 1],
     ]);
   });
 });
