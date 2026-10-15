@@ -150,6 +150,20 @@ describe('bets function', () => {
     expect((await handler(patch(swapped, { sideB: 'nobody' }))).status).toBe(400); // new sides still checked
   });
 
+  it("won't pair a departed manager with their roster's new owner", async () => {
+    const members = new Set(['ua', 'ub', 'uc']);
+    const store = memoryBetStore();
+    let rosterOf: Record<string, number> = { ua: 1, ub: 2, uc: 3 };
+    const facts: FactsFor = async () => ({ members, rosterOf, locked: () => false });
+    const handler = makeBetsHandler({ store: () => store, facts });
+    const bet = await create(handler); // ua (roster 1) vs ub
+    members.delete('ua');
+    members.add('ux');
+    rosterOf = { ux: 1, ub: 2, uc: 3 }; // ux took over ua's roster
+    expect((await handler(patch(bet, { sideB: 'ux' }))).status).toBe(400); // ua's roster 1 vs ux's roster 1
+    expect((await handler(patch(bet, { sideA: 'ux' }))).status).toBe(200); // replacing the departed side is fine
+  });
+
   it('delete is a tombstone, and restorable', async () => {
     const { handler, store } = setup();
     const bet = await create(handler);

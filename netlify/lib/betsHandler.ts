@@ -182,6 +182,11 @@ export function makeBetsHandler(deps: BetsDeps) {
         if (facts instanceof Response) return facts;
         next.rosterA ??= facts.rosterOf[next.sideA] ?? null;
         next.rosterB ??= facts.rosterOf[next.sideB] ?? null;
+        // Different owners can still be the same team: a departed manager kept
+        // on one side and that roster's new owner picked for the other.
+        if (next.rosterA !== null && next.rosterA === next.rosterB) {
+          return json(400, { error: "both sides are the same team — swap out the manager who left" });
+        }
       }
     }
 
