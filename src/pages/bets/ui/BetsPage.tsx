@@ -215,7 +215,7 @@ export function BetsPage() {
             disabled={busy(bet.id)}
             aria-label={`${view(side === 'A' ? bet.sideA : bet.sideB).name} won`}
           >
-            {savage ? 'CASHED ✓' : 'WON ✓'}
+            WINNER ✓
           </button>
         );
 
