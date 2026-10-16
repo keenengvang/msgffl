@@ -426,20 +426,4 @@
   cursor: default;
 }
 
-.deletedPile {
-  margin-top: 34px;
-}
-
-.deletedLabel {
-  cursor: pointer;
-  font-family: var(--font-cond);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  color: var(--text-dim);
-}
-
-.deletedLabel:hover {
-  color: var(--text-primary);
-}
 

@@ -56,16 +56,11 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
 
   // Two states, nothing more: ruled on → COMPLETED ✓, everything else →
   // PENDING; the line under the bet says which kind of pending.
-  // A deleted bet is off the books entirely.
-  const [tone, label]: [BadgeTone, string] = bet.deletedAt
-    ? ['neutral', 'DELETED']
-    : isComplete(outcome)
-      ? ['win', 'COMPLETED ✓']
-      : ['neutral', 'PENDING'];
+  const [tone, label]: [BadgeTone, string] = isComplete(outcome) ? ['win', 'COMPLETED ✓'] : ['neutral', 'PENDING'];
   // The week's scores are context for the bet, not its result.
   const showScores = (scores.a ?? 0) !== 0 || (scores.b ?? 0) !== 0;
   const winner = outcome.kind === 'settled' ? outcome.winner : null;
-  const line = bet.deletedAt ? null : verdict(outcome, a, b, savage);
+  const line = verdict(outcome, a, b, savage);
 
   const side = (s: BetSideView, key: 'A' | 'B', pts: number | null) => (
     <div className={`${styles.side} ${winner === key ? styles.sideUp : ''}`}>
@@ -78,11 +73,11 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
   );
 
   return (
-    <article className={`${styles.card} ${bet.deletedAt ? styles.deleted : ''}`}>
+    <article className={styles.card}>
       <div className={styles.top}>
         <Badge tone={tone}>{label}</Badge>
         <span className={styles.when}>
-          {locked && !bet.deletedAt && (
+          {locked && (
             <span
               className={styles.lock}
               role="img"
@@ -120,7 +115,6 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
         <div className={styles.bottom}>
           <span className={styles.meta}>
             booked by {BOOKIE}
-            {bet.deletedAt ? ' · deleted' : ''}
           </span>
           {actions && <div className={styles.actions}>{actions}</div>}
         </div>

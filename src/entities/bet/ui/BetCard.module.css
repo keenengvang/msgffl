@@ -30,11 +30,6 @@
   }
 }
 
-.deleted {
-  border-style: dashed;
-  border-color: var(--border-14);
-}
-
 .top {
   display: flex;
   align-items: center;

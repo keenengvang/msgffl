@@ -181,7 +181,6 @@ export function BetsPage() {
         {label}
       </button>
     );
-    if (bet.deletedAt) return [btn('RESTORE', () => act(bet, { deleted: false }))];
 
     const out = [];
     if (outcome.kind === 'settled') out.push(btn(savage ? 'OVERTURN' : 'UNDO', () => act(bet, { winner: null })));
@@ -196,7 +195,7 @@ export function BetsPage() {
     out.push(
       btn('DELETE', () => {
         const ok = window.confirm(
-          savage ? 'Delete this bet? Everyone will see you did it.' : 'Delete this bet? It can be restored from the deleted list.',
+          savage ? 'Delete this bet? Everyone will see you did it.' : 'Delete this bet? It disappears from the board.',
         );
         if (ok) act(bet, { deleted: true });
       }),
@@ -206,7 +205,7 @@ export function BetsPage() {
 
   // The ruling lives under each team, so the label never carries a long name.
   const pick = ({ bet, outcome }: BoardEntry) =>
-    bet.deletedAt || outcome.kind === 'settled'
+    outcome.kind === 'settled'
       ? undefined
       : (side: 'A' | 'B') => (
           <button
@@ -417,14 +416,6 @@ export function BetsPage() {
         )}
       </Modal>
 
-      {board && board.deleted.length > 0 && (
-        <details className={styles.deletedPile}>
-          <summary className={styles.deletedLabel}>
-            DELETED BETS (<span className="uMono">{board.deleted.length}</span>)
-          </summary>
-          <div className={styles.cards}>{board.deleted.map(card)}</div>
-        </details>
-      )}
     </div>
   );
 }
