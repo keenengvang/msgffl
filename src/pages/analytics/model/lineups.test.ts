@@ -29,6 +29,11 @@ describe('optimalPoints', () => {
     expect(optimalPoints(slots, lu, posOf)).toBe(40 + 30 + 15 + 18 + 12 + 12 + 10 + 9 + 6);
   });
 
+  it('takes zero over a negative score — a −4 defense is worse than an empty slot', () => {
+    const l: WeekLineup = { r: 1, s: ['d'], pp: { d: -4, k: 7 } };
+    expect(optimalPoints(['K', 'DEF'], l, posOf)).toBe(7);
+  });
+
   it("a TE can't fill a WR/RB flex", () => {
     const l: WeekLineup = { r: 1, s: [], pp: { te: 50, te2: 40 } };
     expect(optimalPoints(['TE', 'WRRB_FLEX'], l, posOf)).toBe(50);

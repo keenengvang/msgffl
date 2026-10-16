@@ -39,11 +39,13 @@ export function lineupPosOf(posOf: PosOf, lineup: WeekLineup, slots: string[]): 
 /** The most points this roster could have started. Dedicated slots are
     filled first, then flex slots from the narrowest (WR/RB) to the widest —
     greedy in that order is optimal because each flex's eligible set contains
-    the dedicated slots it competes with. */
+    the dedicated slots it competes with. A negative score is never worth
+    starting — an empty slot (or a bench player on zero, which the loader
+    trims) scores 0 — so only positive scorers are candidates. */
 export function optimalPoints(slots: string[], lineup: WeekLineup, posOf: PosOf): number {
   const pool = Object.entries(lineup.pp)
     .map(([id, pts]) => ({ id, pts, pos: posOf(id) }))
-    .filter((c): c is { id: string; pts: number; pos: Position } => !!c.pos)
+    .filter((c): c is { id: string; pts: number; pos: Position } => !!c.pos && c.pts > 0)
     .sort((a, b) => b.pts - a.pts);
   const order = slots
     .map((slot) => ({ slot, ok: eligible(slot) }))
