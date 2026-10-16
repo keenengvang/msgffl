@@ -20,7 +20,7 @@ export function PowerPage() {
   const brackets = useBrackets(league);
 
   if (error) return <ErrorPanel error={error} />;
-  if (weeks.error) return <ErrorPanel error={weeks.error} />;
+  if (weeks.error && !weeks.data) return <ErrorPanel error={weeks.error} />;
   if (isLoading || !standings || weeks.isLoading) return <LoadingQuip />;
 
   const pws = league?.settings?.playoff_week_start ?? 15;

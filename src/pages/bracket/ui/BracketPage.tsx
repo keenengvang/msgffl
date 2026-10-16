@@ -17,8 +17,9 @@ export function BracketPage() {
   const weeks = useSeasonWeeks(league);
 
   if (error) return <ErrorPanel error={error} />;
-  // No scores at all beats a bracket that silently shows none.
-  if (weeks.error) return <ErrorPanel error={weeks.error} />;
+  // No scores at all beats a bracket that silently shows none. A failed
+  // background refetch keeps the last good data, so only a cold failure counts.
+  if (weeks.error && !weeks.data) return <ErrorPanel error={weeks.error} />;
 
   const winners = brackets.data?.winners ?? [];
   const ready = winners.length > 0 && !!standings?.length;
