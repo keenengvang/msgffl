@@ -55,7 +55,7 @@ export function AnalyticsPage() {
   }, [weeks.data, standings, through]);
 
   if (error) return <ErrorPanel error={error} />;
-  if (weeks.error) return <ErrorPanel error={weeks.error} />;
+  if (weeks.error && !weeks.data) return <ErrorPanel error={weeks.error} />;
   // nfl-state is never persisted, so a returning visitor can have standings
   // and weeks before it: computing the cutoff then would flash "nothing yet".
   const nflPending = nflState.isLoading && !complete;

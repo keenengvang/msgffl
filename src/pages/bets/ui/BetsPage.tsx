@@ -399,7 +399,7 @@ export function BetsPage() {
               )}
             </div>
           </div>
-          {weeks.isError && (
+          {weeks.isError && !weeks.data && (
             // Scores are context only, so a Sleeper outage mustn't take the
             // board down; it must just not pass "no score" off as real.
             <p className={styles.hint} role="status">
