@@ -29,6 +29,9 @@ export function AnalyticsPage() {
   const nflState = useNflState();
   const { standings, isLoading, error } = useStandings(league);
   const weeks = useSeasonWeeks(league);
+  // The pick is an owner_id, not a roster_id: roster ids are per-season
+  // league slots, so switching seasons would silently move the highlight to
+  // whoever holds that slot now. Owner ids follow the manager across years.
   const [pick, setPick] = useState<string>(EVERYONE);
 
   const pws = league?.settings?.playoff_week_start ?? 15;
@@ -58,13 +61,17 @@ export function AnalyticsPage() {
 
   const byRoster = new Map(standings.map((s) => [s.rosterId, s]));
   const nameOf = (id: number) => byRoster.get(id)?.owner ?? `Team ${id}`;
-  const selected = pick ? Number(pick) : null;
-  const toggle = (id: number) => setPick((cur) => (cur === String(id) ? EVERYONE : String(id)));
+  const selected = standings.find((s) => s.ownerId === pick)?.rosterId ?? null;
+  const pickValue = selected === null ? EVERYONE : pick;
+  const toggle = (id: number) => {
+    const owner = byRoster.get(id)?.ownerId ?? EVERYONE;
+    setPick((cur) => (cur === owner ? EVERYONE : owner));
+  };
   const teams: PickerOption<string>[] = [
     { value: EVERYONE, label: savage ? 'Nobody — show me everyone' : 'Everyone' },
     ...[...standings]
       .sort((a, b) => a.owner.localeCompare(b.owner))
-      .map((s) => ({ value: String(s.rosterId), label: s.owner, icon: <TeamAvatar src={s.avatar} size={22} /> })),
+      .map((s) => ({ value: s.ownerId, label: s.owner, icon: <TeamAvatar src={s.avatar} size={22} /> })),
   ];
 
   const header = (
@@ -101,7 +108,7 @@ export function AnalyticsPage() {
       <div className={styles.filters}>
         <span className={styles.filterLabel}>HIGHLIGHT</span>
         <div className={styles.picker}>
-          <Picker value={pick} options={teams} onChange={setPick} label="Highlight a team" />
+          <Picker value={pickValue} options={teams} onChange={setPick} label="Highlight a team" />
         </div>
         <span className={styles.through}>
           THROUGH WEEK <span className="uMono">{through}</span>
