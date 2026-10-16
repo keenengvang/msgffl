@@ -239,6 +239,11 @@ export function BetsPage() {
   );
 
   const defaultWeek = Math.max(1, Math.min(17, liveWeek));
+  // Every way out of the editor (Esc, backdrop, CANCEL) waits for a save in
+  // flight, so its result can't land in a different bet's editor.
+  const closeEditor = () => {
+    if (!update.isPending) setEditing(null);
+  };
   const nameOf = (id: string) => view(id).name;
   const shown = board ? filterBoard(board.bets, filter, who) : [];
 
@@ -394,7 +399,7 @@ export function BetsPage() {
       )}
 
       {/* Editing happens in place, over the board — not back up in the booking form. */}
-      <Modal open={!!editing} onClose={() => !update.isPending && setEditing(null)} label="Edit bet">
+      <Modal open={!!editing} onClose={closeEditor} label="Edit bet">
         {editing && (
           <BetForm
             key={editing.id}
@@ -402,7 +407,7 @@ export function BetsPage() {
             defaultWeek={defaultWeek}
             managers={managers}
             editing={editing}
-            onCancelEdit={() => setEditing(null)}
+            onCancelEdit={closeEditor}
             onCreate={onCreate}
             onEdit={onEdit}
             pending={update.isPending}

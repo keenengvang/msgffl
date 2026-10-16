@@ -168,6 +168,12 @@
   border-color: var(--red);
 }
 
+.ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+  border-color: var(--border-18);
+}
+
 .hint {
   font-family: var(--font-mono);
   font-size: 11px;

@@ -113,7 +113,7 @@ export function BetForm(props: BetFormProps) {
           {pending ? 'BOOKING…' : editing ? 'SAVE CHANGES' : savage ? 'BOOK IT ⏎' : 'ADD BET'}
         </button>
         {editing && (
-          <button type="button" className={styles.ghost} onClick={props.onCancelEdit}>
+          <button type="button" className={styles.ghost} onClick={props.onCancelEdit} disabled={pending}>
             CANCEL
           </button>
         )}
