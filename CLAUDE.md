@@ -18,7 +18,7 @@ npm run test       # vitest run (unit tests for pure model/lib functions)
 npm run test:e2e   # playwright smoke: builds, previews, hits every route (live API, system Chrome)
 ```
 
-Testing philosophy: the league math (record book, H2H, power index, grades, standings)
+Testing philosophy: the league math (record book, H2H, luck/all-play, grades, standings)
 lives in pure functions and is unit-tested — a silent wrong number is this site's worst
 bug. E2E is ONE smoke spec (`e2e/smoke.spec.ts`) asserting every route renders real
 content with no error panel; don't grow it into per-page assertions.
@@ -34,7 +34,7 @@ routes/    TanStack Router file-based route glue — thin: createFileRoute +
            validateSearch + a page import. (Documented exception: routes are
            app-layer glue that imports pages.)
 pages/     one slice per route: ui/ (component + .module.css) and model/
-           (page-local pure math: powerIndex, draftGrades, heroCopy, ruleArticles…)
+           (page-local pure math: analytics, draftGrades, heroCopy, ruleArticles…)
 widgets/   root-layout chrome only: header, ticker, footer
 features/  league-history — the ONLY feature. Composes several entities across
            all seasons; consumed by both /history and /teams/$ownerId.
@@ -106,7 +106,7 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
   stays out of the persister.
 - Scoring key auto-detected from `league.scoring_settings.rec`
   (`entities/league/lib/ptsKey.ts`): 1 → pts_ppr, 0.5 → pts_half_ppr, else pts_std.
-- Derived aggregates (record book, all-time, H2H, power index, grades) are **computed
+- Derived aggregates (record book, all-time, H2H, analytics, grades) are **computed
   in useMemo / page models, never cached**.
 
 ## Routing
@@ -154,6 +154,13 @@ variants — savage and polite — switched by `useSavage()` / `useVibes().snark
 - Record book: win/loss streaks count **regular season only**; fewest-PF and
   best-record records only consider **complete** seasons (a partial year would steal them).
 - Matchup tag precedence: WEEK'S NUKE > MASSACRE > PHOTO FINISH.
+- Analytics (`/analytics`, replaced the power index — `/power` 301s there): luck = actual
+  win% − all-play win% (your score vs every other team that week), the weekly rank race,
+  and weekly score spread. All three count **regular-season, final weeks only** (never the
+  week in progress — `analyticsThrough`) and skip 0–0 unplayed pairs. Charts are
+  hand-drawn SVG (no chart library) at real pixel width (`useElementWidth`) using the
+  **emphasis** pattern: every team neutral, the picked team red — 14 teams is too many
+  for categorical hues. Every chart has a table view.
 - Constitution articles VI (dues) and VII (punishments) are intentional commish
   placeholders — don't invent numbers.
 - Avatar/headshot 404s are handled per-image (`TeamAvatar`, `Headshot`) — no global

@@ -15,7 +15,7 @@ const NAV: Array<[to: string, label: string]> = [
   ['/teams', 'TEAMS'],
   ['/draft', 'DRAFT'],
   ['/players', 'PLAYERS'],
-  ['/power', 'POWER'],
+  ['/analytics', 'ANALYTICS'],
   ['/bracket', 'PLAYOFFS'],
   ['/history', 'RECORDS'],
   ['/rules', 'RULE BOOK'],

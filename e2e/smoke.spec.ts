@@ -13,7 +13,7 @@ const ROUTES: Array<[path: string, marker: string | RegExp]> = [
   ['/teams?season=2024', /CLICK A TEAM/i],
   ['/draft?season=2024', /DRAFT GRADES/i],
   ['/players?season=2024', /TOP 150 SHOWN/i],
-  ['/power?season=2024', /THE ALGORITHM HAS SPOKEN/i],
+  ['/analytics?season=2024', /LUCK · /i],
   ['/bracket?season=2024', /TITLE GAME/i],
   ['/history', /TROPHY WALL/i],
   ['/rules', /THE CONSTITUTION/i],

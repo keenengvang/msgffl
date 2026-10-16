@@ -1,0 +1,138 @@
+/* Shared chart chrome: recessive axes, thin marks, one highlight color.
+   Emphasis pattern — every team is neutral; the selected one is red. */
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+
+.diag {
+  stroke: var(--border-18);
+  stroke-width: 1;
+}
+
+.tick {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--text-dim);
+}
+
+.axisLabel {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  fill: var(--text-dim);
+}
+
+.region {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  fill: var(--text-deepest);
+}
+
+.name {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 12px;
+  fill: var(--text-muted);
+}
+
+.nameOn {
+  fill: var(--red);
+}
+
+.dot {
+  fill: var(--text-dim);
+  stroke: var(--bg-panel);
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.dotOn {
+  fill: var(--red);
+}
+
+.dotFaint {
+  fill-opacity: 0.55;
+}
+
+.line {
+  fill: none;
+  stroke: var(--border-18);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.lineOn {
+  stroke: var(--red);
+  stroke-width: 2.5;
+}
+
+.lineDim {
+  stroke-opacity: 0.45;
+}
+
+.hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: pointer;
+}
+
+.avg {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.avgOn {
+  stroke: var(--red);
+}
+
+.hit:focus-visible,
+.dot:focus-visible {
+  outline: none;
+  stroke: var(--text-primary);
+}
+
+.tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+  background: var(--bg-deep);
+  border: 1px solid var(--red-border-50);
+  border-radius: var(--r-cell);
+  padding: 7px 10px;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-body);
+}
+
+.tipName {
+  display: block;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-bright);
+}
+
+.tipNum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
