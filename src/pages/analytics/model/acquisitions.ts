@@ -106,11 +106,13 @@ export interface PickupRow {
 
 /** Waiver-wire return: what each roster got out of its pickups, counted only
     while they were in the starting lineup (bench points win nothing).
-    Through `through`; trades are excluded — they aren't the wire. */
+    Through `through`: a claim after the cutoff (this week's, or a playoff
+    week's) can't have scored inside it yet, so it isn't charged either.
+    Trades are excluded — they aren't the wire. */
 export function pickupValue(moves: Move[], lineups: SeasonLineups, through: number): { rows: PickupRow[]; pickups: Pickup[] } {
   const first = new Map<string, Pickup>();
   for (const m of moves) {
-    if (m.failed || (m.type !== 'waiver' && m.type !== 'free_agent')) continue;
+    if (m.failed || (m.type !== 'waiver' && m.type !== 'free_agent') || m.week > through) continue;
     for (const [playerId, rosterId] of Object.entries(m.adds)) {
       const key = `${rosterId}|${playerId}`;
       const prev = first.get(key);

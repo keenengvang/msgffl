@@ -58,6 +58,13 @@ describe('pickupValue', () => {
     expect(rows[0]!.perDollar).toBe(2.5);
   });
 
+  it('ignores claims after the cutoff week — no bid charged for points it can’t count yet', () => {
+    const moves = [move({ week: 5, adds: { p: 1 }, bid: 30 }), move({ week: 15, adds: { q: 1 }, bid: 20 })];
+    const { rows, pickups } = pickupValue(moves, {}, 14);
+    expect(pickups.map((p) => p.playerId)).toEqual(['p']);
+    expect(rows[0]).toMatchObject({ faab: 30, adds: 1 });
+  });
+
   it("re-adding the same player doesn't double his points", () => {
     const lineups: SeasonLineups = { 2: [{ r: 1, s: ['p'], pp: { p: 20 } }] };
     const moves = [move({ week: 2, adds: { p: 1 }, bid: 5 }), move({ week: 1, adds: { p: 1 }, bid: 3 })];

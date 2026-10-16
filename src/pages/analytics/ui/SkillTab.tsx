@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { fmt, fmt0 } from '@/shared/lib/format';
-import { usePlayersDb } from '@/entities/player/api/usePlayersDb';
+import { usePlayerIndex } from '@/entities/player/api/usePlayerIndex';
 import { useSeasonLineups } from '@/entities/matchup/api/useSeasonLineups';
 import { luckTable, scoreSpread } from '../model/analytics';
 import { benchTable, startingSlots } from '../model/lineups';
@@ -11,7 +11,7 @@ import styles from './AnalyticsPage.module.css';
 export function SkillTab(p: TabProps) {
   const { league, games, selected, onSelect, nameOf, savage } = p;
   const lineups = useSeasonLineups(league);
-  const players = usePlayersDb();
+  const players = usePlayerIndex();
 
   const luck = useMemo(() => luckTable(games), [games]);
   const spread = useMemo(() => scoreSpread(games), [games]);

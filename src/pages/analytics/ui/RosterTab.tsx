@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { fmt, fmt0 } from '@/shared/lib/format';
 import { useDraft } from '@/entities/draft/api/useDraft';
-import { usePlayersDb } from '@/entities/player/api/usePlayersDb';
+import { usePlayerIndex } from '@/entities/player/api/usePlayerIndex';
 import { useSeasonLineups } from '@/entities/matchup/api/useSeasonLineups';
 import { useSeasonMoves } from '@/entities/transaction/api/useSeasonMoves';
 import { draftValue, pickupValue, type PickValue } from '../model/acquisitions';
@@ -13,7 +13,7 @@ import styles from './AnalyticsPage.module.css';
 export function RosterTab(p: TabProps) {
   const { league, games, standings, through, selected, onSelect, nameOf, savage } = p;
   const draft = useDraft(league);
-  const players = usePlayersDb();
+  const players = usePlayerIndex();
   const lineups = useSeasonLineups(league);
   const moves = useSeasonMoves(league);
 

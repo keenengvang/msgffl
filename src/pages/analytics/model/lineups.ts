@@ -25,8 +25,7 @@ export function startingSlots(rosterPositions: string[] | undefined): string[] {
 export type PosOf = (playerId: string) => Position | undefined;
 
 /** A player's position, falling back to the dedicated slot he started in when
-    the player DB doesn't know him (it keeps active players only, so a retired
-    starter from a past season would otherwise vanish). */
+    the player index doesn't know him at all (an id Sleeper has since purged). */
 export function lineupPosOf(posOf: PosOf, lineup: WeekLineup, slots: string[]): PosOf {
   return (id) => {
     const known = posOf(id);

@@ -105,6 +105,9 @@ export interface RawPlayer {
   first_name?: string;
   last_name?: string;
   position?: string;
+  /** Where he's eligible in fantasy — can differ from `position` (a two-way
+      player listed DB who plays WR). */
+  fantasy_positions?: string[] | null;
   team?: string | null;
   age?: number;
   years_exp?: number | null;
@@ -121,6 +124,10 @@ export interface TrimmedPlayer {
 }
 
 export type PlayersDb = Record<string, TrimmedPlayer>;
+
+/** Every fantasy-eligible player ever, active or not — name + fantasy
+    position only. History needs the players the active-only DB drops. */
+export type PlayerIndex = Record<string, { n: string; p: Position }>;
 
 /** Per-player season stat line, keyed by stat name (pts_ppr, pts_half_ppr, …). */
 export type SeasonStats = Record<string, Record<string, number>>;

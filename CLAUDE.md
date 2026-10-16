@@ -86,6 +86,7 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
   | draft + picks | complete ? ∞ : 5 min | yes | function-form staleTime off fetched status |
   | stats/{season} | complete ? ∞ : 6 h | yes | past seasons never change |
   | players-trimmed | 7 days | yes | see below |
+  | player-index | 7 days | yes | name + fantasy position for **every** player, any status (~130KB) — analytics history needs the inactive players the trimmed DB drops (~7% of a season's points) |
   | season-bundle | complete ? ∞ : 10 min | yes | history feature |
   | lineups (weeks 1…regular season end) | complete ? ∞ : 10 min | yes | starters + nonzero `players_points` only (`loadSeasonLineups`); any failed week fails the query |
   | moves (18 tx legs) | complete ? ∞ : 10 min | yes | trimmed `Move`s (`loadSeasonMoves`); any failed leg fails the query |
@@ -176,7 +177,9 @@ variants — savage and polite — switched by `useSavage()` / `useVibes().snark
   `analyticsThrough`) and skips 0–0 unplayed pairs. Visuals are HTML bar lists and heat
   tables (no chart library), so every number is real text; the highlight picker marks a
   manager's row, keyed by owner_id so it survives a season switch. Lineups and
-  transactions load only on the tabs that need them.
+  transactions load only on the tabs that need them. Positions come from `usePlayerIndex`, never
+  the active-only `usePlayersDb` — and from `fantasy_positions` when the NFL position isn't a
+  fantasy one (two-way players listed DB).
 - Constitution articles VI (dues) and VII (punishments) are intentional commish
   placeholders — don't invent numbers.
 - Avatar/headshot 404s are handled per-image (`TeamAvatar`, `Headshot`) — no global
