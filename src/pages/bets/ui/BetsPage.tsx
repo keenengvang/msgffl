@@ -112,7 +112,9 @@ export function BetsPage() {
   const managers = [...standings].sort((a, b) => a.owner.localeCompare(b.owner));
   const view = (ownerId: string): BetSideView => {
     const r = standings.find((s) => s.ownerId === ownerId);
-    return r ? { name: r.owner, avatar: r.avatar } : { name: 'Ex-member', avatar: '' };
+    if (r) return { name: r.owner, avatar: r.avatar };
+    // Left the league mid-season: a short id tag keeps two departed managers apart.
+    return { name: `${savage ? 'Deserter' : 'Ex-member'} #${ownerId.slice(-4)}`, avatar: '' };
   };
 
   const onCreate = (draft: BetDraft) => {
