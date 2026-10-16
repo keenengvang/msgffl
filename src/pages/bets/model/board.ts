@@ -1,5 +1,5 @@
 import type { SeasonWeeks, TrimmedMatchup } from '@/shared/api/types';
-import { betRecord, isComplete, resolveBet, sideScores, type BetOutcome, type RecordRow, type SideScores } from '@/entities/bet/lib/resolveBet';
+import { betRecord, isComplete, isOwed, resolveBet, sideScores, type BetOutcome, type RecordRow, type SideScores } from '@/entities/bet/lib/resolveBet';
 import type { BetRecord } from '@/entities/bet/model/types';
 
 export interface BoardEntry {
@@ -52,18 +52,30 @@ export function lastScoredWeek(weeks: SeasonWeeks | undefined): number {
   return last;
 }
 
-export type BoardFilter = 'all' | 'pending' | 'completed';
+/** pending → nobody's ruled; unpaid → ruled, loser hasn't paid; paid → done. */
+export type BoardFilter = 'all' | 'pending' | 'unpaid' | 'paid';
+
+const inStatus = (e: BoardEntry, status: BoardFilter): boolean => {
+  switch (status) {
+    case 'all':
+      return true;
+    case 'pending':
+      return e.outcome.kind !== 'settled';
+    case 'unpaid':
+      return isOwed(e.outcome);
+    case 'paid':
+      return isComplete(e.outcome);
+  }
+};
 
 /** The bets the board shows for a status filter and, optionally, one manager. */
 export function filterBoard(bets: BoardEntry[], status: BoardFilter, ownerId: string | null): BoardEntry[] {
   return bets.filter(
-    (e) =>
-      (status === 'all' || (status === 'completed') === isComplete(e.outcome)) &&
-      (!ownerId || e.bet.sideA === ownerId || e.bet.sideB === ownerId),
+    (e) => inStatus(e, status) && (!ownerId || e.bet.sideA === ownerId || e.bet.sideB === ownerId),
   );
 }
 
-export type RecordSortKey = 'name' | 'won' | 'lost' | 'open' | 'pct';
+export type RecordSortKey = 'name' | 'won' | 'lost' | 'open' | 'owes' | 'pct';
 export interface RecordSort {
   key: RecordSortKey;
   dir: 'asc' | 'desc';
@@ -94,6 +106,8 @@ export function sortRecord(
         return r.lost.length;
       case 'open':
         return r.open.length;
+      case 'owes':
+        return r.owes.length;
       case 'pct':
         return winPct(r);
     }

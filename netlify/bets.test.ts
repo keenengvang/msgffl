@@ -124,6 +124,46 @@ describe('bets function', () => {
     expect((await handler(patch(ruled, { sideB: 'ua' }))).status).toBe(400); // still can't bet yourself
   });
 
+  it('marks a payout only once there is a winner, and undoes it', async () => {
+    const { handler } = setup();
+    let bet = await create(handler);
+    expect(bet.paidAt).toBeNull();
+    expect((await handler(patch(bet, { paid: true }))).status).toBe(400); // nobody's won yet
+    bet = await bodyBet(await handler(patch(bet, { winner: 'A' })));
+    expect(bet).toMatchObject({ winner: 'A', paidAt: null }); // ruled, still owed
+    bet = await bodyBet(await handler(patch(bet, { paid: true })));
+    expect(bet.paidAt).toBe('2025-10-10T12:00:00.000Z');
+    bet = await bodyBet(await handler(patch(bet, { paid: false })));
+    expect(bet.paidAt).toBeNull();
+  });
+
+  it('an overturn, a changed ruling or a rewrite voids the payout', async () => {
+    const { handler } = setup();
+    const paid = async () => {
+      let b = await create(handler);
+      b = await bodyBet(await handler(patch(b, { winner: 'A' })));
+      return bodyBet(await handler(patch(b, { paid: true })));
+    };
+    expect((await bodyBet(await handler(patch(await paid(), { winner: null })))).paidAt).toBeNull();
+    expect((await bodyBet(await handler(patch(await paid(), { winner: 'B' })))).paidAt).toBeNull();
+    expect(await bodyBet(await handler(patch(await paid(), { terms: 'two kegs' })))).toMatchObject({ winner: null, paidAt: null });
+    expect((await handler(patch(await paid(), { terms: 'two kegs', paid: true }))).status).toBe(400); // rewrite + pay at once
+    // re-marking paid keeps the original payout time
+    const p = await paid();
+    expect((await bodyBet(await handler(patch(p, { paid: true })))).paidAt).toBe(p.paidAt);
+  });
+
+  it('a bet stored before payouts existed reads as unpaid', async () => {
+    const { handler, store } = setup();
+    const bet = await create(handler);
+    const raw = (await store.get('2025', bet.id))!;
+    const legacy: Partial<typeof raw.bet> = { ...raw.bet };
+    delete legacy.paidAt;
+    await store.replace(legacy as typeof raw.bet, raw.version);
+    const list = (await (await handler(new Request(`${URL_}?season=2025`))).json()) as { bets: BetRecord[] };
+    expect(list.bets[0]!.paidAt).toBeNull();
+  });
+
   it('rewriting the wager clears a ruling made on the old terms', async () => {
     const { handler } = setup();
     let bet = await create(handler);

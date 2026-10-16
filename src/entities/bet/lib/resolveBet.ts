@@ -13,8 +13,8 @@ export type BetOutcome =
   | { kind: 'upcoming' }
   /** Points on the board, week not over, no ruling yet. */
   | { kind: 'live' }
-  /** Somebody ruled on it. */
-  | { kind: 'settled'; winner: BetSide }
+  /** Somebody ruled on it — and the loser has paid up, or hasn't yet. */
+  | { kind: 'settled'; winner: BetSide; paid: boolean }
   /** Week's over and nobody has said who won. */
   | { kind: 'ruling' };
 
@@ -51,15 +51,20 @@ const started = (s: SideScores) => (s.a ?? 0) !== 0 || (s.b ?? 0) !== 0;
 
 /** Every bet is free text, so a person decides who won — the scores only say
     how far along the week is. */
-export function resolveBet(bet: Pick<Bet, 'winner'>, scores: SideScores, final: boolean): BetOutcome {
-  if (bet.winner) return { kind: 'settled', winner: bet.winner };
+export function resolveBet(bet: Pick<Bet, 'winner' | 'paidAt'>, scores: SideScores, final: boolean): BetOutcome {
+  if (bet.winner) return { kind: 'settled', winner: bet.winner, paid: !!bet.paidAt };
   if (final) return { kind: 'ruling' };
   return started(scores) ? { kind: 'live' } : { kind: 'upcoming' };
 }
 
-/** Ruled on — nothing left to happen. Everything else is pending. */
+/** Ruled on and paid — nothing left to happen. */
 export function isComplete(outcome: BetOutcome): boolean {
-  return outcome.kind === 'settled';
+  return outcome.kind === 'settled' && outcome.paid;
+}
+
+/** Ruled on, but the loser hasn't paid yet. */
+export function isOwed(outcome: BetOutcome): boolean {
+  return outcome.kind === 'settled' && !outcome.paid;
 }
 
 export interface RecordRow<B extends Bet = Bet> {
@@ -68,15 +73,18 @@ export interface RecordRow<B extends Bet = Bet> {
   lost: B[];
   /** Not ruled on yet — still in play. */
   open: B[];
+  /** Lost and not paid yet — the debts. A subset of `lost`. */
+  owes: B[];
 }
 
-/** Each manager's bet record for the season: non-deleted bets won, lost and
-    still open. Anyone with a bet on the books gets a row. Best bettor first. */
+/** Each manager's bet record for the season: non-deleted bets won, lost,
+    still open and still owed. Anyone with a bet on the books gets a row.
+    Best bettor first. */
 export function betRecord<B extends Bet>(entries: Array<{ bet: B; outcome: BetOutcome }>): RecordRow<B>[] {
   const rows = new Map<string, RecordRow<B>>();
   const row = (id: string) => {
     let r = rows.get(id);
-    if (!r) rows.set(id, (r = { ownerId: id, won: [], lost: [], open: [] }));
+    if (!r) rows.set(id, (r = { ownerId: id, won: [], lost: [], open: [], owes: [] }));
     return r;
   };
   for (const { bet, outcome } of entries) {
@@ -89,6 +97,7 @@ export function betRecord<B extends Bet>(entries: Array<{ bet: B; outcome: BetOu
     const [winner, loser] = outcome.winner === 'A' ? [bet.sideA, bet.sideB] : [bet.sideB, bet.sideA];
     row(winner).won.push(bet);
     row(loser).lost.push(bet);
+    if (!outcome.paid) row(loser).owes.push(bet);
   }
   return [...rows.values()].sort(
     (x, y) => y.won.length - x.won.length || x.lost.length - y.lost.length || x.ownerId.localeCompare(y.ownerId),

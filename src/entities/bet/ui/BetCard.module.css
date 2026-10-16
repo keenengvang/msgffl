@@ -172,6 +172,11 @@
   text-align: center;
 }
 
+.settle {
+  display: flex;
+  justify-content: center;
+}
+
 .actions {
   display: flex;
   flex-wrap: nowrap;

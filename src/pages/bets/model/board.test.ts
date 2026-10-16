@@ -13,6 +13,7 @@ const bet = (id: string, week: number, over: Partial<BetRecord> = {}): BetRecord
   rosterB: null,
   terms: 'a keg',
   winner: null,
+  paidAt: null,
   updatedAt: '',
   deletedAt: null,
   version: 'v1',
@@ -39,7 +40,8 @@ describe('buildBoard', () => {
 
   const board = buildBoard(
     [
-      bet('a', 4, { winner: 'A', createdAt: '2025-10-01' }),
+      bet('a', 4, { winner: 'A', paidAt: '2025-10-03', createdAt: '2025-10-01' }),
+      bet('f', 4, { winner: 'B', createdAt: '2025-09-30' }), // ub won, ua hasn't paid
       bet('e', 4, { createdAt: '2025-10-02', sideB: 'uc' }),
       bet('b', 5),
       bet('c', 6),
@@ -49,27 +51,29 @@ describe('buildBoard', () => {
   );
 
   it('lists live bets in one run — newest week first, newest booked first within it — settled and tallied', () => {
-    expect(board.bets.map((e) => e.bet.id)).toEqual(['c', 'b', 'e', 'a']);
-    const [c, b, e, a] = board.bets;
-    expect(a).toMatchObject({ outcome: { kind: 'settled', winner: 'A' } });
+    expect(board.bets.map((e) => e.bet.id)).toEqual(['c', 'b', 'e', 'a', 'f']);
+    const [c, b, e, a, f] = board.bets;
+    expect(a).toMatchObject({ outcome: { kind: 'settled', winner: 'A', paid: true } });
+    expect(f).toMatchObject({ outcome: { kind: 'settled', winner: 'B', paid: false } });
     expect(e).toMatchObject({ outcome: { kind: 'ruling' } }); // week over, nobody ruled
     expect(b).toMatchObject({ outcome: { kind: 'live' } });
     expect(c).toMatchObject({ outcome: { kind: 'upcoming' } });
     expect(board.bets.some((x) => x.bet.id === 'd')).toBe(false); // deleted bets never reach the board
     // the deleted week-4 bet was ruled on too — it must not count
-    expect(board.record.map((r) => [r.ownerId, r.won.length, r.lost.length, r.open.length])).toEqual([
-      ['ua', 1, 0, 3],
-      ['uc', 0, 0, 1],
-      ['ub', 0, 1, 2],
+    expect(board.record.map((r) => [r.ownerId, r.won.length, r.lost.length, r.open.length, r.owes.length])).toEqual([
+      ['ua', 1, 1, 3, 1], // lost f and hasn't paid (tied with ub on W–L → id order)
+      ['ub', 1, 1, 2, 0],
+      ['uc', 0, 0, 1, 0],
     ]);
   });
 
   it('filters by status and by manager', () => {
     const ids = (f: Parameters<typeof filterBoard>[1], who: string | null = null) =>
       filterBoard(board.bets, f, who).map((e) => e.bet.id);
-    expect(ids('all')).toEqual(['c', 'b', 'e', 'a']);
+    expect(ids('all')).toEqual(['c', 'b', 'e', 'a', 'f']);
     expect(ids('pending')).toEqual(['c', 'b', 'e']); // week over but unruled is still pending
-    expect(ids('completed')).toEqual(['a']);
+    expect(ids('unpaid')).toEqual(['f']); // ruled, loser hasn't paid
+    expect(ids('paid')).toEqual(['a']);
     expect(ids('all', 'uc')).toEqual(['e']);
     expect(ids('pending', 'ub')).toEqual(['c', 'b']);
   });
@@ -94,6 +98,7 @@ describe('sortRecord', () => {
     won: Array.from({ length: won }, (_, i) => bet(`w${i}`, 1)),
     lost: Array.from({ length: lost }, (_, i) => bet(`l${i}`, 1)),
     open: Array.from({ length: open }, (_, i) => bet(`o${i}`, 1)),
+    owes: Array.from({ length: Math.min(lost, 1) }, (_, i) => bet(`d${i}`, 1)),
   });
   const names: Record<string, string> = { a: 'Zed', b: 'amy', c: 'Bo', d: 'Cy' };
   const rows = [row('a', 3, 1), row('b', 1, 0, 2), row('c', 0, 0, 4), row('d', 3, 3)];
@@ -105,6 +110,7 @@ describe('sortRecord', () => {
     expect(order('name', 'asc')).toEqual(['amy', 'Bo', 'Cy', 'Zed']); // case-insensitive
     expect(order('open', 'desc')).toEqual(['Bo', 'amy', 'Zed', 'Cy']);
     expect(order('lost', 'asc')).toEqual(['amy', 'Bo', 'Zed', 'Cy']);
+    expect(order('owes', 'desc')).toEqual(['Zed', 'Cy', 'amy', 'Bo']); // Zed & Cy owe one each
   });
 
   it('win% — undecided (0-0) sinks to the bottom either way', () => {

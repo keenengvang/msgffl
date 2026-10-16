@@ -39,7 +39,8 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-const record = ({ bet, version }: Versioned): BetRecord => ({ ...bet, version });
+// Bets stored before payouts existed have no paidAt: unpaid.
+const record = ({ bet, version }: Versioned): BetRecord => ({ ...bet, paidAt: bet.paidAt ?? null, version });
 const SEASON = /^\d{4}$/;
 const ID = /^[\w-]{1,64}$/;
 
@@ -118,6 +119,7 @@ export function makeBetsHandler(deps: BetsDeps) {
         rosterB: facts.rosterOf[draft.value.sideB] ?? null,
         id: randomUUID(),
         winner: null,
+        paidAt: null,
         createdAt: stamp,
         updatedAt: stamp,
         deletedAt: null,
@@ -148,17 +150,24 @@ export function makeBetsHandler(deps: BetsDeps) {
       return json(409, { error: 'that bet was deleted — restore it first', bet: record(current) });
     }
 
-    // Rewriting the wager and ruling on it are separate acts: a combined patch
-    // could carry an old ruling onto new terms.
-    if (touchesTerms(patch.value) && 'winner' in patch.value) {
+    // Rewriting the wager and settling it are separate acts: a combined patch
+    // could carry an old ruling or payout onto new terms.
+    if (touchesTerms(patch.value) && ('winner' in patch.value || 'paid' in patch.value)) {
       return json(400, { error: 'rule on a bet separately from rewriting it' });
     }
 
-    const { deleted, ...fields } = patch.value;
-    const next: Bet = { ...current.bet, ...fields, updatedAt: stamp };
-    // A rewritten wager is a new wager: a ruling on the old terms must not
-    // carry over to it.
+    const { deleted, paid, ...fields } = patch.value;
+    const next: Bet = { ...current.bet, paidAt: current.bet.paidAt ?? null, ...fields, updatedAt: stamp };
+    // A rewritten wager is a new wager: a ruling (and payout) on the old terms
+    // must not carry over to it. A changed or overturned ruling voids the
+    // payout too — whoever paid, paid on the old call.
     if (touchesTerms(patch.value)) next.winner = null;
+    if (next.winner !== current.bet.winner) next.paidAt = null;
+    if (paid === true) {
+      if (!next.winner) return json(400, { error: 'mark a winner before marking it paid' });
+      next.paidAt ??= stamp;
+    }
+    if (paid === false) next.paidAt = null;
     if (deleted === true && !current.bet.deletedAt) next.deletedAt = stamp;
     if (deleted === false) next.deletedAt = null;
 

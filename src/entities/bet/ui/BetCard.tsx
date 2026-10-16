@@ -3,7 +3,7 @@ import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { Badge, type BadgeTone } from '@/shared/ui/Badge/Badge';
 import { fmt } from '@/shared/lib/format';
 import { BOOKIE } from '@/shared/config/constants';
-import { isComplete, type BetOutcome, type SideScores } from '../lib/resolveBet';
+import { isComplete, isOwed, type BetOutcome, type SideScores } from '../lib/resolveBet';
 import type { Bet } from '../model/types';
 import styles from './BetCard.module.css';
 
@@ -23,15 +23,25 @@ interface BetCardProps {
   thisWeek?: boolean;
   /** Per-side control (the "won" button), rendered under that team. */
   pick?: (side: 'A' | 'B') => ReactNode;
+  /** The payout control (MARK PAID), shown under the verdict while owed. */
+  settle?: ReactNode;
   /** Buttons supplied by the page — the card itself is display-only. */
   actions?: ReactNode;
 }
 
-function verdict(o: BetOutcome, a: BetSideView, b: BetSideView, savage: boolean): string | null {
+const paidOn = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+
+function verdict(bet: Bet, o: BetOutcome, a: BetSideView, b: BetSideView, savage: boolean): string | null {
   switch (o.kind) {
     case 'settled': {
       const [win, lose] = o.winner === 'A' ? [a, b] : [b, a];
-      return savage ? `${win.name} cashes. ${lose.name}, pay up.` : `${win.name} won this one.`;
+      if (o.paid) {
+        return savage
+          ? `${win.name} got paid ${paidOn(bet.paidAt)}. Debt cleared, dignity not.`
+          : `${win.name} was paid on ${paidOn(bet.paidAt)}.`;
+      }
+      return savage ? `${lose.name} owes ${win.name}. The clock is ticking.` : `${lose.name} owes ${win.name}.`;
     }
     case 'ruling':
       return savage ? 'Week’s over. Somebody make the call.' : 'The week is over — record who won.';
@@ -43,7 +53,7 @@ function verdict(o: BetOutcome, a: BetSideView, b: BetSideView, savage: boolean)
 }
 
 /** One side bet: the two teams, the wager and where it stands. */
-export function BetCard({ bet, a, b, scores, outcome, savage, thisWeek, pick, actions }: BetCardProps) {
+export function BetCard({ bet, a, b, scores, outcome, savage, thisWeek, pick, settle, actions }: BetCardProps) {
   // Cards share one height, so a long wager is clamped; MORE opens just this one.
   const termsRef = useRef<HTMLParagraphElement>(null);
   const [open, setOpen] = useState(false);
@@ -53,13 +63,17 @@ export function BetCard({ bet, a, b, scores, outcome, savage, thisWeek, pick, ac
     if (el && !open) setClamped(el.scrollHeight > el.clientHeight + 1);
   }, [bet.terms, open]);
 
-  // Two states, nothing more: ruled on → COMPLETED ✓, everything else →
-  // PENDING; the line under the bet says which kind of pending.
-  const [tone, label]: [BadgeTone, string] = isComplete(outcome) ? ['win', 'COMPLETED ✓'] : ['neutral', 'PENDING'];
+  // PENDING until someone rules, then PAY UP until the loser pays, then
+  // PAID ✓. The line under the bet says which kind of pending.
+  const [tone, label]: [BadgeTone, string] = isComplete(outcome)
+    ? ['win', 'PAID ✓']
+    : isOwed(outcome)
+      ? ['red', savage ? 'PAY UP' : 'UNPAID']
+      : ['neutral', 'PENDING'];
   // The week's scores are context for the bet, not its result.
   const showScores = (scores.a ?? 0) !== 0 || (scores.b ?? 0) !== 0;
   const winner = outcome.kind === 'settled' ? outcome.winner : null;
-  const line = verdict(outcome, a, b, savage);
+  const line = verdict(bet, outcome, a, b, savage);
 
   const side = (s: BetSideView, key: 'A' | 'B', pts: number | null) => (
     <div className={`${styles.side} ${winner === key ? styles.sideUp : ''}`}>
@@ -99,6 +113,7 @@ export function BetCard({ bet, a, b, scores, outcome, savage, thisWeek, pick, ac
       {/* Pinned to the bottom so every card's footer lines up. */}
       <div className={styles.foot}>
         {line && <div className={styles.verdict}>{line}</div>}
+        {settle && <div className={styles.settle}>{settle}</div>}
         <div className={styles.bottom}>
           <span className={styles.meta}>
             booked by {BOOKIE}
