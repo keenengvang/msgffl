@@ -13,7 +13,7 @@ import { ErrorPanel } from '@/shared/ui/ErrorPanel/ErrorPanel';
 import { EmptyState } from '@/shared/ui/EmptyState/EmptyState';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { fmt } from '@/shared/lib/format';
-import { analyticsThrough, decidedGames, luckTable, scoreSpread, standingsRace } from '../model/analytics';
+import { analyticsThrough, decidedGames, liveWeekFromRecords, luckTable, scoreSpread, standingsRace } from '../model/analytics';
 import { LuckChart, luckLabel } from './LuckChart';
 import { RaceChart } from './RaceChart';
 import { SpreadChart } from './SpreadChart';
@@ -36,14 +36,13 @@ export function AnalyticsPage() {
 
   const pws = league?.settings?.playoff_week_start ?? 15;
   const complete = league?.status === 'complete';
-  // /state/nfl down mid-season: the latest week with points is the live one.
+  // /state/nfl down mid-season: fall back to the roster records, which Sleeper
+  // only bumps once a week is final. The latest week with points can't stand
+  // in for the live week — between Tuesday and the next kickoff it's a final
+  // week, and treating it as live would drop it from every chart.
   const nflDown = nflState.isSuccess && !nflState.data && league?.status === 'in_season';
-  const scored = Object.entries(weeks.data ?? {}).reduce(
-    (last, [w, rows]) => (rows.some((r) => (r.p || 0) !== 0) ? Math.max(last, Number(w)) : last),
-    0,
-  );
   const liveWeek = nflDown
-    ? Math.max(1, scored)
+    ? liveWeekFromRecords(standings ?? [])
     : liveWeekFor({ status: league?.status, playoffWeekStart: pws, nflSeason: nflState.data?.season, nflWeek: nflState.data?.week, season });
   const through = analyticsThrough({ complete, playoffWeekStart: pws, liveWeek });
 
@@ -57,7 +56,10 @@ export function AnalyticsPage() {
 
   if (error) return <ErrorPanel error={error} />;
   if (weeks.error) return <ErrorPanel error={weeks.error} />;
-  if (isLoading || !standings || weeks.isLoading) return <LoadingQuip text="crunching the tape…" />;
+  // nfl-state is never persisted, so a returning visitor can have standings
+  // and weeks before it: computing the cutoff then would flash "nothing yet".
+  const nflPending = nflState.isLoading && !complete;
+  if (isLoading || !standings || weeks.isLoading || nflPending) return <LoadingQuip text="crunching the tape…" />;
 
   const byRoster = new Map(standings.map((s) => [s.rosterId, s]));
   const nameOf = (id: number) => byRoster.get(id)?.owner ?? `Team ${id}`;

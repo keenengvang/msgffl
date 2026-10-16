@@ -25,6 +25,13 @@ export function decidedGames(weeks: SeasonWeeks | undefined, through: number): G
 
 /** The last week whose games count: regular season only, and never the week in
     progress (half-scored games would skew every number). */
+/** The live week from the standings alone, for when /state/nfl is down:
+    Sleeper only adds a game to a roster's record once that week is final,
+    so the most games anyone has played is the last final week. */
+export function liveWeekFromRecords(records: { w: number; l: number; t: number }[]): number {
+  return Math.max(0, ...records.map((r) => r.w + r.l + r.t)) + 1;
+}
+
 export function analyticsThrough(input: {
   complete: boolean;
   playoffWeekStart: number;

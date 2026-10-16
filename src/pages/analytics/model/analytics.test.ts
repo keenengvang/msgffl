@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SeasonWeeks } from '@/shared/api/types';
-import { analyticsThrough, decidedGames, luckTable, scoreSpread, standingsRace } from './analytics';
+import { analyticsThrough, decidedGames, liveWeekFromRecords, luckTable, scoreSpread, standingsRace } from './analytics';
 
 // 4 teams, 2 weeks. Week 1: 1(100) beats 2(90), 3(80) beats 4(70).
 // Week 2: 1(60) loses to 3(65), 2(120) beats 4(50). Week 3 is unplayed (0–0).
@@ -28,6 +28,15 @@ describe('analyticsThrough', () => {
     expect(analyticsThrough({ complete: true, playoffWeekStart: 15, liveWeek: 17 })).toBe(14);
     expect(analyticsThrough({ complete: false, playoffWeekStart: 15, liveWeek: 6 })).toBe(5);
     expect(analyticsThrough({ complete: false, playoffWeekStart: 15, liveWeek: 1 })).toBe(0);
+  });
+});
+
+describe('liveWeekFromRecords', () => {
+  it('is one past the most games anyone has finished — a final week is never treated as live', () => {
+    // Week 6 is final (6 games on the books), week 7 hasn't scored yet.
+    expect(liveWeekFromRecords([{ w: 4, l: 2, t: 0 }, { w: 2, l: 3, t: 1 }])).toBe(7);
+    expect(liveWeekFromRecords([{ w: 0, l: 0, t: 0 }])).toBe(1);
+    expect(liveWeekFromRecords([])).toBe(1);
   });
 });
 
