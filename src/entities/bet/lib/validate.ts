@@ -62,6 +62,10 @@ export function validatePatch(v: unknown): Result<BetPatch> {
     if (v.winner !== null && v.winner !== 'A' && v.winner !== 'B') return { ok: false, error: 'winner must be A, B or null' };
     out.winner = v.winner as BetSide | null;
   }
+  if ('paid' in v) {
+    if (typeof v.paid !== 'boolean') return { ok: false, error: 'paid must be true or false' };
+    out.paid = v.paid;
+  }
   if ('deleted' in v) {
     if (typeof v.deleted !== 'boolean') return { ok: false, error: 'deleted must be true or false' };
     out.deleted = v.deleted;
@@ -71,7 +75,8 @@ export function validatePatch(v: unknown): Result<BetPatch> {
 }
 
 /** Fields that define the wager itself. Rewriting any of them clears a
-    ruling, and they can't be rewritten in the same patch as a ruling. */
+    ruling and its payout, and they can't be rewritten in the same patch as
+    either. */
 export const TERM_FIELDS = ['week', 'sideA', 'sideB', 'terms'] as const;
 
 export function touchesTerms(p: BetPatch): boolean {

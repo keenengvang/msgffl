@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Bet } from '../model/types';
-import { betRecord, isComplete, resolveBet, sideScores, weekIsFinal } from './resolveBet';
+import { betRecord, isComplete, isOwed, resolveBet, sideScores, weekIsFinal } from './resolveBet';
 
 const bet = (over: Partial<Bet> = {}): Bet => ({
   id: 'x',
@@ -12,6 +12,7 @@ const bet = (over: Partial<Bet> = {}): Bet => ({
   rosterB: null,
   terms: 'If ua loses to ub in Week 5, ua owes ub a keg.',
   winner: null,
+  paidAt: null,
   createdAt: '',
   updatedAt: '',
   deletedAt: null,
@@ -64,32 +65,43 @@ describe('resolveBet', () => {
     expect(resolveBet(bet(), { a: 130, b: 10 }, true)).toEqual({ kind: 'ruling' });
   });
   it('a ruling settles it — even before the week is over', () => {
-    expect(resolveBet(bet({ winner: 'B' }), { a: 130, b: 10 }, true)).toEqual({ kind: 'settled', winner: 'B' });
-    expect(resolveBet(bet({ winner: 'A' }), { a: 0, b: 0 }, false)).toEqual({ kind: 'settled', winner: 'A' });
+    expect(resolveBet(bet({ winner: 'B' }), { a: 130, b: 10 }, true)).toEqual({ kind: 'settled', winner: 'B', paid: false });
+    expect(resolveBet(bet({ winner: 'A' }), { a: 0, b: 0 }, false)).toEqual({ kind: 'settled', winner: 'A', paid: false });
   });
 });
 
-describe('isComplete / betRecord', () => {
-  it('only a ruled-on bet is complete', () => {
-    expect(isComplete({ kind: 'settled', winner: 'A' })).toBe(true);
-    for (const kind of ['upcoming', 'live', 'ruling'] as const) expect(isComplete({ kind })).toBe(false);
+describe('isComplete / isOwed / betRecord', () => {
+  it('complete means ruled AND paid; ruled but unpaid is owed', () => {
+    expect(isComplete({ kind: 'settled', winner: 'A', paid: true })).toBe(true);
+    expect(isComplete({ kind: 'settled', winner: 'A', paid: false })).toBe(false);
+    expect(isOwed({ kind: 'settled', winner: 'A', paid: false })).toBe(true);
+    expect(isOwed({ kind: 'settled', winner: 'A', paid: true })).toBe(false);
+    for (const kind of ['upcoming', 'live', 'ruling'] as const) {
+      expect(isComplete({ kind })).toBe(false);
+      expect(isOwed({ kind })).toBe(false);
+    }
   });
 
-  it('tallies bets won, lost and open per manager, best bettor first', () => {
-    const won = (winner: 'A' | 'B') => ({ kind: 'settled', winner }) as const;
+  it('a ruled bet carries whether it was paid', () => {
+    expect(resolveBet(bet({ winner: 'A', paidAt: '2025-10-20' }), { a: 0, b: 0 }, true)).toEqual({ kind: 'settled', winner: 'A', paid: true });
+    expect(resolveBet(bet({ winner: 'B' }), { a: 0, b: 0 }, true)).toEqual({ kind: 'settled', winner: 'B', paid: false });
+  });
+
+  it('tallies bets won, lost, open and owed per manager, best bettor first', () => {
+    const won = (winner: 'A' | 'B', paid = true) => ({ kind: 'settled', winner, paid }) as const;
     const entries = [
-      { bet: bet({ id: '1', sideA: 'ua', sideB: 'ub' }), outcome: won('A') }, // ua beats ub
+      { bet: bet({ id: '1', sideA: 'ua', sideB: 'ub' }), outcome: won('A', false) }, // ua beats ub — ub hasn't paid
       { bet: bet({ id: '2', sideA: 'uc', sideB: 'ub' }), outcome: won('A') }, // uc beats ub
       { bet: bet({ id: '3', sideA: 'ua', sideB: 'uc' }), outcome: won('B') }, // uc beats ua
       { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // deleted → ignored
       { bet: bet({ id: '7' }), outcome: { kind: 'upcoming' } as const }, // pending → open for both
       { bet: bet({ id: '8', sideA: 'ud', sideB: 'ua' }), outcome: { kind: 'ruling' } as const }, // week over, unruled → still open
     ];
-    expect(betRecord(entries).map((r) => [r.ownerId, r.won.length, r.lost.length, r.open.length])).toEqual([
-      ['uc', 2, 0, 0],
-      ['ua', 1, 1, 2],
-      ['ud', 0, 0, 1], // only an open bet — still gets a row
-      ['ub', 0, 2, 1],
+    expect(betRecord(entries).map((r) => [r.ownerId, r.won.length, r.lost.length, r.open.length, r.owes.length])).toEqual([
+      ['uc', 2, 0, 0, 0],
+      ['ua', 1, 1, 2, 0],
+      ['ud', 0, 0, 1, 0], // only an open bet — still gets a row
+      ['ub', 0, 2, 1, 1], // lost two, paid one
     ]);
   });
 });

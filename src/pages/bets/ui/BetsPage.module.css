@@ -303,6 +303,33 @@
   color: var(--text-dim);
 }
 
+.owes {
+  color: var(--loss);
+}
+
+.payBtn {
+  cursor: pointer;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  color: var(--text-primary);
+  background: var(--red);
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 6px 16px;
+}
+
+.payBtn:hover {
+  filter: brightness(1.08);
+}
+
+.payBtn:disabled {
+  filter: saturate(0.4) brightness(0.8);
+  cursor: default;
+}
+
 /* ── board ── */
 .boardHead {
   display: flex;

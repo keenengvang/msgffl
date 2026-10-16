@@ -183,7 +183,10 @@ export function BetsPage() {
     );
 
     const out = [];
-    if (outcome.kind === 'settled') out.push(btn(savage ? 'OVERTURN' : 'UNDO', () => act(bet, { winner: null })));
+    // Unpaid: the ruling can still be overturned. Paid: only the payout can
+    // be undone here (overturning a paid bet is a two-step on purpose).
+    if (outcome.kind === 'settled' && !outcome.paid) out.push(btn(savage ? 'OVERTURN' : 'UNDO', () => act(bet, { winner: null })));
+    if (outcome.kind === 'settled' && outcome.paid) out.push(btn('UNDO PAID', () => act(bet, { paid: false })));
     out.push(
       btn('EDIT', () => {
         setEditStatus(null);
@@ -217,6 +220,14 @@ export function BetsPage() {
           </button>
         );
 
+  // Owed bets get one big obvious button: the debt is the point of the card.
+  const settle = ({ bet, outcome }: BoardEntry) =>
+    outcome.kind === 'settled' && !outcome.paid ? (
+      <button type="button" className={styles.payBtn} onClick={() => act(bet, { paid: true })} disabled={busy(bet.id)}>
+        {savage ? 'MARK PAID 🍺' : 'MARK PAID'}
+      </button>
+    ) : undefined;
+
   const card = (e: BoardEntry) => (
     <div key={e.bet.id} className={styles.cardCell}>
       <BetCard
@@ -228,6 +239,7 @@ export function BetsPage() {
         savage={savage}
         thisWeek={e.bet.week === liveWeek && league?.status === 'in_season'}
         pick={pick(e)}
+        settle={settle(e)}
         actions={actions(e)}
       />
       {cardError?.id === e.bet.id && <div className={`${styles.status} ${styles.statusError} ${styles.cardError}`}>{cardError.text}</div>}
@@ -269,7 +281,8 @@ export function BetsPage() {
   const FILTERS: Array<[BoardFilter, string]> = [
     ['all', 'ALL'],
     ['pending', 'PENDING'],
-    ['completed', 'COMPLETED ✓'],
+    ['unpaid', savage ? 'PAY UP' : 'UNPAID'],
+    ['paid', 'PAID ✓'],
   ];
 
   return (
@@ -311,6 +324,7 @@ export function BetsPage() {
                     {head('lost', 'L', 'Bets lost')}
                     {head('pct', 'WIN%', 'Won ÷ decided')}
                     {head('open', 'OPEN', 'Still pending')}
+                    {head('owes', 'OWES', 'Lost and not paid yet')}
                   </tr>
                 </thead>
                 <tbody>
@@ -337,6 +351,7 @@ export function BetsPage() {
                         <td className={`uMono ${styles.lost}`}>{r.lost.length}</td>
                         <td className="uMono">{pct === null ? '—' : `${fmt0(pct * 100)}%`}</td>
                         <td className={`uMono ${styles.openCol}`}>{r.open.length}</td>
+                        <td className={`uMono ${r.owes.length ? styles.owes : styles.openCol}`}>{r.owes.length}</td>
                       </tr>
                     );
                   })}

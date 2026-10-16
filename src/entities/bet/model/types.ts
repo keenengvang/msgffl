@@ -20,10 +20,14 @@ export interface Bet {
   terms: string;
   /** Who won — someone rules on it; nothing is settled automatically. */
   winner: BetSide | null;
+  /** When the loser paid up. Only set once there's a winner; cleared by an
+      overturn or a rewrite. Bets stored before payouts existed lack it — the
+      API normalizes that to null. */
+  paidAt: string | null;
   createdAt: string;
   updatedAt: string;
-  /** Soft delete: a tombstoned bet stays visible (and restorable) so nobody
-      quietly erases the keg they lost. */
+  /** Soft delete: the page hides a tombstoned bet, but the record stays in
+      storage so a delete is recoverable by hand. */
   deletedAt: string | null;
 }
 
@@ -47,5 +51,7 @@ export interface BetPatch {
   sideB?: string;
   terms?: string;
   winner?: BetSide | null;
+  /** Mark the payout made (true) or undo it (false). Needs a winner. */
+  paid?: boolean;
   deleted?: boolean;
 }
