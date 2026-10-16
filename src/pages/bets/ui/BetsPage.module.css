@@ -122,6 +122,26 @@
   border-color: var(--red);
 }
 
+/* Phones: 16px controls are readable, and anything smaller makes iOS zoom the
+   page on focus. The team pickers stack so a long name isn't cut to "muahu…". */
+@media (pointer: coarse), (max-width: 640px) {
+  .select,
+  .textarea {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .versus {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .versus .vs {
+    text-align: center;
+  }
+}
+
 .formActions {
   display: flex;
   gap: 12px;
