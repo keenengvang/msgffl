@@ -354,12 +354,15 @@
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* Every row as tall as the tallest card, so the whole board is one size. */
+  grid-auto-rows: 1fr;
   gap: 16px;
   margin-top: 14px;
 }
 
 .act {
   cursor: pointer;
+  white-space: nowrap;
   font-family: var(--font-cond);
   font-weight: 700;
   font-size: 11px;
@@ -381,14 +384,40 @@
   cursor: default;
 }
 
-.actRed {
+.cardCell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cardCell > :first-child {
+  flex: 1;
+}
+
+.pick {
+  cursor: pointer;
+  margin-top: 2px;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--red-border-50);
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+}
+
+.pick:hover {
   color: var(--text-primary);
   background: var(--red);
   border-color: var(--red);
 }
 
-.actRed:hover {
-  filter: brightness(1.08);
+.pick:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .shredder {

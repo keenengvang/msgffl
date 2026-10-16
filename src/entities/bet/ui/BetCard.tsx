@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { Badge, type BadgeTone } from '@/shared/ui/Badge/Badge';
 import { fmt } from '@/shared/lib/format';
@@ -22,6 +22,8 @@ interface BetCardProps {
   savage: boolean;
   /** The league's current week — flags the card as this week's action. */
   thisWeek?: boolean;
+  /** Per-side control (the "won" button), rendered under that team. */
+  pick?: (side: 'A' | 'B') => ReactNode;
   /** Buttons supplied by the page — the card itself is display-only. */
   actions?: ReactNode;
 }
@@ -42,7 +44,16 @@ function verdict(o: BetOutcome, a: BetSideView, b: BetSideView, savage: boolean)
 }
 
 /** One side bet: the two teams, the wager and where it stands. */
-export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, actions }: BetCardProps) {
+export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, pick, actions }: BetCardProps) {
+  // Cards share one height, so a long wager is clamped; MORE opens just this one.
+  const termsRef = useRef<HTMLParagraphElement>(null);
+  const [open, setOpen] = useState(false);
+  const [clamped, setClamped] = useState(false);
+  useLayoutEffect(() => {
+    const el = termsRef.current;
+    if (el && !open) setClamped(el.scrollHeight > el.clientHeight + 1);
+  }, [bet.terms, open]);
+
   // Two states, nothing more: ruled on → COMPLETED ✓, everything else →
   // PENDING; the line under the bet says which kind of pending.
   // A shredded bet is off the books entirely.
@@ -62,6 +73,7 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
       <TeamAvatar src={s.avatar} size={34} className={styles.avatar} />
       <span className={styles.name}>{s.name}</span>
       {showScores && <span className={`uMono ${styles.pts}`}>{fmt(pts)}</span>}
+      {pick?.(key)}
     </div>
   );
 
@@ -93,14 +105,25 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
         {side(b, 'B', scores.b)}
       </div>
 
-      <p className={styles.terms}>{bet.terms}</p>
-      {line && <div className={styles.verdict}>{line}</div>}
+      <p ref={termsRef} className={open ? styles.terms : `${styles.terms} ${styles.termsClamped}`}>
+        {bet.terms}
+      </p>
+      {(clamped || open) && (
+        <button type="button" className={styles.more} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          {open ? 'LESS' : 'MORE'}
+        </button>
+      )}
 
-      {actions && <div className={styles.actions}>{actions}</div>}
-
-      <div className={styles.meta}>
-        booked by {BOOKIE}
-        {bet.deletedAt ? ` · shredded` : ''}
+      {/* Pinned to the bottom so every card's footer lines up. */}
+      <div className={styles.foot}>
+        {line && <div className={styles.verdict}>{line}</div>}
+        <div className={styles.bottom}>
+          <span className={styles.meta}>
+            booked by {BOOKIE}
+            {bet.deletedAt ? ' · shredded' : ''}
+          </span>
+          {actions && <div className={styles.actions}>{actions}</div>}
+        </div>
       </div>
     </article>
   );

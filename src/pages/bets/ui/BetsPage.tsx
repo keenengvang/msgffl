@@ -168,11 +168,11 @@ export function BetsPage() {
   const busy = (id: string) => cardUpdate.isPending || (update.isPending && update.variables?.bet.id === id);
 
   const actions = ({ bet, outcome, locked }: BoardEntry) => {
-    const btn = (label: string, onClick: () => void, tone: 'plain' | 'red' = 'plain') => (
+    const btn = (label: string, onClick: () => void) => (
       <button
         key={label}
         type="button"
-        className={tone === 'red' ? `${styles.act} ${styles.actRed}` : styles.act}
+        className={styles.act}
         onClick={onClick}
         disabled={busy(bet.id)}
       >
@@ -182,14 +182,7 @@ export function BetsPage() {
     if (bet.deletedAt) return [btn(savage ? 'UN-SHRED' : 'RESTORE', () => act(bet, { deleted: false }))];
 
     const out = [];
-    const a = view(bet.sideA).name;
-    const b = view(bet.sideB).name;
-    if (outcome.kind === 'settled') {
-      out.push(btn(savage ? 'OVERTURN' : 'UNDO RULING', () => act(bet, { winner: null })));
-    } else {
-      out.push(btn(`${a.toUpperCase()} WON`, () => act(bet, { winner: 'A' }), 'red'));
-      out.push(btn(`${b.toUpperCase()} WON`, () => act(bet, { winner: 'B' }), 'red'));
-    }
+    if (outcome.kind === 'settled') out.push(btn(savage ? 'OVERTURN' : 'UNDO', () => act(bet, { winner: null })));
     if (!locked) {
       out.push(
         btn('EDIT', () => {
@@ -210,8 +203,24 @@ export function BetsPage() {
     return out;
   };
 
+  // The ruling lives under each team, so the label never carries a long name.
+  const pick = ({ bet, outcome }: BoardEntry) =>
+    bet.deletedAt || outcome.kind === 'settled'
+      ? undefined
+      : (side: 'A' | 'B') => (
+          <button
+            type="button"
+            className={styles.pick}
+            onClick={() => act(bet, { winner: side })}
+            disabled={busy(bet.id)}
+            aria-label={`${view(side === 'A' ? bet.sideA : bet.sideB).name} won`}
+          >
+            {savage ? 'CASHED ✓' : 'WON ✓'}
+          </button>
+        );
+
   const card = (e: BoardEntry) => (
-    <div key={e.bet.id}>
+    <div key={e.bet.id} className={styles.cardCell}>
       <BetCard
         bet={e.bet}
         a={view(e.bet.sideA)}
@@ -221,6 +230,7 @@ export function BetsPage() {
         locked={e.locked}
         savage={savage}
         thisWeek={e.bet.week === liveWeek && league?.status === 'in_season'}
+        pick={pick(e)}
         actions={actions(e)}
       />
       {cardError?.id === e.bet.id && <div className={`${styles.status} ${styles.statusError} ${styles.cardError}`}>{cardError.text}</div>}
