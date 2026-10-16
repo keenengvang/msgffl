@@ -50,6 +50,27 @@ describe('playoffOdds', () => {
     expect(total).toBeCloseTo(2); // exactly two spots, every simulation
   });
 
+  it('ranks like the standings: whole wins then PF — a tie is not half a win', () => {
+    // 1 and 2 tie in week 1. Final: 1 is 1–0–1 (PF 170), 2 is 1–0–1 (210),
+    // 3 is 1–1 (270), 4 is 0–2. Equal whole wins → PF: 3, then 2.
+    const weeks: SeasonWeeks = {
+      1: [
+        { m: 1, r: 1, p: 80 },
+        { m: 1, r: 2, p: 80 },
+        { m: 2, r: 3, p: 150 },
+        { m: 2, r: 4, p: 140 },
+      ],
+      2: [
+        { m: 1, r: 1, p: 90 },
+        { m: 1, r: 4, p: 85 },
+        { m: 2, r: 2, p: 130 },
+        { m: 2, r: 3, p: 120 },
+      ],
+    };
+    const odds = playoffOdds({ ...base, weeks, asOf: 2, lastRegular: 2 });
+    expect(odds.map((o) => o.playoff)).toEqual([0, 1, 1, 0]);
+  });
+
   it('is deterministic for the same seed', () => {
     const weeks = season({ 1: 120, 2: 110, 3: 100, 4: 90 }, 2);
     expect(playoffOdds({ ...base, weeks, asOf: 2 })).toEqual(playoffOdds({ ...base, weeks, asOf: 2 }));

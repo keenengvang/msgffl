@@ -54,8 +54,8 @@ function rng(seed: number): () => number {
 
     Each team's weekly score is drawn from a normal around its (shrunk) scoring
     average with the league's game-to-game spread, the real remaining schedule
-    is played out, and the final table is ranked the way the standings are —
-    wins, then points for. Odds are the share of simulated seasons a team
+    is played out, and the final table is ranked exactly the way the
+    standings are (computeStandings) — whole wins, then points for. Odds are the share of simulated seasons a team
     finished in the playoff spots, the bye spots, or last. */
 export function playoffOdds(input: OddsInput): OddsRow[] {
   const { weeks, rosterIds, asOf, lastRegular, playoffTeams } = input;
@@ -67,7 +67,9 @@ export function playoffOdds(input: OddsInput): OddsRow[] {
   const n = new Map<number, number>(rosterIds.map((r) => [r, 0]));
   for (const g of games) {
     if (!wins.has(g.r)) continue;
-    wins.set(g.r, wins.get(g.r)! + (g.pts > g.opp ? 1 : g.pts === g.opp ? 0.5 : 0));
+    // Whole wins, like computeStandings: a tie isn't half a win in the
+    // table, it's a non-win, and PF breaks the tie between equal win counts.
+    wins.set(g.r, wins.get(g.r)! + (g.pts > g.opp ? 1 : 0));
     pf.set(g.r, pf.get(g.r)! + g.pts);
     n.set(g.r, n.get(g.r)! + 1);
   }
