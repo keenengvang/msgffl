@@ -13,13 +13,13 @@ import { Route as WeeklySummaryRouteImport } from './routes/weekly-summary'
 import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as StandingsRouteImport } from './routes/standings'
 import { Route as RulesRouteImport } from './routes/rules'
-import { Route as PowerRouteImport } from './routes/power'
 import { Route as PlayersRouteImport } from './routes/players'
 import { Route as MatchupsRouteImport } from './routes/matchups'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as DraftRouteImport } from './routes/draft'
 import { Route as BracketRouteImport } from './routes/bracket'
 import { Route as BetsRouteImport } from './routes/bets'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsOwnerIdRouteImport } from './routes/teams.$ownerId'
@@ -43,11 +43,6 @@ const StandingsRoute = StandingsRouteImport.update({
 const RulesRoute = RulesRouteImport.update({
   id: '/rules',
   path: '/rules',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PowerRoute = PowerRouteImport.update({
-  id: '/power',
-  path: '/power',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayersRoute = PlayersRouteImport.update({
@@ -80,6 +75,11 @@ const BetsRoute = BetsRouteImport.update({
   path: '/bets',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -103,13 +103,13 @@ const MatchupsWeekMatchupIdRoute = MatchupsWeekMatchupIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/bets': typeof BetsRoute
   '/bracket': typeof BracketRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
   '/matchups': typeof MatchupsRoute
   '/players': typeof PlayersRoute
-  '/power': typeof PowerRoute
   '/rules': typeof RulesRoute
   '/standings': typeof StandingsRoute
   '/suggest': typeof SuggestRoute
@@ -120,13 +120,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/bets': typeof BetsRoute
   '/bracket': typeof BracketRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
   '/matchups': typeof MatchupsRoute
   '/players': typeof PlayersRoute
-  '/power': typeof PowerRoute
   '/rules': typeof RulesRoute
   '/standings': typeof StandingsRoute
   '/suggest': typeof SuggestRoute
@@ -138,13 +138,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/bets': typeof BetsRoute
   '/bracket': typeof BracketRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
   '/matchups': typeof MatchupsRoute
   '/players': typeof PlayersRoute
-  '/power': typeof PowerRoute
   '/rules': typeof RulesRoute
   '/standings': typeof StandingsRoute
   '/suggest': typeof SuggestRoute
@@ -157,13 +157,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analytics'
     | '/bets'
     | '/bracket'
     | '/draft'
     | '/history'
     | '/matchups'
     | '/players'
-    | '/power'
     | '/rules'
     | '/standings'
     | '/suggest'
@@ -174,13 +174,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analytics'
     | '/bets'
     | '/bracket'
     | '/draft'
     | '/history'
     | '/matchups'
     | '/players'
-    | '/power'
     | '/rules'
     | '/standings'
     | '/suggest'
@@ -191,13 +191,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/analytics'
     | '/bets'
     | '/bracket'
     | '/draft'
     | '/history'
     | '/matchups'
     | '/players'
-    | '/power'
     | '/rules'
     | '/standings'
     | '/suggest'
@@ -209,13 +209,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   BetsRoute: typeof BetsRoute
   BracketRoute: typeof BracketRoute
   DraftRoute: typeof DraftRoute
   HistoryRoute: typeof HistoryRoute
   MatchupsRoute: typeof MatchupsRoute
   PlayersRoute: typeof PlayersRoute
-  PowerRoute: typeof PowerRoute
   RulesRoute: typeof RulesRoute
   StandingsRoute: typeof StandingsRoute
   SuggestRoute: typeof SuggestRoute
@@ -253,13 +253,6 @@ declare module '@tanstack/react-router' {
       path: '/rules'
       fullPath: '/rules'
       preLoaderRoute: typeof RulesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/power': {
-      id: '/power'
-      path: '/power'
-      fullPath: '/power'
-      preLoaderRoute: typeof PowerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/players': {
@@ -304,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BetsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -337,13 +337,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
   BetsRoute: BetsRoute,
   BracketRoute: BracketRoute,
   DraftRoute: DraftRoute,
   HistoryRoute: HistoryRoute,
   MatchupsRoute: MatchupsRoute,
   PlayersRoute: PlayersRoute,
-  PowerRoute: PowerRoute,
   RulesRoute: RulesRoute,
   StandingsRoute: StandingsRoute,
   SuggestRoute: SuggestRoute,
