@@ -12,6 +12,7 @@ import { BetCard, type BetSideView } from '@/entities/bet/ui/BetCard';
 import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { PageTitle } from '@/shared/ui/PageTitle/PageTitle';
 import { Panel } from '@/shared/ui/Panel/Panel';
+import { Modal } from '@/shared/ui/Modal/Modal';
 import { SectionLabel } from '@/shared/ui/SectionLabel/SectionLabel';
 import { fmt0 } from '@/shared/lib/format';
 import { LoadingQuip } from '@/shared/ui/LoadingQuip/LoadingQuip';
@@ -76,6 +77,7 @@ export function BetsPage() {
   const [editing, setEditing] = useState<BetRecord | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [status, setStatus] = useState<Status>(null);
+  const [editStatus, setEditStatus] = useState<Status>(null);
   const [cardError, setCardError] = useState<{ id: string; text: string } | null>(null);
   const [filter, setFilter] = useState<BoardFilter>('all');
   const [who, setWho] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export function BetsPage() {
   };
 
   const onEdit = (bet: BetRecord, patch: BetPatch) => {
-    setStatus(null);
+    setEditStatus(null);
     if (Object.keys(patch).length === 0) {
       setEditing(null);
       return;
@@ -142,19 +144,17 @@ export function BetsPage() {
       {
         // Functional updates: by the time this lands the user may have opened
         // a different bet — only touch the editor if it's still this one.
-        onSuccess: () => {
-          setEditing((cur) => (cur?.id === bet.id ? null : cur));
-          setStatus({ tone: 'ok', text: savage ? 'Amended. The fine print grows.' : 'Bet updated.' });
-        },
+        // The modal closes and the card updates in place — that's the confirmation.
+        onSuccess: () => setEditing((cur) => (cur?.id === bet.id ? null : cur)),
         onError: (e) => {
           // Lost a race: point the open editor at the winner's copy so the
           // retry carries the fresh version (the typed fields are kept).
           if (e instanceof BetApiError && e.fresh) {
             const fresh = e.fresh;
-            // Shredded meanwhile: close the editor rather than offer a retry.
+            // Deleted meanwhile: close the editor rather than offer a retry.
             setEditing((cur) => (cur?.id === bet.id ? (fresh.deletedAt ? null : fresh) : cur));
           }
-          setStatus({ tone: 'err', text: errText(e, savage) });
+          setEditStatus({ tone: 'err', text: errText(e, savage) });
         },
       },
     );
@@ -181,23 +181,22 @@ export function BetsPage() {
         {label}
       </button>
     );
-    if (bet.deletedAt) return [btn(savage ? 'UN-SHRED' : 'RESTORE', () => act(bet, { deleted: false }))];
+    if (bet.deletedAt) return [btn('RESTORE', () => act(bet, { deleted: false }))];
 
     const out = [];
     if (outcome.kind === 'settled') out.push(btn(savage ? 'OVERTURN' : 'UNDO', () => act(bet, { winner: null })));
     if (!locked) {
       out.push(
         btn('EDIT', () => {
-          setStatus(null);
+          setEditStatus(null);
           setEditing(bet);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
         }),
       );
     }
     out.push(
-      btn(savage ? 'SHRED' : 'DELETE', () => {
+      btn('DELETE', () => {
         const ok = window.confirm(
-          savage ? 'Shred this bet? Everyone will see you did it.' : 'Delete this bet? It can be restored from the deleted list.',
+          savage ? 'Delete this bet? Everyone will see you did it.' : 'Delete this bet? It can be restored from the deleted list.',
         );
         if (ok) act(bet, { deleted: true });
       }),
@@ -281,15 +280,15 @@ export function BetsPage() {
 
       <div className={styles.grid}>
         <BetForm
-          key={editing?.id ?? `new-${season}-${formKey}`}
+          key={`new-${season}-${formKey}`}
           season={season}
           defaultWeek={defaultWeek}
           managers={managers}
-          editing={editing}
-          onCancelEdit={() => setEditing(null)}
+          editing={null}
+          onCancelEdit={() => {}}
           onCreate={onCreate}
           onEdit={onEdit}
-          pending={create.isPending || (!!editing && update.isPending)}
+          pending={create.isPending}
           status={status}
           savage={savage}
         />
@@ -394,12 +393,31 @@ export function BetsPage() {
         </section>
       )}
 
-      {board && board.shredded.length > 0 && (
-        <details className={styles.shredder}>
-          <summary className={styles.shredderLabel}>
-            {savage ? 'THE SHREDDER' : 'DELETED BETS'} (<span className="uMono">{board.shredded.length}</span>)
+      {/* Editing happens in place, over the board — not back up in the booking form. */}
+      <Modal open={!!editing} onClose={() => !update.isPending && setEditing(null)} label="Edit bet">
+        {editing && (
+          <BetForm
+            key={editing.id}
+            season={season}
+            defaultWeek={defaultWeek}
+            managers={managers}
+            editing={editing}
+            onCancelEdit={() => setEditing(null)}
+            onCreate={onCreate}
+            onEdit={onEdit}
+            pending={update.isPending}
+            status={editStatus}
+            savage={savage}
+          />
+        )}
+      </Modal>
+
+      {board && board.deleted.length > 0 && (
+        <details className={styles.deletedPile}>
+          <summary className={styles.deletedLabel}>
+            DELETED BETS (<span className="uMono">{board.deleted.length}</span>)
           </summary>
-          <div className={styles.cards}>{board.shredded.map(card)}</div>
+          <div className={styles.cards}>{board.deleted.map(card)}</div>
         </details>
       )}
     </div>

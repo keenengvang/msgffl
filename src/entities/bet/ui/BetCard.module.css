@@ -30,7 +30,7 @@
   }
 }
 
-.shredded {
+.deleted {
   border-style: dashed;
   border-color: var(--border-14);
 }

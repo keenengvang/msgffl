@@ -420,11 +420,11 @@
   cursor: default;
 }
 
-.shredder {
+.deletedPile {
   margin-top: 34px;
 }
 
-.shredderLabel {
+.deletedLabel {
   cursor: pointer;
   font-family: var(--font-cond);
   font-weight: 700;
@@ -433,7 +433,7 @@
   color: var(--text-dim);
 }
 
-.shredderLabel:hover {
+.deletedLabel:hover {
   color: var(--text-primary);
 }
 

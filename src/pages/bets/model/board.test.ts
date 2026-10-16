@@ -55,8 +55,8 @@ describe('buildBoard', () => {
     expect(e).toMatchObject({ outcome: { kind: 'ruling' }, locked: true }); // week over, nobody ruled
     expect(b).toMatchObject({ outcome: { kind: 'live' }, locked: true });
     expect(c).toMatchObject({ outcome: { kind: 'upcoming' }, locked: false });
-    expect(board.shredded.map((x) => x.bet.id)).toEqual(['d']);
-    // the shredded week-4 bet was ruled on too — it must not count
+    expect(board.deleted.map((x) => x.bet.id)).toEqual(['d']);
+    // the deleted week-4 bet was ruled on too — it must not count
     expect(board.record.map((r) => [r.ownerId, r.won.length, r.lost.length, r.open.length])).toEqual([
       ['ua', 1, 0, 3],
       ['uc', 0, 0, 1],

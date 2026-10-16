@@ -198,9 +198,9 @@ rules (`winner`), then COMPLETED ✓. The week's scores show on the card for con
 drive the **lock**: once either team has points on the board or the week is final
 (`isLocked` in `entities/bet/lib/resolveBet.ts`, checked server-side against live Sleeper
 via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess), the wager is
-frozen and only a ruling or a shred is accepted. Delete is a **tombstone**
+frozen and only a ruling or a delete is accepted. Delete is a **tombstone**
 (`patch.deleted`), restorable and shown on the page — nobody quietly erases the keg they
-lost; a shredded bet takes no edits until restored. Each side stores its owner_id **and the
+lost; a deleted bet takes no edits until restored. Each side stores its owner_id **and the
 roster_id it managed when the side was set**, so the scores still resolve if a team
 changes owners. The board is one flat list (newest week first, the week on each card) with ALL / PENDING /
 COMPLETED chips; the side panel is a sortable bet-record table (`betRecord` → `sortRecord`:

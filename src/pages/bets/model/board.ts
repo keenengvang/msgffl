@@ -13,7 +13,7 @@ export interface Board {
   /** Live bets, newest week first, then newest booked first. */
   bets: BoardEntry[];
   /** Tombstoned bets — shown apart, restorable. */
-  shredded: BoardEntry[];
+  deleted: BoardEntry[];
   /** Season bet record per manager (settled bets won/lost). */
   record: RecordRow<BetRecord>[];
 }
@@ -40,7 +40,7 @@ export function buildBoard(
 
   return {
     bets: live,
-    shredded: entries.filter((e) => e.bet.deletedAt),
+    deleted: entries.filter((e) => e.bet.deletedAt),
     record: betRecord(live),
   };
 }

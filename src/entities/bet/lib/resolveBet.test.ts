@@ -93,7 +93,7 @@ describe('isComplete / betRecord', () => {
       { bet: bet({ id: '1', sideA: 'ua', sideB: 'ub' }), outcome: won('A') }, // ua beats ub
       { bet: bet({ id: '2', sideA: 'uc', sideB: 'ub' }), outcome: won('A') }, // uc beats ub
       { bet: bet({ id: '3', sideA: 'ua', sideB: 'uc' }), outcome: won('B') }, // uc beats ua
-      { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // shredded → ignored
+      { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // deleted → ignored
       { bet: bet({ id: '7' }), outcome: { kind: 'upcoming' } as const }, // pending → open for both
       { bet: bet({ id: '8', sideA: 'ud', sideB: 'ua' }), outcome: { kind: 'ruling' } as const }, // week over, unruled → still open
     ];

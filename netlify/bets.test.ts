@@ -174,7 +174,7 @@ describe('bets function', () => {
     expect(back.deletedAt).toBeNull();
   });
 
-  it('a shredded bet takes no edits until restored', async () => {
+  it('a deleted bet takes no edits until restored', async () => {
     const { handler } = setup();
     const bet = await create(handler);
     const gone = await bodyBet(await handler(patch(bet, { deleted: true })));

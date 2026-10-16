@@ -35,6 +35,9 @@
   --loss: #ff9aa2;
   --sacko: #dfa0aa;
 
+  /* modal backdrop */
+  --scrim: rgba(3, 7, 20, 0.78);
+
   /* hairlines & borders */
   --hairline: rgba(255, 255, 255, 0.09);
   --border-14: rgba(255, 255, 255, 0.14);

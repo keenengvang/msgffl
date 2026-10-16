@@ -56,9 +56,9 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
 
   // Two states, nothing more: ruled on → COMPLETED ✓, everything else →
   // PENDING; the line under the bet says which kind of pending.
-  // A shredded bet is off the books entirely.
+  // A deleted bet is off the books entirely.
   const [tone, label]: [BadgeTone, string] = bet.deletedAt
-    ? ['neutral', savage ? 'SHREDDED' : 'DELETED']
+    ? ['neutral', 'DELETED']
     : isComplete(outcome)
       ? ['win', 'COMPLETED ✓']
       : ['neutral', 'PENDING'];
@@ -78,7 +78,7 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
   );
 
   return (
-    <article className={`${styles.card} ${bet.deletedAt ? styles.shredded : ''}`}>
+    <article className={`${styles.card} ${bet.deletedAt ? styles.deleted : ''}`}>
       <div className={styles.top}>
         <Badge tone={tone}>{label}</Badge>
         <span className={styles.when}>
@@ -120,7 +120,7 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
         <div className={styles.bottom}>
           <span className={styles.meta}>
             booked by {BOOKIE}
-            {bet.deletedAt ? ' · shredded' : ''}
+            {bet.deletedAt ? ' · deleted' : ''}
           </span>
           {actions && <div className={styles.actions}>{actions}</div>}
         </div>
