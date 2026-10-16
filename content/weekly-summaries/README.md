@@ -58,8 +58,8 @@ know which file is "latest" for the Home page card:
 ```json
 {
   "weeks": [
-    { "season": "2026", "week": 1, "generatedAt": "2026-09-19T13:00:00Z", "headline": "…", "file": "2026-w01.json" },
-    { "season": "2026", "week": 0, "generatedAt": "2026-09-12T00:00:00Z", "headline": "…", "file": "2026-w00.json" }
+    { "season": "2026", "week": 2, "generatedAt": "2026-09-26T13:00:00Z", "headline": "…", "file": "2026-w02.json" },
+    { "season": "2026", "week": 1, "generatedAt": "2026-09-19T13:00:00Z", "headline": "…", "file": "2026-w01.json" }
   ]
 }
 ```
@@ -69,7 +69,9 @@ front of `weeks`, write the whole thing back. The site re-sorts defensively
 (season desc, then week desc) so entry order isn't load-bearing, but prepending
 keeps the file readable for humans skimming it on GitHub.
 
-Never delete or edit past entries/files — this is the archive.
+Never delete or edit past entries/files — this is the archive. Weeks run 1–17:
+the site ignores any entry with a week below 1 (the old week-0 placeholder was
+removed, and a template must never show up as a recap).
 
 ## Types are checked at runtime
 
