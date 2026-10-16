@@ -70,8 +70,8 @@ export function validatePatch(v: unknown): Result<BetPatch> {
   return { ok: true, value: out };
 }
 
-/** Fields that define the wager itself. Once a bet is locked these are frozen;
-    the ruling (`winner`) and the tombstone stay editable. */
+/** Fields that define the wager itself. Rewriting any of them clears a
+    ruling, and they can't be rewritten in the same patch as a ruling. */
 export const TERM_FIELDS = ['week', 'sideA', 'sideB', 'terms'] as const;
 
 export function touchesTerms(p: BetPatch): boolean {

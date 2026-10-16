@@ -30,26 +30,11 @@
   }
 }
 
-.shredded {
-  border-style: dashed;
-  border-color: var(--border-14);
-}
-
 .top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-}
-
-.when {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.lock {
-  font-size: 11px;
 }
 
 .week {

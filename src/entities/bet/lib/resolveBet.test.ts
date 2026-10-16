@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Bet } from '../model/types';
-import { betRecord, isComplete, isLocked, resolveBet, sideScores, weekIsFinal } from './resolveBet';
+import { betRecord, isComplete, resolveBet, sideScores, weekIsFinal } from './resolveBet';
 
 const bet = (over: Partial<Bet> = {}): Bet => ({
   id: 'x',
@@ -56,18 +56,6 @@ describe('weekIsFinal', () => {
   });
 });
 
-describe('isLocked', () => {
-  it('locks when either side has scored, or the week is over', () => {
-    expect(isLocked({ a: 0, b: 0 }, false)).toBe(false);
-    expect(isLocked({ a: null, b: null }, false)).toBe(false);
-    expect(isLocked({ a: 0, b: 3.2 }, false)).toBe(true);
-    expect(isLocked({ a: 0, b: 0 }, true)).toBe(true);
-  });
-  it('a negative total has started too (missed PAT on Thursday)', () => {
-    expect(isLocked({ a: -1, b: 0 }, false)).toBe(true);
-  });
-});
-
 describe('resolveBet', () => {
   it('pending until someone rules: upcoming, then live, then asks for a ruling', () => {
     expect(resolveBet(bet(), { a: 0, b: 0 }, false)).toEqual({ kind: 'upcoming' });
@@ -93,7 +81,7 @@ describe('isComplete / betRecord', () => {
       { bet: bet({ id: '1', sideA: 'ua', sideB: 'ub' }), outcome: won('A') }, // ua beats ub
       { bet: bet({ id: '2', sideA: 'uc', sideB: 'ub' }), outcome: won('A') }, // uc beats ub
       { bet: bet({ id: '3', sideA: 'ua', sideB: 'uc' }), outcome: won('B') }, // uc beats ua
-      { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // shredded → ignored
+      { bet: bet({ id: '5', deletedAt: 'now' }), outcome: won('A') }, // deleted → ignored
       { bet: bet({ id: '7' }), outcome: { kind: 'upcoming' } as const }, // pending → open for both
       { bet: bet({ id: '8', sideA: 'ud', sideB: 'ua' }), outcome: { kind: 'ruling' } as const }, // week over, unruled → still open
     ];

@@ -49,14 +49,6 @@ export function weekIsFinal(
 // and that game has very much started.
 const started = (s: SideScores) => (s.a ?? 0) !== 0 || (s.b ?? 0) !== 0;
 
-/** A bet's wager is frozen once either side has points on the board (or the
-    week is over): editing the stakes at halftime is exactly what this stops.
-    Per side, not per week — a Thursday kickoff doesn't lock a bet between two
-    managers with nobody playing Thursday. */
-export function isLocked(scores: SideScores, final: boolean): boolean {
-  return final || started(scores);
-}
-
 /** Every bet is free text, so a person decides who won — the scores only say
     how far along the week is. */
 export function resolveBet(bet: Pick<Bet, 'winner'>, scores: SideScores, final: boolean): BetOutcome {
