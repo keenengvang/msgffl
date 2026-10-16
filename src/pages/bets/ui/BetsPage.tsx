@@ -399,6 +399,15 @@ export function BetsPage() {
               )}
             </div>
           </div>
+          {weeks.isError && (
+            // Scores are context only, so a Sleeper outage mustn't take the
+            // board down; it must just not pass "no score" off as real.
+            <p className={styles.hint} role="status">
+              {savage
+                ? "Sleeper isn't answering, so no scores on the cards. The bets still count."
+                : 'Scores are unavailable right now — Sleeper did not respond. Bets are unaffected.'}
+            </p>
+          )}
           {shown.length === 0 ? (
             <p className={styles.dim}>
               {savage ? 'Nothing matches. The bookie is as bored as you are.' : 'No bets match this filter.'}
