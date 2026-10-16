@@ -18,6 +18,9 @@ const ROUTES: Array<[path: string, marker: string | RegExp]> = [
   ['/history', /TROPHY WALL/i],
   ['/rules', /THE CONSTITUTION/i],
   ['/suggest', /TRANSMIT PROPOSAL/i],
+  // the bets function isn't served by `vite preview` — the form and an inline
+  // "bookie's not answering" panel must still render, never the error boundary
+  ['/bets?season=2024', /PLACE A BET/i],
 ];
 
 for (const [path, marker] of ROUTES) {

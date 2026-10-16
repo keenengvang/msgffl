@@ -19,6 +19,10 @@ export const SUGGESTIONS_URL = 'https://github.com/keenengvang/msgffl/issues?q=i
 export const WEEKLY_SUMMARY_BASE_URL = 'https://raw.githubusercontent.com/keenengvang/msgffl/main/content/weekly-summaries';
 export const WEEKLY_SUMMARY_INDEX_URL = `${WEEKLY_SUMMARY_BASE_URL}/index.json`;
 
+/* The league's one and only bookie — every bet on /bets is booked through them,
+   so the board never asks who you are. */
+export const BOOKIE = 'Evz132';
+
 export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K' | 'DEF';
 
 export const POS_COLORS: Record<Position, string> = {

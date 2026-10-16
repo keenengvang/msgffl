@@ -36,7 +36,10 @@ export function QueryProvider({ children }: { children: ReactNode }) {
           shouldDehydrateQuery: (q) =>
             q.state.status === 'success' &&
             q.queryKey[0] !== 'nfl-state' &&
-            q.queryKey[0] !== 'weekly-summary',
+            q.queryKey[0] !== 'weekly-summary' &&
+            // bets are shared, mutable state: a persisted copy would show a
+            // returning visitor a stale board (and stale edit versions).
+            q.queryKey[0] !== 'bets',
         },
       }}
     >

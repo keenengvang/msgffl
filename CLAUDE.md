@@ -39,7 +39,7 @@ widgets/   root-layout chrome only: header, ticker, footer
 features/  league-history — the ONLY feature. Composes several entities across
            all seasons; consumed by both /history and /teams/$ownerId.
 entities/  one slice per Sleeper domain: league, team, matchup, player, draft,
-           bracket, suggestion. Each: api/ (query hooks), lib/ (pure functions),
+           bracket, suggestion, bet (our own data — Netlify Blobs, not Sleeper). Each: api/ (query hooks), lib/ (pure functions),
            ui/ (dumb display components), model/ (types).
 shared/    api (fetch wrapper, wire types, query-key factory), config, lib,
            styles (tokens/global/keyframes), ui primitives.
@@ -88,6 +88,7 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
   | players-trimmed | 7 days | yes | see below |
   | season-bundle | complete ? ∞ : 10 min | yes | history feature |
   | weekly-summary (index + files) | 5 min | **no** | recap changes weekly; see below |
+| bets/{season} | 30 s, refetch on focus | **no** | shared mutable state; writes patch the cache from the response |
 
 - **Never cache raw `/players/nfl`** — it's ~5MB. `usePlayersDb` trims inside the
   queryFn (QB/RB/WR/TE/K/DEF, active-only except DEF) so only ~200KB enters the
@@ -95,8 +96,9 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
 - Persistence: `PersistQueryClientProvider` + localStorage under `msgffl-query-cache`,
   `maxAge: Infinity`, cache **buster `'v1'`** — bump the buster in
   `app/providers/QueryProvider.tsx` whenever a cached shape changes.
-- **Two key prefixes are never persisted** (`shouldDehydrateQuery`): `nfl-state`
-  (cheap, always refetched) and `weekly-summary`. Because `maxAge` is `Infinity`,
+- **Three key prefixes are never persisted** (`shouldDehydrateQuery`): `nfl-state`
+  (cheap, always refetched), `weekly-summary`, and `bets` (other people edit it, and a
+  persisted copy carries stale edit versions). Because `maxAge` is `Infinity`,
   a persisted entry never ages out on its own — fine for immutable past seasons,
   wrong for the recap, which is rewritten every week. Persisting it meant a
   returning visitor saw the previous week's recap until `staleTime` lapsed, with
@@ -181,6 +183,29 @@ the created issue. The old localStorage docket is retired — GitHub *is* the do
 `Request → Response` handler, unit-tested in vitest with a mocked fetch — no Netlify
 CLI needed for tests.
 
+**Betting board backend**: `netlify/functions/bets.ts` (logic in `netlify/lib/betsHandler.ts`)
+— GET `?season=` lists (no season = full export, the way off Netlify), POST creates,
+PATCH `?season=&id=` edits with the etag the client last saw (stale → 409 with the fresh
+copy). Storage is Netlify Blobs behind the `BetStore` interface (`netlify/lib/betStore.ts`),
+**one key per bet** (`<season>/<id>`) — never a shared array, concurrent saves would eat
+each other. **No PIN and no identity**: every bet is booked by the league bookie
+(`BOOKIE` in `shared/config/constants`, Evz132), anyone with the link can write, and
+writes are rate-limited 60/hour/IP. No env vars needed.
+
+A bet is Team A vs Team B, a week, and **one free-text field** (`terms`) holding the whole
+wager, stakes included. Nothing settles automatically: a bet is PENDING until someone
+rules (`winner`), then COMPLETED ✓. The week's scores show on the card for context and
+drive the **lock**: once either team has points on the board or the week is final
+(`isLocked` in `entities/bet/lib/resolveBet.ts`, checked server-side against live Sleeper
+via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess), the wager is
+frozen and only a ruling or a shred is accepted. Delete is a **tombstone**
+(`patch.deleted`), restorable and shown on the page — nobody quietly erases the keg they
+lost; a shredded bet takes no edits until restored. Each side stores its owner_id **and the
+roster_id it managed when the side was set**, so the scores still resolve if a team
+changes owners. The board is one flat list (newest week first, the week on each card) with ALL / PENDING /
+COMPLETED chips; the side panel is a sortable bet-record table (`betRecord` → `sortRecord`:
+W, L, WIN%, OPEN — 0–0 win% always sinks), and clicking a manager filters the board to them.
+
 **Chatbot backend**: `netlify/functions/chat.ts` — POST `{messages, snark}` → `{text}`.
 Requires `ANTHROPIC_API_KEY` in the Netlify UI env vars (never a `VITE_` var — those ship
 to the browser). The Messages API is stateless, so the browser owns the transcript and
@@ -203,7 +228,8 @@ The analyst knows the league two ways, both built in `netlify/lib/`:
   every number after it.
 
 `league.ts` is the server's answer to TanStack Query: the same fetches behind a warm
-module-scope cache on the function instance, with the client's freshness rules (chain 1 h,
+module-scope cache on the function instance, with the client's freshness rules (chain 1 h —
+only 5 min when walked without NFL state, since it then misses the newest season —
 completed season ∞, live season 5 min, a rejected fetch evicted immediately so one Sleeper
 blip isn't cached for an hour). A cold snapshot is ~80 Sleeper requests and lands in well
 under a second. `players.ts` loads `/players/nfl` **lazily** — only tools that need a
