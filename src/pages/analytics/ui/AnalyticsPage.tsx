@@ -92,6 +92,7 @@ export function AnalyticsPage() {
   const lucky = stats.luck[0]!;
   const maxLuck = Math.max(0.01, ...stats.luck.map((r) => Math.abs(r.luck)));
   const unlucky = stats.luck.at(-1)!;
+  const spreadWeeks = [...new Set(stats.spread.flatMap((r) => r.scores.map((s) => s.week)))].sort((a, b) => a - b);
 
   return (
     <div className="pageEnter">
@@ -236,6 +237,9 @@ export function AnalyticsPage() {
                     <th>HIGH</th>
                     <th>LOW</th>
                     <th title="Standard deviation — higher means streakier">SWING</th>
+                    {spreadWeeks.map((w) => (
+                      <th key={w}>W{w}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -246,6 +250,14 @@ export function AnalyticsPage() {
                       <td className="uMono">{fmt(r.max)}</td>
                       <td className="uMono">{fmt(r.min)}</td>
                       <td className="uMono">{fmt(r.sd)}</td>
+                      {spreadWeeks.map((w) => {
+                        const score = r.scores.find((x) => x.week === w);
+                        return (
+                          <td key={w} className="uMono">
+                            {score ? fmt(score.pts) : '—'}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>

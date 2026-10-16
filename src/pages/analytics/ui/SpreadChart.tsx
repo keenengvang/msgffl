@@ -30,6 +30,17 @@ export function SpreadChart({ rows, nameOf, selected, onSelect }: SpreadChartPro
   const yMid = (i: number) => M.top + i * ROW + ROW / 2;
   const step = narrow ? 40 : 20;
   const ticks = Array.from({ length: Math.floor((hi - lo) / step) + 1 }, (_, i) => lo + i * step);
+  const show = (rosterId: number, s: { week: number; pts: number }, cy: number) =>
+    setTip({
+      x: x(s.pts),
+      y: cy - 4,
+      body: (
+        <>
+          <span className={styles.tipName}>{nameOf(rosterId)}</span>
+          Week <span className={styles.tipNum}>{s.week}</span> · <span className={styles.tipNum}>{fmt(s.pts)}</span>
+        </>
+      ),
+    });
 
   return (
     <div ref={ref} className={styles.wrap} onPointerLeave={() => setTip(null)}>
@@ -67,18 +78,9 @@ export function SpreadChart({ rows, nameOf, selected, onSelect }: SpreadChartPro
                   r={4.5}
                   tabIndex={on ? 0 : -1}
                   aria-label={`${nameOf(r.rosterId)}, week ${s.week}: ${fmt(s.pts)}`}
-                  onPointerEnter={() =>
-                    setTip({
-                      x: x(s.pts),
-                      y: cy - 4,
-                      body: (
-                        <>
-                          <span className={styles.tipName}>{nameOf(r.rosterId)}</span>
-                          Week <span className={styles.tipNum}>{s.week}</span> · <span className={styles.tipNum}>{fmt(s.pts)}</span>
-                        </>
-                      ),
-                    })
-                  }
+                  onPointerEnter={() => show(r.rosterId, s, cy)}
+                  onFocus={() => show(r.rosterId, s, cy)}
+                  onBlur={() => setTip(null)}
                   onClick={() => onSelect(r.rosterId)}
                 />
               ))}

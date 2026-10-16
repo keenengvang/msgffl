@@ -76,7 +76,7 @@ export function MatchupsPage() {
       {wkReady && pairs.length === 0 && (
         <div className={styles.empty}>no games this week. even the schedule needed a break.</div>
       )}
-      {!wkReady && <LoadingQuip text="pulling the tape…" />}
+      {!wkReady && (weeks.error ? <ErrorPanel error={weeks.error} /> : <LoadingQuip text="pulling the tape…" />)}
 
       <div className={styles.grid}>
         {pairs.map(([a, b]) => {
