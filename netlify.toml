@@ -2,6 +2,12 @@
   command = "npm run build"
   publish = "dist"
 
+# The power index became /analytics — keep old links working.
+[[redirects]]
+  from = "/power"
+  to = "/analytics"
+  status = 301
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

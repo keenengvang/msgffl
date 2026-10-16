@@ -12,11 +12,18 @@ export const qk = {
   /** One week's matchups with full roster detail — separate from `weeks`
       since that one is deliberately trimmed. */
   matchupDetail: (leagueId: string, week: number) => ['league', leagueId, 'matchup-detail', week] as const,
+  /** Every regular-season week's starters + per-player points, for the
+      bench and position analytics. Separate from `weeks`, which stays tiny. */
+  lineups: (leagueId: string) => ['league', leagueId, 'lineups'] as const,
+  /** The season's waiver claims, free-agent adds and trades, trimmed. */
+  moves: (leagueId: string) => ['league', leagueId, 'moves'] as const,
   draft: (leagueId: string) => ['league', leagueId, 'draft'] as const,
   brackets: (leagueId: string) => ['league', leagueId, 'brackets'] as const,
   seasonBundle: (leagueId: string) => ['league', leagueId, 'season-bundle'] as const,
   stats: (season: string) => ['stats', season] as const,
   players: ['players-trimmed'] as const,
+  /** Name + fantasy position for every player regardless of status. */
+  playerIndex: ['player-index'] as const,
   weeklySummaryIndex: ['weekly-summary', 'index'] as const,
   weeklySummary: (file: string) => ['weekly-summary', file] as const,
   /** Betting board — our own data (Netlify Blobs), not Sleeper's. Never persisted. */

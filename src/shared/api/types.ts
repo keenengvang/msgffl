@@ -105,6 +105,9 @@ export interface RawPlayer {
   first_name?: string;
   last_name?: string;
   position?: string;
+  /** Where he's eligible in fantasy — can differ from `position` (a two-way
+      player listed DB who plays WR). */
+  fantasy_positions?: string[] | null;
   team?: string | null;
   age?: number;
   years_exp?: number | null;
@@ -122,6 +125,10 @@ export interface TrimmedPlayer {
 
 export type PlayersDb = Record<string, TrimmedPlayer>;
 
+/** Every fantasy-eligible player ever, active or not — name + fantasy
+    position only. History needs the players the active-only DB drops. */
+export type PlayerIndex = Record<string, { n: string; p: Position }>;
+
 /** Per-player season stat line, keyed by stat name (pts_ppr, pts_half_ppr, …). */
 export type SeasonStats = Record<string, Record<string, number>>;
 
@@ -134,6 +141,18 @@ export interface TrimmedMatchup {
 
 /** Weeks 1–17 keyed by week number. */
 export type SeasonWeeks = Record<number, TrimmedMatchup[]>;
+
+/** One roster's lineup in one week, trimmed for the cache: the starters in
+    slot order ('0' = an empty slot) and the points of every rostered player
+    who scored — a bench player on zero can't change an optimal lineup. */
+export interface WeekLineup {
+  r: number;
+  s: string[];
+  pp: Record<string, number>;
+}
+
+/** Regular-season weeks keyed by week number. */
+export type SeasonLineups = Record<number, WeekLineup[]>;
 
 /** One row of `/league/{id}/transactions/{leg}`. `adds`/`drops` map
     player_id → roster_id; a failed waiver claim still carries its bid. */
