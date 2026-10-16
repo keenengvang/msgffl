@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SeasonWeeks } from '@/shared/api/types';
-import { analyticsThrough, decidedGames, liveWeekFromRecords, luckTable, scoreSpread, standingsRace } from './analytics';
+import { analyticsThrough, closeGames, decidedGames, liveWeekFromRecords, luckTable, scheduleStrength, scoreSpread, weeklyHeat } from './analytics';
 
 // 4 teams, 2 weeks. Week 1: 1(100) beats 2(90), 3(80) beats 4(70).
 // Week 2: 1(60) loses to 3(65), 2(120) beats 4(50). Week 3 is unplayed (0–0).
@@ -67,13 +67,44 @@ describe('luckTable', () => {
   });
 });
 
-describe('standingsRace', () => {
-  it('rank after each week by wins, then points-for', () => {
-    const race = standingsRace(decidedGames(weeks, 2), [1, 2, 3, 4], 2);
-    const by = Object.fromEntries(race.map((r) => [r.rosterId, r.ranks]));
-    // After wk1: 1 (1W,100) > 3 (1W,80) > 2 (0W,90) > 4.
-    // After wk2: 3 (2W) > 2 (1W,210) > 1 (1W,160) > 4.
-    expect(by).toEqual({ 1: [1, 3], 2: [3, 2], 3: [2, 1], 4: [4, 4] });
+describe('luckWins', () => {
+  it('is the luck gap expressed in wins over the games played', () => {
+    const rows = luckTable(decidedGames(weeks, 2));
+    // Team 2: 1–1 (50%) but all-play 5–1 (83%) over 2 games → −0.67 wins.
+    expect(rows.find((r) => r.rosterId === 2)!.luckWins).toBeCloseTo(-2 / 3);
+  });
+});
+
+describe('weeklyHeat', () => {
+  it("ranks every team's score within its week", () => {
+    const heat = weeklyHeat(decidedGames(weeks, 2));
+    expect(heat.get(1)!.get(1)).toEqual({ pts: 100, rank: 1, of: 4 });
+    expect(heat.get(2)!.get(2)).toEqual({ pts: 120, rank: 1, of: 4 });
+    expect(heat.get(4)!.get(2)).toEqual({ pts: 50, rank: 4, of: 4 });
+  });
+});
+
+describe('scheduleStrength', () => {
+  it("grades the schedule on opponents' season averages, hardest first", () => {
+    // Averages: 1=80, 2=105, 3=72.5, 4=60; league = 79.375.
+    const rows = scheduleStrength(decidedGames(weeks, 2));
+    const one = rows.find((r) => r.rosterId === 1)!; // drew 2 (105) and 3 (72.5)
+    expect(one.oppAvg).toBeCloseTo(88.75);
+    expect(one.diff).toBeCloseTo(88.75 - 79.375);
+    expect(one.paPerGame).toBe(77.5);
+    // 1 and 4 both drew 2 + 3 (88.75); 2 and 3 drew the soft pair (70).
+    expect(rows.map((r) => r.rosterId)).toEqual([1, 4, 2, 3]);
+  });
+});
+
+describe('closeGames', () => {
+  it('counts only games decided by less than the margin', () => {
+    const rows = closeGames(decidedGames(weeks, 2), 10);
+    // Close: wk1 1–2 (by 10, NOT close), 3–4 (10, not close); wk2 1–3 (by 5).
+    expect(rows.find((r) => r.rosterId === 3)).toMatchObject({ w: 1, l: 0, games: 2 });
+    expect(rows.find((r) => r.rosterId === 1)).toMatchObject({ w: 0, l: 1 });
+    expect(rows[0]!.rosterId).toBe(3);
+    expect(rows.at(-1)!.w + rows.at(-1)!.l).toBe(0); // no close games sink
   });
 });
 

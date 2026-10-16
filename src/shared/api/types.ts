@@ -135,6 +135,18 @@ export interface TrimmedMatchup {
 /** Weeks 1–17 keyed by week number. */
 export type SeasonWeeks = Record<number, TrimmedMatchup[]>;
 
+/** One roster's lineup in one week, trimmed for the cache: the starters in
+    slot order ('0' = an empty slot) and the points of every rostered player
+    who scored — a bench player on zero can't change an optimal lineup. */
+export interface WeekLineup {
+  r: number;
+  s: string[];
+  pp: Record<string, number>;
+}
+
+/** Regular-season weeks keyed by week number. */
+export type SeasonLineups = Record<number, WeekLineup[]>;
+
 /** One row of `/league/{id}/transactions/{leg}`. `adds`/`drops` map
     player_id → roster_id; a failed waiver claim still carries its bid. */
 export interface Transaction {

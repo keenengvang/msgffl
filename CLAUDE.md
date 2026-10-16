@@ -39,7 +39,7 @@ widgets/   root-layout chrome only: header, ticker, footer
 features/  league-history — the ONLY feature. Composes several entities across
            all seasons; consumed by both /history and /teams/$ownerId.
 entities/  one slice per Sleeper domain: league, team, matchup, player, draft,
-           bracket, suggestion, bet (our own data — Netlify Blobs, not Sleeper). Each: api/ (query hooks), lib/ (pure functions),
+           bracket, transaction, suggestion, bet (our own data — Netlify Blobs, not Sleeper). Each: api/ (query hooks), lib/ (pure functions),
            ui/ (dumb display components), model/ (types).
 shared/    api (fetch wrapper, wire types, query-key factory), config, lib,
            styles (tokens/global/keyframes), ui primitives.
@@ -87,6 +87,8 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
   | stats/{season} | complete ? ∞ : 6 h | yes | past seasons never change |
   | players-trimmed | 7 days | yes | see below |
   | season-bundle | complete ? ∞ : 10 min | yes | history feature |
+  | lineups (weeks 1…regular season end) | complete ? ∞ : 10 min | yes | starters + nonzero `players_points` only (`loadSeasonLineups`); any failed week fails the query |
+  | moves (18 tx legs) | complete ? ∞ : 10 min | yes | trimmed `Move`s (`loadSeasonMoves`); any failed leg fails the query |
   | weekly-summary (index + files) | 5 min | **no** | recap changes weekly; see below |
 | bets/{season} | 30 s, refetch on focus | **no** | shared mutable state; writes patch the cache from the response |
 
@@ -154,13 +156,27 @@ variants — savage and polite — switched by `useSavage()` / `useVibes().snark
 - Record book: win/loss streaks count **regular season only**; fewest-PF and
   best-record records only consider **complete** seasons (a partial year would steal them).
 - Matchup tag precedence: WEEK'S NUKE > MASSACRE > PHOTO FINISH.
-- Analytics (`/analytics`, replaced the power index — `/power` 301s there): luck = actual
-  win% − all-play win% (your score vs every other team that week), the weekly rank race,
-  and weekly score spread. All three count **regular-season, final weeks only** (never the
-  week in progress — `analyticsThrough`) and skip 0–0 unplayed pairs. Charts are
-  hand-drawn SVG (no chart library) at real pixel width (`useElementWidth`) using the
-  **emphasis** pattern: every team neutral, the picked team red — 14 teams is too many
-  for categorical hues. Every chart has a table view.
+- Analytics (`/analytics`, replaced the power index — `/power` 301s there) is three tabs
+  (`?tab=race|skill|roster`, race is the default and stays out of the URL), and every
+  chart leads with a generated one-sentence takeaway — a chart nobody can read is a bug:
+  - **The Race** — playoff odds (`model/odds.ts`: seeded Monte Carlo of the real remaining
+    schedule; each team's mean shrunk toward the league's by 4 games, league-wide weekly
+    spread; ranked wins then PF; byes = bracket padded to a power of two), the weekly
+    scoring heatmap, strength of schedule (opponents' *season averages*, not points
+    against) and close games (< 10 pts).
+  - **Luck & Skill** — luck in wins (actual − all-play expected), lineup efficiency
+    (`model/lineups.ts`: optimal lineup fills dedicated slots, then flexes narrowest
+    first; "blown" = losses the optimal lineup wins vs the opponent's actual score),
+    consistency.
+  - **Roster Lab** — draft ROI and waiver ROI (`model/acquisitions.ts`), both counting
+    only points **in the acquiring team's starting lineup** — a pick cut in week 1 who
+    stars elsewhere is the drafter's bust and the other team's waiver win, never both
+    teams' credit; position strength (started points per week by real position).
+  All of it counts **regular-season, final weeks only** (never the week in progress —
+  `analyticsThrough`) and skips 0–0 unplayed pairs. Visuals are HTML bar lists and heat
+  tables (no chart library), so every number is real text; the highlight picker marks a
+  manager's row, keyed by owner_id so it survives a season switch. Lineups and
+  transactions load only on the tabs that need them.
 - Constitution articles VI (dues) and VII (punishments) are intentional commish
   placeholders — don't invent numbers.
 - Avatar/headshot 404s are handled per-image (`TeamAvatar`, `Headshot`) — no global

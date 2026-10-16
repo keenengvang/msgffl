@@ -1,0 +1,305 @@
+/* Ranked bar lists, sparklines and heat tables for /analytics.
+   Color carries meaning (green good, pink bad, neutral flat); the selected
+   manager is marked by the row, never by recoloring the data. */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 200px) minmax(60px, 1fr) 76px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: var(--r-cell);
+}
+
+.withExtra .row {
+  grid-template-columns: 22px minmax(0, 200px) minmax(60px, 1fr) 64px 88px;
+}
+
+.extra {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.on {
+  background: var(--red-tint-12);
+}
+
+.rank {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.name:hover,
+.on .name,
+.heatOn .name {
+  color: var(--red);
+}
+
+.sub {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track {
+  position: relative;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--hairline);
+}
+
+.trackFree {
+  display: block;
+  height: 36px;
+}
+
+.journey {
+  display: block;
+  width: 100%;
+  height: 36px;
+  overflow: visible;
+}
+
+.sparkLine.lineGood {
+  stroke: var(--win);
+  stroke-width: 2;
+}
+
+.sparkLine.lineBad {
+  stroke: var(--loss);
+  stroke-opacity: 0.7;
+  stroke-width: 2;
+}
+
+.center {
+  background: linear-gradient(var(--border-18), var(--border-18)) center / 1px 100% no-repeat;
+}
+
+.bar {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  border-radius: 3px;
+  transform-origin: left center;
+  animation: grow 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.center .bar[style*='right'] {
+  transform-origin: right center;
+}
+
+.good {
+  background: var(--win);
+}
+
+.bad {
+  background: var(--loss);
+}
+
+.flat {
+  background: var(--text-dim);
+}
+
+.val {
+  text-align: right;
+  font-size: 13px;
+  color: var(--text-body);
+}
+
+.goodText {
+  color: var(--win);
+}
+
+.badText {
+  color: var(--loss);
+}
+
+.flatText {
+  color: var(--text-body);
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+[data-motion='off'] .bar {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .row,
+  .withExtra .row {
+    grid-template-columns: 18px minmax(0, 1fr) minmax(48px, 0.8fr) 60px;
+    gap: 8px;
+    padding: 5px 4px;
+  }
+
+  /* The trend line is a wide-screen extra; the number stays. */
+  .extra {
+    display: none;
+  }
+}
+
+/* Sparklines */
+.spark {
+  display: block;
+  overflow: visible;
+}
+
+.sparkMid {
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+
+.sparkLine {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sparkDot {
+  fill: var(--text-dim);
+}
+
+.sparkLine.sparkOn {
+  stroke: var(--red);
+  stroke-width: 2;
+}
+
+.sparkDot.sparkOn {
+  fill: var(--red);
+}
+
+/* Heat tables — scroll sideways inside the panel on a phone, never the page. */
+.heatScroll {
+  overflow-x: auto;
+}
+
+.heat {
+  border-collapse: separate;
+  border-spacing: 2px;
+  width: 100%;
+}
+
+.heat th,
+.heat td {
+  padding: 6px 6px;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.heat thead th {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+}
+
+.heat td {
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.heatName {
+  text-align: left !important;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-panel);
+  max-width: 130px;
+}
+
+.heat thead .heatName {
+  font-family: var(--font-cond);
+}
+
+.heatOn .heatName {
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+.heatOn td {
+  outline: 1px solid var(--red-border-50);
+}
+
+/* Sequential: one hue, light → dark as the week's rank rises. */
+.hot {
+  background: color-mix(in oklab, var(--red) calc(var(--h) * 62%), var(--bg-deep));
+}
+
+/* Diverging: green above the league, pink below, neutral at par. */
+.up {
+  background: color-mix(in oklab, var(--win) calc(var(--h) * 42%), var(--bg-deep));
+}
+
+.down {
+  background: color-mix(in oklab, var(--loss) calc(var(--h) * 42%), var(--bg-deep));
+}
+
+.heatEmpty {
+  background: var(--hairline);
+}
+
+.heatTail {
+  color: var(--text-body) !important;
+  font-weight: 600;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
