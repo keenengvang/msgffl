@@ -3,6 +3,8 @@ import { BET_LIMITS } from '@/entities/bet/lib/validate';
 import type { BetDraft, BetPatch, BetRecord } from '@/entities/bet/model/types';
 import type { StandingRow } from '@/entities/team/model/types';
 import { BOOKIE } from '@/shared/config/constants';
+import { Picker, type PickerOption } from '@/shared/ui/Picker/Picker';
+import { TeamAvatar } from '@/entities/team/ui/TeamAvatar';
 import { diff, fromBet, placeholderBet, rebaseForm, type FormState } from '../model/betForm';
 import styles from './BetsPage.module.css';
 
@@ -49,15 +51,22 @@ export function BetForm(props: BetFormProps) {
 
   const nameOf = (id: string, fallback: string) => managers.find((m) => m.ownerId === id)?.owner ?? fallback;
 
+  const teams: PickerOption<string>[] = managers.map((m) => ({
+    value: m.ownerId,
+    label: m.owner,
+    icon: <TeamAvatar src={m.avatar} size={22} />,
+  }));
+  const weeks: PickerOption<number>[] = Array.from({ length: 17 }, (_, i) => ({ value: i + 1, label: `WEEK ${i + 1}` }));
+
   const pick = (key: 'sideA' | 'sideB', label: string) => (
-    <select value={form[key]} onChange={(e) => set({ [key]: e.target.value })} className={styles.select} aria-label={label}>
-      <option value="">— {label} —</option>
-      {managers.map((m) => (
-        <option key={m.ownerId} value={m.ownerId}>
-          {m.owner}
-        </option>
-      ))}
-    </select>
+    <Picker
+      value={form[key] || null}
+      options={teams}
+      onChange={(v) => set({ [key]: v })}
+      label={label}
+      placeholder={`— ${label} —`}
+      disabled={pending}
+    />
   );
 
   return (
@@ -78,18 +87,7 @@ export function BetForm(props: BetFormProps) {
           {pick('sideB', 'Team B')}
         </div>
 
-        <select
-          value={form.week}
-          onChange={(e) => set({ week: Number(e.target.value) })}
-          className={styles.select}
-          aria-label="Week"
-        >
-          {Array.from({ length: 17 }, (_, i) => i + 1).map((w) => (
-            <option key={w} value={w}>
-              WEEK {w}
-            </option>
-          ))}
-        </select>
+        <Picker value={form.week} options={weeks} onChange={(w) => set({ week: w })} label="Week" disabled={pending} />
 
         <textarea
           value={form.terms}
