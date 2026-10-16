@@ -48,13 +48,13 @@ describe('buildBoard', () => {
     ctx,
   );
 
-  it('lists live bets in one run — newest week first, newest booked first within it — settled, locked and tallied', () => {
+  it('lists live bets in one run — newest week first, newest booked first within it — settled and tallied', () => {
     expect(board.bets.map((e) => e.bet.id)).toEqual(['c', 'b', 'e', 'a']);
     const [c, b, e, a] = board.bets;
-    expect(a).toMatchObject({ outcome: { kind: 'settled', winner: 'A' }, locked: true });
-    expect(e).toMatchObject({ outcome: { kind: 'ruling' }, locked: true }); // week over, nobody ruled
-    expect(b).toMatchObject({ outcome: { kind: 'live' }, locked: true });
-    expect(c).toMatchObject({ outcome: { kind: 'upcoming' }, locked: false });
+    expect(a).toMatchObject({ outcome: { kind: 'settled', winner: 'A' } });
+    expect(e).toMatchObject({ outcome: { kind: 'ruling' } }); // week over, nobody ruled
+    expect(b).toMatchObject({ outcome: { kind: 'live' } });
+    expect(c).toMatchObject({ outcome: { kind: 'upcoming' } });
     expect(board.bets.some((x) => x.bet.id === 'd')).toBe(false); // deleted bets never reach the board
     // the deleted week-4 bet was ruled on too — it must not count
     expect(board.record.map((r) => [r.ownerId, r.won.length, r.lost.length, r.open.length])).toEqual([

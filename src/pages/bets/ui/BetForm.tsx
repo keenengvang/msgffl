@@ -118,7 +118,7 @@ export function BetForm(props: BetFormProps) {
           </button>
         )}
         <span className={styles.hint}>
-          {savage ? 'Locks the moment either team scores. No halftime renegotiations.' : 'Bets lock once either team starts scoring.'}
+          {savage ? 'Book it whenever. Same matchup, ten side bets? Go nuts.' : 'Bets can be added or edited any time.'}
         </span>
       </div>
       {props.status && (

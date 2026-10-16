@@ -194,11 +194,13 @@ writes are rate-limited 60/hour/IP. No env vars needed.
 
 A bet is Team A vs Team B, a week, and **one free-text field** (`terms`) holding the whole
 wager, stakes included. Nothing settles automatically: a bet is PENDING until someone
-rules (`winner`), then COMPLETED ✓. The week's scores show on the card for context and
-drive the **lock**: once either team has points on the board or the week is final
-(`isLocked` in `entities/bet/lib/resolveBet.ts`, checked server-side against live Sleeper
-via `netlify/lib/betFacts.ts`; Sleeper unreachable → 503, never guess), the wager is
-frozen and only a ruling or a delete is accepted. Delete is a **tombstone**
+rules (`winner`), then COMPLETED ✓. The week's scores show on the card for context only.
+**There is no kickoff lock**: bets get made out loud and typed in later, and the same two
+teams can carry several bets in one week (each its own id), so any bet can be booked or
+edited at any time. The server still checks against live Sleeper (`netlify/lib/betFacts.ts`)
+that newly set sides are league members and records their rosters — Sleeper unreachable
+→ 503, never guess. Rewriting the wager clears a ruling, and a patch can't rewrite and rule
+at once. Delete is a **tombstone**
 (`patch.deleted`): the page hides it, but the record stays in Blobs (and in the no-season
 full export) so a griefed or fat-fingered delete is recoverable by hand; a deleted bet
 takes no edits until restored. Each side stores its owner_id **and the

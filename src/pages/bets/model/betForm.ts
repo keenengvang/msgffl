@@ -10,7 +10,7 @@ export interface FormState {
 
 export const fromBet = (b: BetRecord): FormState => ({ sideA: b.sideA, sideB: b.sideB, week: b.week, terms: b.terms });
 
-/** Only what changed — an edit that doesn't touch the wager shouldn't trip the kickoff lock. */
+/** Only what changed — an edit that leaves the wager alone mustn't clear its ruling. */
 export function diff(before: BetRecord, d: BetDraft): BetPatch {
   const p: BetPatch = {};
   if (d.week !== before.week) p.week = d.week;

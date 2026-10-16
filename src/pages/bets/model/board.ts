@@ -1,12 +1,11 @@
 import type { SeasonWeeks, TrimmedMatchup } from '@/shared/api/types';
-import { betRecord, isComplete, isLocked, resolveBet, sideScores, type BetOutcome, type RecordRow, type SideScores } from '@/entities/bet/lib/resolveBet';
+import { betRecord, isComplete, resolveBet, sideScores, type BetOutcome, type RecordRow, type SideScores } from '@/entities/bet/lib/resolveBet';
 import type { BetRecord } from '@/entities/bet/model/types';
 
 export interface BoardEntry {
   bet: BetRecord;
   scores: SideScores;
   outcome: BetOutcome;
-  locked: boolean;
 }
 
 export interface Board {
@@ -16,7 +15,7 @@ export interface Board {
   record: RecordRow<BetRecord>[];
 }
 
-/** Score, settle and lock every bet against the season's matchups. Pure: the
+/** Score and settle every bet against the season's matchups. Pure: the
     page passes in whatever week data it has (live poll or the 17-week bundle). */
 export function buildBoard(
   bets: BetRecord[],
@@ -29,7 +28,7 @@ export function buildBoard(
   const entries = bets.map((bet): BoardEntry => {
     const scores = sideScores(bet, ctx.rowsFor(bet.week), ctx.rosterOf);
     const final = ctx.isFinal(bet.week);
-    return { bet, scores, outcome: resolveBet(bet, scores, final), locked: isLocked(scores, final) };
+    return { bet, scores, outcome: resolveBet(bet, scores, final) };
   });
 
   const live = entries

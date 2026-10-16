@@ -169,7 +169,7 @@ export function BetsPage() {
   // and a bet open in the form can't be acted on mid-save.
   const busy = (id: string) => cardUpdate.isPending || (update.isPending && update.variables?.bet.id === id);
 
-  const actions = ({ bet, outcome, locked }: BoardEntry) => {
+  const actions = ({ bet, outcome }: BoardEntry) => {
     const btn = (label: string, onClick: () => void) => (
       <button
         key={label}
@@ -184,14 +184,12 @@ export function BetsPage() {
 
     const out = [];
     if (outcome.kind === 'settled') out.push(btn(savage ? 'OVERTURN' : 'UNDO', () => act(bet, { winner: null })));
-    if (!locked) {
-      out.push(
-        btn('EDIT', () => {
-          setEditStatus(null);
-          setEditing(bet);
-        }),
-      );
-    }
+    out.push(
+      btn('EDIT', () => {
+        setEditStatus(null);
+        setEditing(bet);
+      }),
+    );
     out.push(
       btn('DELETE', () => {
         const ok = window.confirm(
@@ -227,7 +225,6 @@ export function BetsPage() {
         b={view(e.bet.sideB)}
         scores={e.scores}
         outcome={e.outcome}
-        locked={e.locked}
         savage={savage}
         thisWeek={e.bet.week === liveWeek && league?.status === 'in_season'}
         pick={pick(e)}

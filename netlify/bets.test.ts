@@ -14,13 +14,13 @@ const draft = {
   terms: 'If ua loses to ub in Week 6, ua owes ub a keg of Busch Light.',
 };
 
-function setup(opts: { locked?: (week: number) => boolean; down?: boolean; members?: Set<string> } = {}) {
+function setup(opts: { down?: boolean; members?: Set<string> } = {}) {
   const store = memoryBetStore();
   const members = opts.members ?? new Set(['ua', 'ub', 'uc']);
-  const facts: FactsFor = async (season, week) => {
+  const facts: FactsFor = async (season) => {
     if (opts.down) throw new Error('sleeper down');
     if (season !== '2025') return null;
-    return { members, rosterOf: { ua: 1, ub: 2, uc: 3 }, locked: () => opts.locked?.(week) ?? false };
+    return { members, rosterOf: { ua: 1, ub: 2, uc: 3 } };
   };
   const handler = makeBetsHandler({ store: () => store, facts, now: () => new Date('2025-10-10T12:00:00Z') });
   return { store, handler };
@@ -82,8 +82,17 @@ describe('bets function', () => {
     expect((await handler(req('POST', { bet: { ...draft, season: '2019' } }))).status).toBe(400);
   });
 
-  it('refuses to open a bet on a game that already kicked off, and fails closed when Sleeper is down', async () => {
-    expect((await setup({ locked: () => true }).handler(req('POST', { bet: draft }))).status).toBe(423);
+  it('books any number of bets on the same matchup and week — each its own bet', async () => {
+    const { handler } = setup();
+    const one = await create(handler);
+    const two = await create(handler); // identical wager, still a separate bet
+    const three = await create(handler, { terms: 'Loser wears a Cowboys jersey to work.' });
+    expect(new Set([one.id, two.id, three.id]).size).toBe(3);
+    const list = (await (await handler(new Request(`${URL_}?season=2025`))).json()) as { bets: BetRecord[] };
+    expect(list.bets).toHaveLength(3);
+  });
+
+  it('fails closed when Sleeper is down (membership is unverifiable)', async () => {
     const down = setup({ down: true });
     expect((await down.handler(req('POST', { bet: draft }))).status).toBe(503);
     expect(down.store.size()).toBe(0);
@@ -103,22 +112,16 @@ describe('bets function', () => {
     expect((await bodyBet(stale)).terms).toBe('two kegs');
   });
 
-  it('freezes the wager once live, but still takes a ruling', async () => {
-    let live = false;
-    const { handler } = setup({ locked: () => live });
-    const bet = await create(handler);
-    live = true;
-    expect((await handler(patch(bet, { terms: 'a High Noon' }))).status).toBe(423);
+  it('edits any field at any time, and takes a ruling', async () => {
+    const { handler } = setup();
+    let bet = await create(handler);
+    bet = await bodyBet(await handler(patch(bet, { week: 2, terms: 'a High Noon' }))); // no kickoff lock
+    expect(bet).toMatchObject({ week: 2, terms: 'a High Noon' });
     const res = await handler(patch(bet, { winner: 'B' }));
     expect(res.status).toBe(200);
-    expect(await bodyBet(res)).toMatchObject({ winner: 'B', terms: draft.terms });
-  });
-
-  it("won't move an open bet into a week that's already started", async () => {
-    const { handler } = setup({ locked: (w) => w === 5 });
-    const bet = await create(handler);
-    expect((await handler(patch(bet, { week: 5 }))).status).toBe(423);
-    expect((await handler(patch(bet, { sideB: 'ua' }))).status).toBe(400);
+    const ruled = await bodyBet(res);
+    expect(ruled).toMatchObject({ winner: 'B', terms: 'a High Noon' });
+    expect((await handler(patch(ruled, { sideB: 'ua' }))).status).toBe(400); // still can't bet yourself
   });
 
   it('rewriting the wager clears a ruling made on the old terms', async () => {
@@ -154,7 +157,7 @@ describe('bets function', () => {
     const members = new Set(['ua', 'ub', 'uc']);
     const store = memoryBetStore();
     let rosterOf: Record<string, number> = { ua: 1, ub: 2, uc: 3 };
-    const facts: FactsFor = async () => ({ members, rosterOf, locked: () => false });
+    const facts: FactsFor = async () => ({ members, rosterOf });
     const handler = makeBetsHandler({ store: () => store, facts });
     const bet = await create(handler); // ua (roster 1) vs ub
     members.delete('ua');

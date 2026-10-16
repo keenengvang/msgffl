@@ -37,16 +37,6 @@
   gap: 8px;
 }
 
-.when {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.lock {
-  font-size: 11px;
-}
-
 .week {
   font-family: var(--font-cond);
   font-weight: 700;

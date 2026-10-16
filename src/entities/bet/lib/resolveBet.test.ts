@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Bet } from '../model/types';
-import { betRecord, isComplete, isLocked, resolveBet, sideScores, weekIsFinal } from './resolveBet';
+import { betRecord, isComplete, resolveBet, sideScores, weekIsFinal } from './resolveBet';
 
 const bet = (over: Partial<Bet> = {}): Bet => ({
   id: 'x',
@@ -53,18 +53,6 @@ describe('weekIsFinal', () => {
   });
   it('unknown NFL state is never final', () => {
     expect(weekIsFinal({ ...base, nflSeason: undefined, nflWeek: undefined }, 1)).toBe(false);
-  });
-});
-
-describe('isLocked', () => {
-  it('locks when either side has scored, or the week is over', () => {
-    expect(isLocked({ a: 0, b: 0 }, false)).toBe(false);
-    expect(isLocked({ a: null, b: null }, false)).toBe(false);
-    expect(isLocked({ a: 0, b: 3.2 }, false)).toBe(true);
-    expect(isLocked({ a: 0, b: 0 }, true)).toBe(true);
-  });
-  it('a negative total has started too (missed PAT on Thursday)', () => {
-    expect(isLocked({ a: -1, b: 0 }, false)).toBe(true);
   });
 });
 

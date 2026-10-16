@@ -18,7 +18,6 @@ interface BetCardProps {
   b: BetSideView;
   scores: SideScores;
   outcome: BetOutcome;
-  locked: boolean;
   savage: boolean;
   /** The league's current week — flags the card as this week's action. */
   thisWeek?: boolean;
@@ -44,7 +43,7 @@ function verdict(o: BetOutcome, a: BetSideView, b: BetSideView, savage: boolean)
 }
 
 /** One side bet: the two teams, the wager and where it stands. */
-export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, pick, actions }: BetCardProps) {
+export function BetCard({ bet, a, b, scores, outcome, savage, thisWeek, pick, actions }: BetCardProps) {
   // Cards share one height, so a long wager is clamped; MORE opens just this one.
   const termsRef = useRef<HTMLParagraphElement>(null);
   const [open, setOpen] = useState(false);
@@ -76,21 +75,9 @@ export function BetCard({ bet, a, b, scores, outcome, locked, savage, thisWeek, 
     <article className={styles.card}>
       <div className={styles.top}>
         <Badge tone={tone}>{label}</Badge>
-        <span className={styles.when}>
-          {locked && (
-            <span
-              className={styles.lock}
-              role="img"
-              aria-label={savage ? 'Locked in' : 'Locked'}
-              title="Kicked off — the wager can't be edited"
-            >
-              🔒
-            </span>
-          )}
-          <span className={thisWeek ? `${styles.week} ${styles.weekNow}` : styles.week}>
-            WEEK <span className="uMono">{bet.week}</span>
-            {thisWeek ? ' · THIS WEEK' : ''}
-          </span>
+        <span className={thisWeek ? `${styles.week} ${styles.weekNow}` : styles.week}>
+          WEEK <span className="uMono">{bet.week}</span>
+          {thisWeek ? ' · THIS WEEK' : ''}
         </span>
       </div>
 

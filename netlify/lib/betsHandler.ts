@@ -11,14 +11,15 @@
  * No PIN: anyone with the link can book, rule on or delete a bet (the league
  * runs on trust and a single bookie). Writes are rate-limited per IP, and
  * deletes are restorable tombstones, so vandalism is annoying, not lossy.
- * Once either side has points on the board the wager is locked: only the
- * ruling and the tombstone can change after that.
+ * There's no kickoff lock: bets get made out loud and typed in later, and the
+ * same two teams can carry several bets in one week, so any bet can be booked
+ * or edited at any time.
  */
 import { randomUUID } from 'node:crypto';
 import { touchesTerms, validateDraft, validatePatch } from '@/entities/bet/lib/validate';
 import type { Bet, BetRecord } from '@/entities/bet/model/types';
 import type { BetStore, Versioned } from './betStore';
-import type { FactsFor, WeekFacts } from './betFacts';
+import type { FactsFor, SeasonFacts } from './betFacts';
 
 export interface BetsDeps {
   store: () => BetStore;
@@ -56,30 +57,25 @@ export function makeBetsHandler(deps: BetsDeps) {
     return recent.length > MAX_WRITES;
   }
 
-  /** Sleeper facts for a season/week, or the error response. */
-  async function factsOr(season: string, week: number): Promise<WeekFacts | Response> {
+  /** Sleeper facts for a season, or the error response. */
+  async function factsOr(season: string): Promise<SeasonFacts | Response> {
     try {
-      const f = await deps.facts(season, week);
+      const f = await deps.facts(season);
       return f ?? json(400, { error: `no ${season} season in this league` });
     } catch {
-      return json(503, { error: "couldn't reach Sleeper to check kickoff — try again in a minute" });
+      return json(503, { error: "couldn't reach Sleeper to check the league — try again in a minute" });
     }
   }
 
-  /** The wager can't be (re)written once it's live, and the sides named in
-      `mustBeMembers` must be in the league that season. Only sides being set
-      need checking: a bet whose manager has since left (a roster changed
-      owners) must stay editable, or it could never be repaired. */
-  async function checkWager(
-    bet: Pick<Bet, 'season' | 'week' | 'sideA' | 'sideB'> & Partial<Pick<Bet, 'rosterA' | 'rosterB'>>,
-    mustBeMembers: string[],
-  ): Promise<Response | WeekFacts> {
-    const f = await factsOr(bet.season, bet.week);
+  /** The sides named in `mustBeMembers` must be in the league that season.
+      Only sides being set need checking: a bet whose manager has since left
+      (a roster changed owners) must stay editable, or it could never be repaired. */
+  async function checkSides(season: string, mustBeMembers: string[]): Promise<Response | SeasonFacts> {
+    const f = await factsOr(season);
     if (f instanceof Response) return f;
     if (mustBeMembers.some((s) => !f.members.has(s))) {
-      return json(400, { error: `both sides must be in the ${bet.season} league` });
+      return json(400, { error: `both sides must be in the ${season} league` });
     }
-    if (f.locked(bet)) return json(423, { error: 'that one already kicked off — the wager is locked' });
     return f;
   }
 
@@ -114,7 +110,7 @@ export function makeBetsHandler(deps: BetsDeps) {
     if (req.method === 'POST') {
       const draft = validateDraft(payload.bet);
       if (!draft.ok) return json(400, { error: draft.error });
-      const facts = await checkWager(draft.value, [draft.value.sideA, draft.value.sideB]);
+      const facts = await checkSides(draft.value.season, [draft.value.sideA, draft.value.sideB]);
       if (facts instanceof Response) return facts;
       const bet: Bet = {
         ...draft.value,
@@ -160,33 +156,26 @@ export function makeBetsHandler(deps: BetsDeps) {
 
     const { deleted, ...fields } = patch.value;
     const next: Bet = { ...current.bet, ...fields, updatedAt: stamp };
-    // A rewritten wager is a new wager: a ruling on the old terms (custom bets
-    // can be ruled before kickoff) must not carry over to it.
+    // A rewritten wager is a new wager: a ruling on the old terms must not
+    // carry over to it.
     if (touchesTerms(patch.value)) next.winner = null;
     if (deleted === true && !current.bet.deletedAt) next.deletedAt = stamp;
     if (deleted === false) next.deletedAt = null;
 
     if (next.sideA === next.sideB) return json(400, { error: "a team can't bet against itself" });
-    if (touchesTerms(patch.value)) {
-      // Locked as it stands, or locked where it's being moved to.
-      const moved = (['season', 'week', 'sideA', 'sideB'] as const).some((k) => next[k] !== current.bet[k]);
-      const changed = (['sideA', 'sideB'] as const).filter((k) => next[k] !== current.bet[k]);
-      const was = await checkWager(current.bet, []);
-      if (was instanceof Response) return was;
-      if (moved) {
-        // A side that changed gets its roster for the (possibly new) season;
-        // an unchanged side keeps the roster recorded when it was set.
-        if (next.season !== current.bet.season) Object.assign(next, { rosterA: null, rosterB: null });
-        for (const k of changed) next[k === 'sideA' ? 'rosterA' : 'rosterB'] = null;
-        const facts = await checkWager(next, changed.map((k) => next[k]));
-        if (facts instanceof Response) return facts;
-        next.rosterA ??= facts.rosterOf[next.sideA] ?? null;
-        next.rosterB ??= facts.rosterOf[next.sideB] ?? null;
-        // Different owners can still be the same team: a departed manager kept
-        // on one side and that roster's new owner picked for the other.
-        if (next.rosterA !== null && next.rosterA === next.rosterB) {
-          return json(400, { error: "both sides are the same team — swap out the manager who left" });
-        }
+    const changed = (['sideA', 'sideB'] as const).filter((k) => next[k] !== current.bet[k]);
+    if (changed.length > 0) {
+      // A side that changed gets its roster for that season; an unchanged
+      // side keeps the roster recorded when it was set.
+      for (const k of changed) next[k === 'sideA' ? 'rosterA' : 'rosterB'] = null;
+      const facts = await checkSides(next.season, changed.map((k) => next[k]));
+      if (facts instanceof Response) return facts;
+      next.rosterA ??= facts.rosterOf[next.sideA] ?? null;
+      next.rosterB ??= facts.rosterOf[next.sideB] ?? null;
+      // Different owners can still be the same team: a departed manager kept
+      // on one side and that roster's new owner picked for the other.
+      if (next.rosterA !== null && next.rosterA === next.rosterB) {
+        return json(400, { error: "both sides are the same team — swap out the manager who left" });
       }
     }
 
