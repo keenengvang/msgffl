@@ -25,6 +25,8 @@ def responses(path):
                 entry = json.loads(line)
             except ValueError:
                 continue
+            if not isinstance(entry, dict) or not isinstance(entry.get("message", {}), (dict, type(None))):
+                continue
             if entry.get("isSidechain"):
                 continue
             message = entry.get("message") or {}
@@ -40,7 +42,9 @@ def responses(path):
             key = message.get("id") or entry.get("uuid")
             if key not in by_id:
                 order.append(key)
-            by_id[key] = {"at": entry.get("timestamp"), "model": message["model"], "usage": message["usage"]}
+            # The first chunk's time: the request was cached by then, and the stream's length isn't cache time.
+            at = by_id[key]["at"] if key in by_id else entry.get("timestamp")
+            by_id[key] = {"at": at, "model": message["model"], "usage": message["usage"]}
     return [by_id[k] for k in order], last_prompt
 
 
