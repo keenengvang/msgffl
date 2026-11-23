@@ -9,7 +9,7 @@ import { loadSeasonWeeks } from '../lib/loadSeasonWeeks';
     A failed week fails the query (see loadSeasonWeeks) — retried, never cached. */
 export function useSeasonWeeks(league: League | undefined) {
   return useQuery({
-    queryKey: qk.weeks(league?.league_id ?? ''),
+    queryKey: qk.weeks(league),
     enabled: !!league,
     queryFn: () => loadSeasonWeeks((w) => api<Matchup[]>(`/league/${league!.league_id}/matchups/${w}`)),
     staleTime: staleFor(league, 60_000),
@@ -27,7 +27,7 @@ export function useSeasonWeeks(league: League | undefined) {
 export function useLiveWeek(league: League | undefined, week: number) {
   const live = league?.status === 'in_season';
   return useQuery({
-    queryKey: qk.liveWeek(league?.league_id ?? '', week),
+    queryKey: qk.liveWeek(league, week),
     enabled: !!league && live && week > 0,
     // Deliberately NOT caught: resolving a failure as [] would look like a
     // genuinely empty week, and consumers would drop the perfectly good

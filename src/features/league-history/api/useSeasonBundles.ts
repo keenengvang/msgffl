@@ -14,7 +14,7 @@ export function useSeasonBundles() {
   const chain = useLeagueChain();
   const combined = useQueries({
     queries: (chain.data ?? []).map((lg) => ({
-      queryKey: qk.seasonBundle(lg.league_id),
+      queryKey: qk.seasonBundle(lg),
       queryFn: () => buildSeasonBundle(lg),
       staleTime: lg.status === 'complete' ? Infinity : 10 * 60_000,
     })),

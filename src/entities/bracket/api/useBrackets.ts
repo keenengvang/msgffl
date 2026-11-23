@@ -10,7 +10,7 @@ export type { Brackets };
 /** Winners + losers playoff brackets in one query. */
 export function useBrackets(league: League | undefined, enabled = true) {
   return useQuery({
-    queryKey: qk.brackets(league?.league_id ?? ''),
+    queryKey: qk.brackets(league),
     enabled: enabled && !!league,
     queryFn: () => loadBrackets((side) => api<BracketGame[] | null>(`/league/${league!.league_id}/${side}_bracket`)),
     staleTime: staleFor(league, 5 * 60_000),

@@ -9,7 +9,7 @@ import { staleFor } from '@/entities/league/lib/activeLeague';
     would show every player at zero points for good. */
 export function useSeasonStats(season: string | undefined, league: League | undefined, enabled = true) {
   return useQuery({
-    queryKey: qk.stats(season ?? ''),
+    queryKey: qk.stats(season ?? '', league),
     enabled: enabled && !!season,
     queryFn: () => api<SeasonStats>(`/stats/nfl/regular/${season}`),
     staleTime: staleFor(league, 6 * 60 * 60_000),

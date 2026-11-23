@@ -8,7 +8,7 @@ import { computeStandings, usersById } from '../lib/computeStandings';
 
 export function useLeagueUsers(league: League | undefined) {
   return useQuery({
-    queryKey: qk.users(league?.league_id ?? ''),
+    queryKey: qk.users(league),
     enabled: !!league,
     queryFn: () => api<LeagueUser[]>(`/league/${league!.league_id}/users`),
     staleTime: staleFor(league, 5 * 60_000),
@@ -17,7 +17,7 @@ export function useLeagueUsers(league: League | undefined) {
 
 export function useRosters(league: League | undefined) {
   return useQuery({
-    queryKey: qk.rosters(league?.league_id ?? ''),
+    queryKey: qk.rosters(league),
     enabled: !!league,
     queryFn: () => api<Roster[]>(`/league/${league!.league_id}/rosters`),
     staleTime: staleFor(league, 5 * 60_000),

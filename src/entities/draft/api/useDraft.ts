@@ -9,7 +9,7 @@ export type { DraftBundle };
 /** The season's draft and (once complete) its picks, in one query. */
 export function useDraft(league: League | undefined, enabled = true) {
   return useQuery({
-    queryKey: qk.draft(league?.league_id ?? ''),
+    queryKey: qk.draft(league),
     enabled: enabled && !!league,
     queryFn: () =>
       loadDraft(
