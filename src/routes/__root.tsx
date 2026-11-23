@@ -34,8 +34,12 @@ export const Route = createRootRoute({
   ),
 });
 
-/** Routes that never read the season chain, so a failed chain must not blank them. */
-const CHAIN_FREE = ['/weekly-summary'];
+/** Routes that still work without the season chain, so a failed chain must not
+    blank them: the recap never reads it, and the suggestion box and rule book
+    only lose extras (the manager picker, the live scoring table). The
+    suggestion box is where people report an outage. Every other route needs a
+    season to show anything (the Player Lab's stats are keyed by it). */
+const CHAIN_FREE = ['/weekly-summary', '/suggest', '/rules'];
 
 function RootLayout() {
   const { motion } = useVibes();
