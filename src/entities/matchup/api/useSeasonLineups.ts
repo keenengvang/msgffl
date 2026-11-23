@@ -10,7 +10,7 @@ import { loadSeasonLineups } from '../lib/loadSeasonLineups';
 export function useSeasonLineups(league: League | undefined, enabled = true) {
   const lastRegular = (league?.settings?.playoff_week_start ?? 15) - 1;
   return useQuery({
-    queryKey: qk.lineups(league?.league_id ?? ''),
+    queryKey: qk.lineups(league),
     enabled: enabled && !!league,
     queryFn: () => loadSeasonLineups(lastRegular, (w) => api<Matchup[]>(`/league/${league!.league_id}/matchups/${w}`)),
     staleTime: staleFor(league, 10 * 60_000),

@@ -1,9 +1,9 @@
 import type { Snark } from '@/shared/config/constants';
 import { useMutation } from '@tanstack/react-query';
 
-/** Mirrors the limits enforced by netlify/functions/chat.ts — keep in step. */
-export const MAX_TURNS = 40;
-export const MAX_MESSAGE_CHARS = 2000;
+import { MAX_MESSAGE_CHARS, MAX_TURNS } from '@/shared/config/chatLimits';
+
+export { MAX_MESSAGE_CHARS, MAX_TURNS };
 
 /** One turn of the conversation. Mirrors the Messages API shape the function
     forwards to Claude, minus every content type we don't send. */
@@ -41,6 +41,7 @@ export function useSendChat() {
         body: JSON.stringify({ messages: windowTurns(messages), snark }),
       });
       if (!r.ok) {
+        // eslint-disable-next-line no-restricted-syntax -- parses an error body that may not be JSON; the request still throws on the next line (reviewed 2026-11-23)
         const body = (await r.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? `the analyst said no (${r.status})`);
       }

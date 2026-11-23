@@ -18,14 +18,13 @@ import Anthropic from '@anthropic-ai/sdk';
 import { leagueBrief } from '../lib/brief';
 import { snapshot } from '../lib/league';
 import { runTool, TOOLS } from '../lib/tools';
+import { MAX_MESSAGE_CHARS, MAX_TURNS } from '@/shared/config/chatLimits';
 
 /* Tool use is a multi-hop join (resolve a name → read a season → compare), and
    Haiku fumbles that chain often enough to be worth the difference. Swap this
    one line back to 'claude-haiku-4-5' if the bill says otherwise. */
 const MODEL = 'claude-sonnet-5';
 
-const MAX_TURNS = 40; // whole conversation
-const MAX_CHARS = 2000; // per message
 const MAX_TOOL_ROUNDS = 4; // tool → answer hops before we cut it off
 /* Budget. The deadline exists to guarantee a controlled answer before the
    platform kills the request, so it belongs just under the real limit — not at
@@ -86,10 +85,10 @@ function json(status: number, body: unknown): Response {
     long answer can always be replayed as history. Cuts at a sentence end when
     one is near the limit, rather than mid-word. */
 function clampReply(text: string): string {
-  if (text.length <= MAX_CHARS) return text;
-  const cut = text.slice(0, MAX_CHARS - 1);
+  if (text.length <= MAX_MESSAGE_CHARS) return text;
+  const cut = text.slice(0, MAX_MESSAGE_CHARS - 1);
   const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
-  return (lastStop > MAX_CHARS * 0.6 ? cut.slice(0, lastStop + 1) : cut.trimEnd()) + '…';
+  return (lastStop > MAX_MESSAGE_CHARS * 0.6 ? cut.slice(0, lastStop + 1) : cut.trimEnd()) + '…';
 }
 
 /** Reject after `ms` so one stalled upstream can't eat the whole execution
@@ -111,7 +110,7 @@ function parseMessages(raw: unknown): Anthropic.MessageParam[] | null {
     if (typeof m !== 'object' || m === null) return null;
     const { role, content } = m as { role?: unknown; content?: unknown };
     if (role !== 'user' && role !== 'assistant') return null;
-    if (typeof content !== 'string' || !content.trim() || content.length > MAX_CHARS) return null;
+    if (typeof content !== 'string' || !content.trim() || content.length > MAX_MESSAGE_CHARS) return null;
     out.push({ role, content });
   }
   return out;
@@ -176,6 +175,7 @@ export default async function handler(req: Request): Promise<Response> {
   const snap = await withTimeout(snapshot(), deadline - Date.now() - MIN_CALL_MS, 'snapshot').catch(
     (err) => {
       console.error('league snapshot unavailable', err);
+      // eslint-disable-next-line no-restricted-syntax -- no snapshot means the analyst answers that the data is missing (documented in CLAUDE.md); nothing caches the null (reviewed 2026-11-23)
       return null;
     },
   );
@@ -270,10 +270,10 @@ export default async function handler(req: Request): Promise<Response> {
 
     return json(200, {
       // The browser stores this as an assistant turn and replays it next time,
-      // where parseMessages caps every message at MAX_CHARS. A reply longer
+      // where parseMessages caps every message at MAX_MESSAGE_CHARS. A reply longer
       // than that would be rejected on the NEXT question and every one after,
       // bricking the thread — so never emit what our own validator would
-      // refuse. max_tokens allows far more than MAX_CHARS of prose.
+      // refuse. max_tokens allows far more than MAX_MESSAGE_CHARS of prose.
       text: clampReply(answer) || "The analyst went quiet. Ask that again, maybe with fewer moving parts.",
     });
   } catch (err) {

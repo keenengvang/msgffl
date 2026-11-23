@@ -135,6 +135,18 @@ export interface ToolOutcome {
 }
 
 const ok = (v: unknown): ToolOutcome => ({ content: JSON.stringify(v) });
+
+/** What a tool says about the parts Sleeper didn't return (movesFor's whole
+    flag, for the tools that read past the bundles): unknown, never zero or
+    nobody. */
+const partial = (missing: string[]) =>
+  missing.length
+    ? {
+        whole: false,
+        missing,
+        note: `Sleeper did not return ${missing.join(' or ')} just now. Say that part is unavailable right now; never report it as zero, empty or nobody.`,
+      }
+    : { whole: true };
 const fail = (msg: string): ToolOutcome => ({ content: msg, isError: true });
 
 const n2 = (v: number): number => Number(v.toFixed(2));
@@ -197,14 +209,17 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
     .sort((a, b) => b.w - b.l - (a.w - a.l));
 
   // The roster only means anything for the season currently being played.
-  let roster: {
+  const missing: string[] = [];
+  let roster:
+    | {
     name: string;
     pos: string;
     nflTeam: string;
     starter: boolean;
     projectedThisWeek: number | null;
     status?: string;
-  }[] = [];
+      }[]
+    | null;
   try {
     const key = ptsKey(snap.current);
     const [{ rosters }, { db, benched }, proj] = await Promise.all([
@@ -233,7 +248,9 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
       .sort((x, y) => (y.projectedThisWeek ?? -1) - (x.projectedThisWeek ?? -1));
   } catch {
     // A players-db hiccup shouldn't sink the whole answer — the history above
-    // is the part that matters, so it goes back with an empty roster.
+    // is the part that matters — but the roster is unknown, not empty.
+    roster = null;
+    missing.push('current roster');
   }
 
   return ok({
@@ -252,6 +269,7 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
     bestRivalries: rivals.slice(0, 3),
     worstRivalries: rivals.slice(-3).reverse(),
     roster,
+    ...partial(missing),
   });
 }
 
@@ -400,7 +418,7 @@ async function searchPlayers(
   const cap = Math.min(Math.max(Math.trunc(limit ?? 5), 1), 15);
   const key = ptsKey(snap.active);
 
-  const [{ db, benched }, stats, proj] = await Promise.all([
+  const [{ db, benched }, read, proj] = await Promise.all([
     playerIndex(),
     seasonStats(snap.active.season, snap.active.status === 'complete'),
     projectionsFor(snap),
@@ -408,13 +426,15 @@ async function searchPlayers(
 
   // Who rosters whom, this season — read off the newest league, since during
   // the pre-draft window snap.active is still last season.
+  const missing: string[] = read.whole ? [] : ['season points'];
   const owned = new Map<string, string>();
   try {
     const { rosters, users } = await rostersFor(snap.current);
     const teamOf = new Map(users.map((u) => [u.user_id, u.metadata?.team_name || u.display_name]));
     rosters.forEach((r) => (r.players ?? []).forEach((id) => owned.set(id, teamOf.get(r.owner_id) ?? 'unknown')));
   } catch {
-    // Ownership is a nice-to-have; the stat line is the answer.
+    // Ownership is a nice-to-have beside the stat line, but unknown, not nobody.
+    missing.push('who rosters them');
   }
 
   // Inactive players are searchable too: someone asking after an injured guy
@@ -434,12 +454,12 @@ async function searchPlayers(
       pos: p.p,
       nflTeam: p.t,
       age: p.a || null,
-      seasonPoints: n2(stats[id]?.[key] ?? 0),
+      seasonPoints: read.whole ? n2(read.stats[id]?.[key] ?? 0) : null,
       projectedThisWeek: proj[id]?.[key] ?? null,
       rosteredBy: owned.get(id) ?? null,
       ...(p.status ? { status: p.status } : {}),
     }))
-    .sort((x, y) => y.seasonPoints - x.seasonPoints);
+    .sort((x, y) => (y.seasonPoints ?? -1) - (x.seasonPoints ?? -1));
 
   return ok({
     season: snap.active.season,
@@ -448,6 +468,7 @@ async function searchPlayers(
     projectionSource: "Sleeper's own weekly projection, in this league's scoring",
     matches: hits.length,
     players: hits.slice(0, cap),
+    ...partial(missing),
   });
 }
 
@@ -483,6 +504,7 @@ async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcom
     Promise.all(leagues.map(movesFor)),
     // Names are what make a move readable, but a players-db failure shouldn't
     // sink the FAAB numbers — those don't need a single name.
+    // eslint-disable-next-line no-restricted-syntax -- names only make moves readable; the FAAB totals stand without them, and nothing caches this null (reviewed 2026-11-23)
     playerIndex().catch(() => null),
   ]);
   // A week Sleeper failed to return is indistinguishable from a quiet week, so

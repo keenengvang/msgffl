@@ -50,3 +50,47 @@ test('matchup detail opens from the matchups grid', async ({ page }) => {
   await expect(page.getByText(/STARTERS/i).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/← WEEK 14/i)).toBeVisible();
 });
+
+// Wiring, not a page: every season page waits on the league chain, so a chain
+// that fails (a 502 on next-season discovery) must surface once, with a retry,
+// instead of leaving the page on its loader forever. Pages that work without
+// the chain keep working: the suggestion box is where people report an outage.
+test('a failed season chain shows the error panel where a season is needed, and Redial recovers', async ({ page }) => {
+  let down = true;
+  let refused = 0;
+  await page.route(/api\.sleeper\.app\/v1\/user\/\d+\/leagues\/nfl\/\d+$/, (r) => {
+    if (!down) return r.fallback();
+    refused++;
+    return r.fulfill({ status: 502, body: 'blip' });
+  });
+  // The chain query fails only after its retries (3 attempts × 3 member
+  // lookups); assert "no panel" after that, not before it could appear.
+  const chainHasFailed = async () => {
+    const start = refused;
+    await expect.poll(() => refused - start, { timeout: 30_000 }).toBeGreaterThanOrEqual(9);
+    await page.waitForTimeout(1_000);
+  };
+
+  await page.goto('/suggest');
+  await chainHasFailed();
+  await expect(page.getByText(/TRANSMIT PROPOSAL/i)).toBeVisible();
+  const box = page.getByRole('textbox');
+  await box.fill('the site is down, fix it');
+  await page.getByRole('button', { name: /SUBMIT TO LEAGUE/i }).click();
+  // vite preview serves no functions, so the submit itself fails — and the
+  // text must survive it, same as a real outage.
+  await expect(page.getByText(/HQ UNREACHABLE|Couldn't reach HQ/i)).toBeVisible({ timeout: 30_000 });
+  await expect(box).toHaveValue('the site is down, fix it');
+  await expect(page.getByText(/Sleeper hung up on us/i)).toHaveCount(0);
+
+  await page.goto('/rules');
+  await chainHasFailed();
+  await expect(page.getByText(/THE CONSTITUTION/i)).toBeVisible();
+  await expect(page.getByText(/Sleeper hung up on us/i)).toHaveCount(0);
+
+  await page.goto('/standings');
+  await expect(page.getByText(/Sleeper hung up on us/i)).toBeVisible({ timeout: 30_000 });
+  down = false;
+  await page.getByRole('button', { name: 'Redial' }).click();
+  await expect(page.getByText(/STANDINGS \d{4}/i).first()).toBeVisible({ timeout: 30_000 });
+});

@@ -16,7 +16,7 @@ import { staleFor } from '@/entities/league/lib/activeLeague';
 export function useMatchupWeekDetail(league: League | undefined, week: number) {
   const live = league?.status === 'in_season';
   return useQuery({
-    queryKey: qk.matchupDetail(league?.league_id ?? '', week),
+    queryKey: qk.matchupDetail(league, week),
     enabled: !!league && week > 0,
     queryFn: () => api<Matchup[]>(`/league/${league!.league_id}/matchups/${week}`),
     staleTime: staleFor(league, 60_000),

@@ -22,6 +22,7 @@ export function DraftPage() {
   const stats = useSeasonStats(season, league);
 
   if (error) return <ErrorPanel error={error} />;
+  if (draft.error && !draft.data) return <ErrorPanel error={draft.error} />;
   if (isLoading || !standings || draft.isLoading) return <LoadingQuip text="checking the war room…" />;
 
   const d = draft.data?.draft ?? null;

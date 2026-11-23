@@ -84,6 +84,7 @@ function nflState(): Promise<NflState | null> {
   nflSlot = keep(
     nflSlot,
     5 * 60_000,
+    // eslint-disable-next-line no-restricted-syntax -- same contract as useNflState; a null result gets TTL 0 below, so it is never kept (reviewed 2026-11-23)
     () => api<NflState>('/state/nfl').catch(() => null),
     (ns) => (ns ? 5 * 60_000 : 0),
   );
@@ -159,6 +160,7 @@ export function movesFor(lg: League): Promise<SeasonMoves> {
         Array.from({ length: TX_LEGS }, (_, i) =>
           api<Transaction[]>(`/league/${lg.league_id}/transactions/${i + 1}`).catch(() => {
             whole = false;
+            // eslint-disable-next-line no-restricted-syntax -- the failed leg sets whole=false; movesFor never caches a partial season and get_transactions refuses to total it (reviewed 2026-11-23)
             return [] as Transaction[];
           }),
         ),
@@ -270,9 +272,10 @@ export async function leagueForSeason(season: string): Promise<{ league: League;
   // bets function turns this into a 503).
   if (!nfl) throw new Error('NFL state unavailable');
   let league = (await chain(nfl)).find((l) => l.season === season);
-  // fetchChain swallows a failed forward discovery and returns the backward
-  // chain, which would then hide the current season for the full hour. If the
-  // season the NFL is in right now is missing, walk once more before saying so.
+  // A cached chain can predate the league Sleeper minted for the current
+  // season (fetchChain rejects a failed discovery, so that is the only way it
+  // goes missing). If the season the NFL is in right now is missing, walk once
+  // more before saying so.
   if (!league && season === nfl.season) {
     chainSlot = null;
     league = (await chain(nfl)).find((l) => l.season === season);

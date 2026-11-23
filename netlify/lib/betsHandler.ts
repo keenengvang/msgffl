@@ -85,6 +85,7 @@ export function makeBetsHandler(deps: BetsDeps) {
       const b = await req.json();
       return typeof b === 'object' && b !== null ? b : null;
     } catch {
+      // eslint-disable-next-line no-restricted-syntax -- an unparseable request body is the client's error: the caller answers 400 (reviewed 2026-11-23)
       return null;
     }
   }

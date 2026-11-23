@@ -17,23 +17,24 @@ import { walkChain } from './walkChain';
  */
 export async function fetchChain(ns: NflState | null): Promise<League[]> {
   const chain = await walkChain(LEAGUE_ID);
-  try {
-    const newest = chain[0];
-    if (ns && newest && Number(ns.season) > Number(newest.season)) {
-      const users = await api<LeagueUser[]>(`/league/${newest.league_id}/users`);
-      for (const u of users.slice(0, 3)) {
-        const ls = await api<League[]>(`/user/${u.user_id}/leagues/nfl/${ns.season}`).catch(
-          () => [] as League[],
-        );
-        const next = ls.find((l) => l.previous_league_id === newest.league_id);
-        if (next) {
-          chain.unshift(next);
-          break;
-        }
-      }
+  const newest = chain[0];
+  if (!ns || !newest || Number(ns.season) <= Number(newest.season)) return chain;
+  // Discovery fails loudly: the chain is cached for an hour and persisted, so
+  // a chain that silently lacks the new season would hide it from every page.
+  const users = await api<LeagueUser[]>(`/league/${newest.league_id}/users`);
+  let failed: unknown = null;
+  for (const u of users.slice(0, 3)) {
+    let ls: League[];
+    try {
+      ls = await api<League[]>(`/user/${u.user_id}/leagues/nfl/${ns.season}`);
+    } catch (e) {
+      failed = e; // one member's lookup failing moves on to the next member
+      continue;
     }
-  } catch {
-    // discovery is best-effort
+    const next = ls.find((l) => l.previous_league_id === newest.league_id);
+    if (next) return [next, ...chain];
   }
+  // No member had it: a real answer only if every lookup answered.
+  if (failed) throw failed;
   return chain;
 }
