@@ -50,3 +50,18 @@ test('matchup detail opens from the matchups grid', async ({ page }) => {
   await expect(page.getByText(/STARTERS/i).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/← WEEK 14/i)).toBeVisible();
 });
+
+// Wiring, not a page: every season page waits on the league chain, so a chain
+// that fails (a 502 on next-season discovery) must surface once, with a retry,
+// instead of leaving the page on its loader forever.
+test('a failed season chain shows the error panel, and Redial recovers', async ({ page }) => {
+  let down = true;
+  await page.route(/api\.sleeper\.app\/v1\/user\/\d+\/leagues\/nfl\/\d+$/, (r) =>
+    down ? r.fulfill({ status: 502, body: 'blip' }) : r.fallback(),
+  );
+  await page.goto('/standings');
+  await expect(page.getByText(/Sleeper hung up on us/i)).toBeVisible({ timeout: 30_000 });
+  down = false;
+  await page.getByRole('button', { name: 'Redial' }).click();
+  await expect(page.getByText(/STANDINGS \d{4}/i).first()).toBeVisible({ timeout: 30_000 });
+});
