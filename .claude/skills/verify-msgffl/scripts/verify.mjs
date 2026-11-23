@@ -38,6 +38,9 @@ function fingerprint() {
   h.update(git('rev-parse HEAD'));
   h.update(git(`diff HEAD --binary -- ${APP}`));
   for (const f of git(`ls-files --others --exclude-standard -- ${APP}`).split('\n').filter(Boolean)) h.update(f + '\0' + readFileSync(join(root, f)));
+  // Gitignored inputs Vite still reads: .env, .env.<mode>, and their .local
+  // twins. Hashed by name and content only; never printed.
+  for (const f of readdirSync(root).filter((n) => /^\.env(\..+)?$/.test(n) || n.endsWith('.local')).sort()) h.update('env\0' + f + '\0' + readFileSync(join(root, f)));
   return h.digest('hex').slice(0, 16);
 }
 const shortSha = () => git('rev-parse --short HEAD').trim();

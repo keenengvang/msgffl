@@ -3,7 +3,7 @@
 //   - dist/ with netlify.toml's exact-path redirects and the SPA fallback
 //   - /.netlify/functions/bets: the REAL entry, netlify/functions/bets.ts
 //     (blobsBetStore + sleeperFacts), over a local Netlify BlobsServer whose
-//     files live in <run>/blobs, so etags and conditional writes are Blobs' own
+//     files live in <run>/blobs (see ReadEtagBlobsServer for what is local)
 //   - /.netlify/functions/suggest: the REAL entry; its GitHub call lands in a
 //     fake that appends each issue it would file to <run>/github-outbox.jsonl
 //   - /.netlify/functions/chat: 503 (it would spend Anthropic credit)
@@ -28,10 +28,31 @@ setMode(args.sleeper);
 // Netlify Blobs, locally: the real store's own server, its files under the run.
 const blobsDir = join(runDir(args.run), 'blobs');
 mkdirSync(blobsDir, { recursive: true });
-// The hosted service sends a blob's etag on every read and blobsBetStore relies
-// on it (no etag reads as "no such bet"); the local server (@netlify/blobs
-// 11.1.4) only returns etags from writes. Add the one it computes for writes.
+// Two gaps between the local server (@netlify/blobs 11.1.4) and the hosted
+// service, both closed here:
+//  - reads: the hosted service sends a blob's etag on every read, and
+//    blobsBetStore relies on it (no etag reads as "no such bet"); the local
+//    server only returns etags from writes. Add the one it computes for writes.
+//  - conditional writes: the local put() checks If-Match, then awaits the
+//    write, with nothing holding the key in between, so two writes carrying the
+//    same etag both succeed. Writes to one key are queued here, so the second
+//    sees the first's etag and gets 412, as an atomic compare-and-set would.
+// What stays local: the etag is the server's HMAC of the file's path and
+// mtime (two writes in one millisecond would share one), and there is no
+// replication, so cross-region consistency is not exercised.
 class ReadEtagBlobsServer extends BlobsServer {
+  #keyQueues = new Map();
+  async put(req) {
+    const { dataPath } = this.getLocalPaths(new URL(req.url ?? '', this.address));
+    if (!dataPath) return super.put(req);
+    const prev = this.#keyQueues.get(dataPath) ?? Promise.resolve();
+    const run = prev.then(() => super.put(req));
+    const settled = run.then(() => {}, () => {});
+    this.#keyQueues.set(dataPath, settled);
+    settled.then(() => { if (this.#keyQueues.get(dataPath) === settled) this.#keyQueues.delete(dataPath); });
+    return run;
+  }
+
   async get(req) {
     const res = await super.get(req);
     if (res.status !== 200 || res.headers.has('etag')) return res;

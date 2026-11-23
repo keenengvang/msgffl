@@ -146,6 +146,23 @@ export const JOURNEYS = {
     await expect(card).toHaveCount(1);
     let row = await stored();
     await step(`stored row ${row?.id}: week 3, no winner yet`, () => expect(row && row.week === 3 && !row.winner).toBeTruthy());
+    // Two people editing at once, both from the same version: Blobs' conditional
+    // write must let exactly one through, and the other gets 409 with the fresh copy.
+    const edit = (suffix) =>
+      page.request.fetch(`/.netlify/functions/bets?season=2024&id=${row.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        data: { patch: { terms: `${text} ${suffix}` }, version: row.version },
+      });
+    const [ea, eb] = await Promise.all([edit('(edit A)'), edit('(edit B)')]);
+    const codes = [ea.status(), eb.status()].sort();
+    log(`concurrent edits from version ${row.version.slice(0, 10)}…: ${ea.status()} / ${eb.status()}`);
+    await step('two edits from one version: one 200, one 409', () => expect(codes).toEqual([200, 409]));
+    const won = ea.status() === 200 ? '(edit A)' : '(edit B)';
+    row = await stored();
+    await step(`stored terms are the winner's edit ${won}`, () => expect(row.terms).toBe(`${text} ${won}`));
+    await step('reload: the card shows the saved edit', () => page.reload());
+    await expect(card).toContainText(won);
     await step('rule Team A the winner', () => card.getByRole('button', { name: / won$/ }).first().click());
     await expect(card.getByRole('button', { name: /MARK PAID/ })).toBeVisible();
     await step('mark it paid', () => card.getByRole('button', { name: /MARK PAID/ }).click());

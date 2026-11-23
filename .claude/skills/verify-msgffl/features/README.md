@@ -34,6 +34,7 @@ Each journey's guarded behaviour, broken in a scratch copy (never committed), an
 | `champion` | `titleGame` takes the loser | Expected `"lisan al gaib"`, Received `"hmoob meka hiluss"` |
 | `bets` | the board stops hiding tombstoned bets | the deleted card's count: Expected `0`, Received `1` |
 | `bets` | `betsHandler` never sets `paidAt` (found by the PR #40 verifier) | after "mark it paid": `getByRole('button', { name: 'UNDO PAID' })`: element(s) not found |
+| `bets` | the local Blobs server without the per-key write queue (the same-etag race unguarded) | after "two edits from one version: one 200, one 409": Expected `[200, 409]`, Received `[200, 200]` |
 | `bets` | `netlify/functions/bets.ts` answers 500 | launch: `server did not become ready` (the readiness probe calls the real entry) |
 | `suggest` | the box clears `onSettled` instead of `onSuccess` (also found by the PR #40 verifier) | after "the text survives in the box": Expected the text, Received `""` |
 | `wrap` | `sortWeeklySummaryEntries` reversed | Expected the week 10 headline, Received the week 1 headline |
