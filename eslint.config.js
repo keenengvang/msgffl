@@ -49,13 +49,19 @@ const ON_ERROR = [
   "CallExpression[callee.property.name='catch']",
   "CallExpression[callee.property.name='then'][arguments.length=2]",
 ];
+// For .then, only the rejection handler (the last argument) counts.
+const handler = (c, kind) => (c.includes("'then'") ? `${c} > ${kind}:last-child` : `${c} > ${kind}`);
 const SWALLOW_SELECTORS = [
   // .catch(() => []) and .then(ok, () => [])
-  ...ON_ERROR.flatMap((c) => empties([`${c} > ArrowFunctionExpression`, 'body'])),
+  ...ON_ERROR.flatMap((c) => empties([handler(c, 'ArrowFunctionExpression'), 'body'])),
   // .catch(() => { return []; }) and .catch(function () { return []; })
-  ...ON_ERROR.flatMap((c) => empties([`${c} > ${HANDLER} ReturnStatement`, 'argument'])),
-  // .catch(fallbackToEmpty)
+  ...ON_ERROR.flatMap((c) => empties([`${handler(c, HANDLER)} ReturnStatement`, 'argument'])),
+  // .catch(fallbackToEmpty), and .catch(() => EMPTY) / .then(ok, () => EMPTY) with a named fallback
   "CallExpression[callee.property.name='catch'] > Identifier.arguments",
+  ...ON_ERROR.flatMap((c) => [
+    `${handler(c, 'ArrowFunctionExpression')} > Identifier.body[name!='undefined']`,
+    `${handler(c, 'ArrowFunctionExpression')} > MemberExpression.body`,
+  ]),
   // try { … } catch { return []; }
   ...empties(['CatchClause ReturnStatement', 'argument']),
   // try { … } catch { /* best-effort */ }
