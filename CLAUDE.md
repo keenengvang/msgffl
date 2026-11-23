@@ -97,7 +97,7 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
   queryFn (QB/RB/WR/TE/K/DEF, active-only except DEF) so only ~200KB enters the
   cache/persister. Keep it that way.
 - Persistence: `PersistQueryClientProvider` + localStorage under `msgffl-query-cache`,
-  `maxAge: Infinity`, cache **buster `'v3'`** — bump the buster in
+  `maxAge: Infinity`, cache **buster `'v4'`** — bump the buster in
   `app/providers/QueryProvider.tsx` whenever a cached shape changes.
 - **Three key prefixes are never persisted** (`shouldDehydrateQuery`): `nfl-state`
   (cheap, always refetched), `weekly-summary`, and `bets` (other people edit it, and a

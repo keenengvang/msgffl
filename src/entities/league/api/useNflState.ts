@@ -8,6 +8,7 @@ import type { NflState } from '@/shared/api/types';
 export function useNflState() {
   return useQuery({
     queryKey: qk.nflState,
+    // eslint-disable-next-line no-restricted-syntax -- null means 'season unknown' and every consumer handles it; never persisted, 5 min. Expires 2027-11-23; approval pending Keeneng on the corrections PR.
     queryFn: () => api<NflState>('/state/nfl').catch(() => null),
     staleTime: 5 * 60_000,
   });

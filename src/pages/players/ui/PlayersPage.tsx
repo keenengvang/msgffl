@@ -53,6 +53,7 @@ export function PlayersPage() {
   }, [draft, q, navigate]);
 
   if (players.error) return <ErrorPanel error={players.error} />;
+  if (stats.error && !stats.data) return <ErrorPanel error={stats.error} />;
 
   const pk = ptsKey(league);
   const ready = !!(players.data && stats.data);

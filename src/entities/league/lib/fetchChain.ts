@@ -22,9 +22,9 @@ export async function fetchChain(ns: NflState | null): Promise<League[]> {
     if (ns && newest && Number(ns.season) > Number(newest.season)) {
       const users = await api<LeagueUser[]>(`/league/${newest.league_id}/users`);
       for (const u of users.slice(0, 3)) {
-        const ls = await api<League[]>(`/user/${u.user_id}/leagues/nfl/${ns.season}`).catch(
-          () => [] as League[],
-        );
+        const ls = await api<League[]>(`/user/${u.user_id}/leagues/nfl/${ns.season}`)
+          // eslint-disable-next-line no-restricted-syntax -- one member's lookup failing moves on to the next member; the chain walked from LEAGUE_ID still stands. Expires 2027-11-23; approval pending Keeneng on the corrections PR.
+          .catch(() => [] as League[]);
         const next = ls.find((l) => l.previous_league_id === newest.league_id);
         if (next) {
           chain.unshift(next);

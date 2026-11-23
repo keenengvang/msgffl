@@ -28,15 +28,18 @@ export interface SeasonBundle {
   pws: number;
 }
 
-/** One season's full history payload (users/rosters/winners/17 weeks). */
+/** One season's full history payload (users/rosters/winners/17 weeks).
+    Any failed fetch rejects the bundle — never swallowed into []: a complete
+    season's bundle is cached forever and persisted, so one Sleeper blip would
+    otherwise blank its champion and weeks for good. */
 export async function buildSeasonBundle(lg: League): Promise<SeasonBundle> {
   const [users, rosters, winners, weeksArr] = await Promise.all([
     api<LeagueUser[]>(`/league/${lg.league_id}/users`),
     api<Roster[]>(`/league/${lg.league_id}/rosters`),
-    api<BracketGame[]>(`/league/${lg.league_id}/winners_bracket`).catch(() => [] as BracketGame[]),
+    api<BracketGame[] | null>(`/league/${lg.league_id}/winners_bracket`),
     Promise.all(
       Array.from({ length: 17 }, (_, i) =>
-        api<Matchup[]>(`/league/${lg.league_id}/matchups/${i + 1}`).catch(() => [] as Matchup[]),
+        api<Matchup[]>(`/league/${lg.league_id}/matchups/${i + 1}`),
       ),
     ),
   ]);
@@ -45,11 +48,11 @@ export async function buildSeasonBundle(lg: League): Promise<SeasonBundle> {
   // playoffs — once the bracket has decided a season, its placements win.
   const regularStandings = computeStandings(rosters, usersById(users));
   const standings =
-    lg.status === 'complete' ? finalFinishOrder(regularStandings, bracketPlacements(winners)) : regularStandings;
+    lg.status === 'complete' ? finalFinishOrder(regularStandings, bracketPlacements(winners ?? [])) : regularStandings;
   const names: Record<number, BundleName> = {};
   standings.forEach((r) => (names[r.rosterId] = { team: r.team, owner: r.owner, ownerId: r.ownerId, av: r.avatar }));
   const weeks = weeksArr.map((wl) => (wl ?? []).map((m) => ({ m: m.matchup_id, r: m.roster_id, p: m.points || 0 })));
-  const fin = winners.find((g) => g.p === 1);
+  const fin = (winners ?? []).find((g) => g.p === 1);
   return {
     season: lg.season,
     status: lg.status,

@@ -84,6 +84,7 @@ function nflState(): Promise<NflState | null> {
   nflSlot = keep(
     nflSlot,
     5 * 60_000,
+    // eslint-disable-next-line no-restricted-syntax -- same as useNflState; a null result gets TTL 0 below, so it is never kept. Expires 2027-11-23; approval pending Keeneng on the corrections PR.
     () => api<NflState>('/state/nfl').catch(() => null),
     (ns) => (ns ? 5 * 60_000 : 0),
   );

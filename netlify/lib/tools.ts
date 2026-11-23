@@ -483,6 +483,7 @@ async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcom
     Promise.all(leagues.map(movesFor)),
     // Names are what make a move readable, but a players-db failure shouldn't
     // sink the FAAB numbers — those don't need a single name.
+    // eslint-disable-next-line no-restricted-syntax -- names only; the FAAB totals stand without them, and nothing caches this null. Expires 2027-11-23; approval pending Keeneng on the corrections PR.
     playerIndex().catch(() => null),
   ]);
   // A week Sleeper failed to return is indistinguishable from a quiet week, so
