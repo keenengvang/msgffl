@@ -4,6 +4,8 @@ import { leagueBrief } from './lib/brief';
 import { looksWhole, settleBundles } from './lib/league';
 import { people, resolvePerson } from './lib/names';
 import { runTool, TOOLS } from './lib/tools';
+import { playerIndex, seasonStats } from './lib/players';
+import { rostersFor } from './lib/league';
 import type { Move } from '@/entities/transaction/lib/moves';
 
 // The tools that reach past the bundles (rosters, the 5MB player db) are the
@@ -20,7 +22,7 @@ const BENCHED = { p4: { n: 'Hurt Guy', p: 'RB', t: 'DET', status: 'IR' } };
 vi.mock('./lib/players', () => ({
   playerIndex: vi.fn(async () => ({ db: DB, benched: BENCHED })),
   playersDb: vi.fn(async () => DB),
-  seasonStats: vi.fn(async () => ({ p1: { pts_ppr: 310.4 }, p2: { pts_ppr: 288.1 } })),
+  seasonStats: vi.fn(async () => ({ stats: { p1: { pts_ppr: 310.4 }, p2: { pts_ppr: 288.1 } }, whole: true })),
   // p3/p4 have no projection — the "not projected to play" case.
   weekProjections: vi.fn(async () => ({ p1: { pts_ppr: 18.3 }, p2: { pts_ppr: 21.34 } })),
 }));
@@ -427,6 +429,38 @@ describe('tools', () => {
     const { data } = await call('search_players', { query: 'hurt' });
     expect(data.players).toHaveLength(1);
     expect(data.players[0]).toMatchObject({ name: 'Hurt Guy', pos: 'RB', status: 'IR' });
+  });
+
+  // A failed read must reach the model as "unknown", never as a real-looking
+  // zero or "nobody owns him": partial data stated as fact is this site's worst bug.
+  it('search_players says season points are unknown when the stats did not load', async () => {
+    vi.mocked(seasonStats).mockResolvedValueOnce({ stats: {}, whole: false });
+    const { data } = await call('search_players', { position: 'QB' });
+    expect(data.whole).toBe(false);
+    expect(data.missing).toContain('season points');
+    expect(data.players[0].seasonPoints).toBeNull();
+  });
+
+  it('search_players says ownership is unknown when the rosters did not load', async () => {
+    vi.mocked(rostersFor).mockRejectedValueOnce(new Error('Sleeper said no (502)'));
+    const { data } = await call('search_players', { position: 'QB' });
+    expect(data.whole).toBe(false);
+    expect(data.missing).toContain('who rosters them');
+    expect(data.players[0].seasonPoints).toBe(310.4);
+  });
+
+  it('get_team says the roster is unknown, not empty, when it did not load', async () => {
+    vi.mocked(playerIndex).mockRejectedValueOnce(new Error('Sleeper said no (502)'));
+    const { data } = await call('get_team', { team: 'alice' });
+    expect(data.whole).toBe(false);
+    expect(data.missing).toContain('current roster');
+    expect(data.roster).toBeNull();
+  });
+
+  it('a whole answer says so', async () => {
+    const { data } = await call('search_players', { position: 'QB' });
+    expect(data.whole).toBe(true);
+    expect(data.missing).toBeUndefined();
   });
 
   it('get_team calls the standings position a seed, not a finish', async () => {

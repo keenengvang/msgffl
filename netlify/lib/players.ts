@@ -112,21 +112,30 @@ export function weekProjections(season: string, week: number): Promise<Projectio
   return p;
 }
 
-const statSlots = new Map<string, { at: number; p: Promise<SeasonStats> }>();
+/** `whole: false` when Sleeper didn't return the stats: the caller says season
+    points are unknown, never zero (movesFor's contract). */
+export interface SeasonStatsRead {
+  stats: SeasonStats;
+  whole: boolean;
+}
+
+const statSlots = new Map<string, { at: number; p: Promise<SeasonStatsRead> }>();
 
 /** Season stat lines for one season. Past seasons never change; the live one
     is re-read every 6 hours, matching the client's staleTime. */
-export function seasonStats(season: string, complete: boolean): Promise<SeasonStats> {
+export function seasonStats(season: string, complete: boolean): Promise<SeasonStatsRead> {
   const slot = statSlots.get(season);
   if (slot && (complete || Date.now() - slot.at < SIX_HOURS)) return slot.p;
-  // Degrade to empty for THIS call, but evict — otherwise a completed season
-  // (cached forever) would report every player at zero points for the life of
+  // A failure answers this call as not whole, and evicts — otherwise a
+  // completed season (cached forever) would answer that way for the life of
   // the warm instance because one request happened to fail.
-  const p = api<SeasonStats>(`/stats/nfl/regular/${season}`).catch(() => {
-    statSlots.delete(season);
-    // eslint-disable-next-line no-restricted-syntax -- degrades this one call and evicts the slot, so a failure is never kept (reviewed 2026-11-23)
-    return {} as SeasonStats;
-  });
+  const p = api<SeasonStats>(`/stats/nfl/regular/${season}`).then(
+    (stats) => ({ stats, whole: true }),
+    () => {
+      statSlots.delete(season);
+      return { stats: {}, whole: false };
+    },
+  );
   statSlots.set(season, { at: Date.now(), p });
   return p;
 }
