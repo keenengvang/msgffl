@@ -34,7 +34,7 @@ export const JOURNEYS = {
   },
 
   // features/matchups.md
-  async matchups({ page, step }) {
+  async matchups({ page, step, log }) {
     await step('open week 14 of 2024', () => page.goto('/matchups?season=2024&week=14'));
     await expect(page.getByText('REGULAR SEASON · WEEK 14')).toBeVisible();
     await step('pick WK 3', () => page.getByRole('button', { name: 'WK 3', exact: true }).click());
@@ -44,13 +44,27 @@ export const JOURNEYS = {
     await expect(cards).toHaveCount(7); // 14 teams → 7 games
     const hrefs = await cards.evaluateAll((as) => as.map((a) => a.getAttribute('href')));
     await step(`all ${hrefs.length} cards link into week 3`, () => expect(hrefs.every((h) => h.startsWith('/matchups/3/'))).toBe(true));
-    const scores = (await cards.first().innerText()).match(/\d+\.\d\d/g).slice(-2);
-    await step(`open the first game (${scores.join(' vs ')})`, () => cards.first().click());
+    // Open a game that is NOT the first card, so a detail page that ignores
+    // its id (and always shows game 1) fails here.
+    const parse = async (i) => {
+      const l = (await cards.nth(i).innerText()).split('\n').map((x) => x.trim()).filter(Boolean);
+      const at = l.findIndex((x) => /^FINAL · MARGIN/.test(x));
+      return { teams: [l[at + 1], l[at + 4]], scores: [l[at + 3], l[at + 6]], href: await cards.nth(i).getAttribute('href') };
+    };
+    const first = await parse(0);
+    const game = await parse(3);
+    log(`card 4: ${game.teams[0]} ${game.scores[0]} vs ${game.teams[1]} ${game.scores[1]} (${game.href}); card 1: ${first.teams.join(' vs ')}`);
+    await step('card 4 is a different game from card 1', () => expect(game.teams.some((t) => first.teams.includes(t))).toBe(false));
+    await step(`open card 4 (${game.teams.join(' vs ')})`, () => cards.nth(3).click());
     await expect(page.getByText(/STARTERS/).first()).toBeVisible();
+    await expect.poll(() => new URL(page.url()).pathname).toBe(game.href.split('?')[0]);
     const back = page.getByRole('link', { name: /← WEEK 3/ });
     await expect(back).toBeVisible();
-    await step('detail shows both final scores from the card', async () => {
-      for (const s of scores) await expect(page.locator('main').getByText(s, { exact: true }).first()).toBeVisible();
+    await step('detail shows both of that game\'s teams and final scores, and neither of game 1\'s teams', async () => {
+      const main = page.locator('main');
+      for (const t of game.teams) await expect(main.getByText(t, { exact: true }).first()).toBeVisible();
+      for (const sc of game.scores) await expect(main.getByText(sc, { exact: true }).first()).toBeVisible();
+      for (const t of first.teams) await expect(main.getByText(t, { exact: true })).toHaveCount(0);
     });
     await step('back to the week', () => back.click());
     await expect(page.getByText('REGULAR SEASON · WEEK 3')).toBeVisible();

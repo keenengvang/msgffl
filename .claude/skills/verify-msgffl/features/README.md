@@ -21,6 +21,23 @@ The maintained source for verifying what a visitor does on the M$G site. Read th
 - Name any row whose surface a local run stubs (see SKILL.md's table) as not proved locally: the chatbot always is.
 - An entry point not driven is reported as not verified, never as verified through another path.
 
+## Shown red once
+
+Each journey's guarded behaviour, broken in a scratch copy (never committed), and the line the journey failed on. A new journey adds its row here before its pass counts.
+
+| Journey | Break | Failing line |
+|---|---|---|
+| `season` | `retainSearchParams(['season'])` removed from `__root.tsx` | `getByRole('heading', { name: 'Matchups 2024', level: 1 })`: element(s) not found |
+| `matchups` | the week pill navigates without `week` | `getByText('REGULAR SEASON · WEEK 3')`: element(s) not found |
+| `matchups` | `MatchupDetailPage` pinned to `matchupId = 1` | after "detail shows both of that game's teams…": `getByText('Bunny Ranchers', { exact: true })`: element(s) not found |
+| `players` | `filterPlayers` ignores `pos` | the all-rows-are-QB poll: Expected `true`, Received `false` |
+| `champion` | `titleGame` takes the loser | Expected `"lisan al gaib"`, Received `"hmoob meka hiluss"` |
+| `bets` | the board stops hiding tombstoned bets | the deleted card's count: Expected `0`, Received `1` |
+| `bets` | `betsHandler` never sets `paidAt` (found by the PR #40 verifier) | after "mark it paid": `getByRole('button', { name: 'UNDO PAID' })`: element(s) not found |
+| `bets` | `netlify/functions/bets.ts` answers 500 | launch: `server did not become ready` (the readiness probe calls the real entry) |
+| `suggest` | the box clears `onSettled` instead of `onSuccess` (also found by the PR #40 verifier) | after "the text survives in the box": Expected the text, Received `""` |
+| `wrap` | `sortWeeklySummaryEntries` reversed | Expected the week 10 headline, Received the week 1 headline |
+
 ## Features
 
 | File | Journey | Guards |

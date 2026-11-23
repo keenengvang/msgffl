@@ -22,6 +22,6 @@ Preconditions: a launched instance (the fake GitHub starts up).
 
 ## Gotchas
 
-- The real function is rate-limited to 5 submissions an hour per IP inside one server; reruns past that get 429. Relaunch.
+- The real function allows 5 submissions an hour per client IP; each browser context sends its own `x-verify-client` id, used as that IP, so reruns in one launch don't hit 429 (checked: three `suggest` drives in one launch pass).
 - The "who" select has no accessible name; `main select` is the handle.
 - Nothing ever reaches GitHub: the server refuses every outbound host except Sleeper, and the fake answers for `verify-msgffl/sandbox`.

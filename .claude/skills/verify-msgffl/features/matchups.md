@@ -20,11 +20,12 @@ Preconditions: 2024 weeks are in the cache.
 
 - **Open.** `/matchups?season=2024&week=14`. Text `REGULAR SEASON · WEEK 14`.
 - **Switch week.** Click `button "WK 3"`. Text `REGULAR SEASON · WEEK 3`, URL `week=3`, exactly 7 card links, every href starting `/matchups/3/`.
-- **Detail.** Note the two final scores on the first card and click it. `STARTERS` shows, both scores are on the page, and `link "← WEEK 3"` is there.
+- **Detail.** Read the 4th card's two teams and final scores (a different game from card 1), and click it. The path is that card's `/matchups/3/<id>`, `STARTERS` shows, both of its teams and scores are on the page, none of game 1's teams is, and `link "← WEEK 3"` is there.
 - **Back.** Click `← WEEK 3`. Text `REGULAR SEASON · WEEK 3`.
 - Run: `node $V drive matchups`.
 
 ## Gotchas
 
+- Always open a card that is not the first: a detail page that ignores its id shows game 1, and a journey on card 1 would pass it.
 - Playoff weeks label as `QF W15` etc. and their header text differs; the journey stays in the regular season.
 - A complete season defaults to the title week, a live one to the current week; always deep-link the week you mean.

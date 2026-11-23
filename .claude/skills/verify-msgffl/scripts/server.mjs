@@ -1,24 +1,54 @@
-// The local stand-in for Netlify: serves the built dist/ with the SPA fallback
-// from netlify.toml, and /.netlify/functions/bets with the REAL handler
-// (netlify/lib/betsHandler.ts) over an in-memory store and the real
-// sleeperFacts (Sleeper through the disk cache), and /.netlify/functions/suggest
-// with the REAL handler whose GitHub call lands in a fake: each issue it would
-// file is appended to <run>/github-outbox.jsonl instead. Every other outbound
-// host is refused, so nothing here can reach GitHub or Anthropic. chat answers
-// 503 (it would spend Anthropic credit); it is not covered locally.
-// Started by `verify.mjs launch`; never run it by hand against a shared port.
+// The local stand-in for Netlify. Started by `verify.mjs launch`; never run it
+// by hand against a shared port.
+//   - dist/ with netlify.toml's exact-path redirects and the SPA fallback
+//   - /.netlify/functions/bets: the REAL entry, netlify/functions/bets.ts
+//     (blobsBetStore + sleeperFacts), over a local Netlify BlobsServer whose
+//     files live in <run>/blobs, so etags and conditional writes are Blobs' own
+//   - /.netlify/functions/suggest: the REAL entry; its GitHub call lands in a
+//     fake that appends each issue it would file to <run>/github-outbox.jsonl
+//   - /.netlify/functions/chat: 503 (it would spend Anthropic credit)
+// Every outbound host but Sleeper (through the disk cache), the fake GitHub and
+// the local BlobsServer is refused, so nothing here reaches GitHub or Anthropic.
+// The functions rate-limit per client IP; each drive sends its own
+// x-verify-client id, used as that IP, so reruns in one launch never share a bucket.
 import { createServer as createHttp } from 'node:http';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { createServer as createVite } from 'vite';
-import { patchNodeFetch, SLEEPER } from './sleeper-cache.mjs';
-import { appendFileSync } from 'node:fs';
+import { BlobsServer } from '@netlify/blobs/server';
+import { patchNodeFetch, setMode, SLEEPER } from './sleeper-cache.mjs';
 import { runDir } from './paths.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/, '').split('=')));
 const root = args.root;
 const port = Number(args.port);
 const dist = join(root, 'dist');
+setMode(args.sleeper);
+
+// Netlify Blobs, locally: the real store's own server, its files under the run.
+const blobsDir = join(runDir(args.run), 'blobs');
+mkdirSync(blobsDir, { recursive: true });
+// The hosted service sends a blob's etag on every read and blobsBetStore relies
+// on it (no etag reads as "no such bet"); the local server (@netlify/blobs
+// 11.1.4) only returns etags from writes. Add the one it computes for writes.
+class ReadEtagBlobsServer extends BlobsServer {
+  async get(req) {
+    const res = await super.get(req);
+    if (res.status !== 200 || res.headers.has('etag')) return res;
+    const api = this.parseAPIRequest(req);
+    const { dataPath, key } = this.getLocalPaths(api?.url ?? new URL(req.url ?? '', this.address));
+    if (!key || !dataPath) return res;
+    const headers = new Headers(res.headers);
+    headers.set('etag', await BlobsServer.generateETag(dataPath));
+    return new Response(res.body, { status: res.status, headers });
+  }
+}
+const blobs = new ReadEtagBlobsServer({ directory: blobsDir, token: 'verify-msgffl' });
+const { port: blobsPort } = await blobs.start();
+const blobsURL = `http://127.0.0.1:${blobsPort}`;
+process.env.NETLIFY_BLOBS_CONTEXT = Buffer.from(
+  JSON.stringify({ siteID: 'verify-msgffl', token: 'verify-msgffl', edgeURL: blobsURL, uncachedEdgeURL: blobsURL }),
+).toString('base64');
 
 process.env.GITHUB_TOKEN = 'verify-msgffl-dummy';
 process.env.GITHUB_REPO = 'verify-msgffl/sandbox';
@@ -28,7 +58,7 @@ const outbox = join(runDir(args.run), 'github-outbox.jsonl');
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (input, init) => {
   const url = typeof input === 'string' ? input : input.url ?? String(input);
-  if (url.startsWith(SLEEPER)) return realFetch(input, init);
+  if (url.startsWith(SLEEPER) || url.startsWith(blobsURL)) return realFetch(input, init);
   if (url === 'https://api.github.com/repos/verify-msgffl/sandbox/issues' && init?.method === 'POST') {
     if (githubDown) return new Response('{"message":"verify-msgffl: github down"}', { status: 500 });
     const issue = { number: ++issueNo, html_url: `https://github.com/verify-msgffl/sandbox/issues/${issueNo}` };
@@ -38,12 +68,9 @@ globalThis.fetch = async (input, init) => {
   throw new Error(`verify-msgffl refuses outbound ${url}`);
 };
 patchNodeFetch(); // Sleeper GETs → disk cache, on top of the guard above
+
 const vite = await createVite({ root, configFile: join(root, 'vite.config.ts'), server: { middlewareMode: true, hmr: false, watch: null }, appType: 'custom', logLevel: 'error' });
-const { makeBetsHandler } = await vite.ssrLoadModule('/netlify/lib/betsHandler.ts');
-const { memoryBetStore } = await vite.ssrLoadModule('/netlify/lib/betStore.ts');
-const { sleeperFacts } = await vite.ssrLoadModule('/netlify/lib/betFacts.ts');
-const store = memoryBetStore(); // one instance for the life of this server: a reload must read back what was written
-const bets = makeBetsHandler({ store: () => store, facts: sleeperFacts });
+const { default: bets } = await vite.ssrLoadModule('/netlify/functions/bets.ts');
 const { default: suggest } = await vite.ssrLoadModule('/netlify/functions/suggest.ts');
 
 // netlify.toml's exact-path redirects (the /* → /index.html 200 is the SPA fallback below).
@@ -53,44 +80,37 @@ const redirects = [...readFileSync(join(root, 'netlify.toml'), 'utf8').matchAll(
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.txt': 'text/plain', '.woff2': 'font/woff2' };
 
-async function toResponse(nodeReq, handler) {
+async function call(nodeReq, res, handler) {
   const chunks = [];
   for await (const c of nodeReq) chunks.push(c);
   const body = chunks.length ? Buffer.concat(chunks) : undefined;
+  const client = String(nodeReq.headers['x-verify-client'] || '127.0.0.1');
   const req = new Request(`http://127.0.0.1:${port}${nodeReq.url}`, {
     method: nodeReq.method,
-    headers: { ...nodeReq.headers, 'x-nf-client-connection-ip': '127.0.0.1' },
+    headers: { ...nodeReq.headers, 'x-nf-client-connection-ip': client },
     body: nodeReq.method === 'GET' || nodeReq.method === 'HEAD' ? undefined : body,
   });
-  return handler(req);
+  const r = await handler(req);
+  res.writeHead(r.status, Object.fromEntries(r.headers));
+  res.end(Buffer.from(await r.arrayBuffer()));
 }
+
+const json = (res, status, body) => {
+  res.writeHead(status, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(body));
+};
 
 createHttp(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   try {
-    if (url.pathname === '/__verify/health') {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ app: 'msgffl', pid: process.pid, run: args.run, sha: args.sha, bets: store.size() }));
-    }
-    if (url.pathname === '/.netlify/functions/bets') {
-      const r = await toResponse(req, bets);
-      res.writeHead(r.status, Object.fromEntries(r.headers));
-      return res.end(Buffer.from(await r.arrayBuffer()));
-    }
+    if (url.pathname === '/__verify/health') return json(res, 200, { app: 'msgffl', pid: process.pid, run: args.run, sleeper: args.sleeper, bets: 'netlify/functions/bets.ts over BlobsServer' });
     if (url.pathname === '/__verify/github') {
       githubDown = url.searchParams.get('down') === '1';
-      res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ githubDown }));
+      return json(res, 200, { githubDown });
     }
-    if (url.pathname === '/.netlify/functions/suggest') {
-      const r = await toResponse(req, suggest);
-      res.writeHead(r.status, Object.fromEntries(r.headers));
-      return res.end(Buffer.from(await r.arrayBuffer()));
-    }
-    if (url.pathname.startsWith('/.netlify/functions/')) {
-      res.writeHead(503, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'not served by verify-msgffl (would reach GitHub or Anthropic)' }));
-    }
+    if (url.pathname === '/.netlify/functions/bets') return await call(req, res, bets);
+    if (url.pathname === '/.netlify/functions/suggest') return await call(req, res, suggest);
+    if (url.pathname.startsWith('/.netlify/functions/')) return json(res, 503, { error: 'not served by verify-msgffl (would reach Anthropic)' });
     const hop = redirects.find((r) => r.from === url.pathname);
     if (hop) {
       res.writeHead(hop.status, { location: hop.to + url.search });
@@ -104,4 +124,4 @@ createHttp(async (req, res) => {
     res.writeHead(500, { 'content-type': 'text/plain' });
     res.end(String(e?.stack || e));
   }
-}).listen(port, '127.0.0.1', () => console.log(`verify-msgffl ready on http://127.0.0.1:${port} pid=${process.pid}`));
+}).listen(port, '127.0.0.1', () => console.log(`verify-msgffl ready on http://127.0.0.1:${port} pid=${process.pid} blobs=${blobsURL}`));

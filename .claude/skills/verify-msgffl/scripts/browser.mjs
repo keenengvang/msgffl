@@ -3,6 +3,7 @@
 //   weekly recaps → this checkout's content/weekly-summaries/ (the site reads them raw from GitHub main)
 //   sleepercdn.com images → aborted (avatars and headshots fall back per image; saves bandwidth)
 import { chromium } from 'playwright';
+import { randomUUID } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { sleeperGet, SLEEPER } from './sleeper-cache.mjs';
@@ -19,7 +20,9 @@ export async function openBrowser({ headed = false } = {}) {
 }
 
 export async function newContext(browser, state) {
-  const ctx = await browser.newContext({ baseURL: state.url, viewport: { width: 1360, height: 900 } });
+  // x-verify-client: the stand-in uses it as the client IP, so each context gets
+  // its own rate-limit bucket in the functions (suggest allows 5 an hour per IP).
+  const ctx = await browser.newContext({ baseURL: state.url, viewport: { width: 1360, height: 900 }, extraHTTPHeaders: { 'x-verify-client': `verify-${randomUUID()}` } });
   const offsite = [];
   await ctx.route('**/*', async (route) => {
     const url = route.request().url();

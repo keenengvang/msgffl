@@ -17,7 +17,7 @@ Anyone books a free-text side bet between two managers for a week; the bookie ru
 
 ## Driving it with verify-msgffl
 
-Preconditions: a fresh launch (its in-memory store starts empty); 2024 rosters cached (the handler checks sides against Sleeper).
+Preconditions: a launched instance (each run has its own Blobs directory, `<run>/blobs`); 2024 rosters cached (the handler checks sides against Sleeper).
 
 - **Book.** `/bets?season=2024`. `BOOK IT` is disabled. Pick `combobox "Team A"` option 1, `combobox "Team B"` option 2, `combobox "Week"` `WEEK 3`, fill `textbox "The bet"` with a unique string, click `BOOK IT`. One card holds the string.
 - **Persist.** Reload. Still one card. `GET /.netlify/functions/bets?season=2024` has the row with `week: 3` and no winner.
@@ -29,5 +29,5 @@ Preconditions: a fresh launch (its in-memory store starts empty); 2024 rosters c
 
 - The pickers are `shared/ui/Picker` (ARIA listbox), not `<select>`: `selectOption` throws; click the trigger, then the option.
 - Bet cards have no role: `[class*="_cardCell_"]` filtered by the bet's text.
-- The store is per launch: a relaunch starts empty. Never drive the live site's board; it is the league's real ledger.
-- Writes are rate-limited at 60 an hour per IP inside one server; a long session of reruns can hit 429. Relaunch.
+- The store is per run: a relaunch starts empty. Never drive the live site's board; it is the league's real ledger.
+- Writes are rate-limited at 60 an hour per client; each browser context is its own client, so reruns don't share the limit.
