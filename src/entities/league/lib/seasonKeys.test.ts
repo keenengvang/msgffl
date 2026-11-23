@@ -1,32 +1,53 @@
-import { QueryClient } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { QueryClient, type UseQueryOptions } from '@tanstack/react-query';
+import { describe, expect, it, vi } from 'vitest';
 import type { League } from '@/shared/api/types';
-import { qk } from '@/shared/api/queryKeys';
-import { staleFor } from './activeLeague';
 
-const live = { league_id: 'L', status: 'in_season' } as League;
+// Run the hooks' own useQuery options (key, queryFn, staleTime, enabled) through
+// a real QueryClient: the bug lived at the call sites, in which key each hook
+// built from its league, so the test has to go through the hooks.
+let captured: UseQueryOptions[] = [];
+vi.mock('@tanstack/react-query', async (orig) => ({
+  ...(await orig<typeof import('@tanstack/react-query')>()),
+  useQuery: (o: UseQueryOptions) => (captured.push(o), {}),
+}));
+const fetched: string[] = [];
+vi.mock('@/shared/api/sleeper', async (orig) => ({
+  ...(await orig<typeof import('@/shared/api/sleeper')>()),
+  api: async (path: string) => (fetched.push(path), []),
+}));
+
+const { useSeasonWeeks } = await import('@/entities/matchup/api/useSeasonWeeks');
+const { useSeasonStats } = await import('@/entities/player/api/useSeasonStats');
+
+const live = { league_id: 'L', season: '2024', status: 'in_season' } as League;
 const done = { ...live, status: 'complete' } as League;
+const optionsOf = (call: () => void) => {
+  captured = [];
+  call();
+  return captured[0]!;
+};
+const run = (client: QueryClient, o: UseQueryOptions) =>
+  client.fetchQuery({ queryKey: o.queryKey, queryFn: o.queryFn as () => Promise<unknown>, staleTime: o.staleTime as number });
 
-describe('season-scoped query keys', () => {
+describe('season-scoped queries across a season completing', () => {
   // Codex P1 on #31: a snapshot fetched mid-season must not become the
   // complete season's forever-fresh entry.
-  it('a season fetched while live is fetched again once it is complete, then kept', async () => {
+  it('useSeasonWeeks fetches again once the league is complete, then keeps it', async () => {
     const client = new QueryClient();
-    const calls: string[] = [];
-    const fetchWeeks = (lg: League, what: string) =>
-      client.fetchQuery({ queryKey: qk.weeks(lg), queryFn: async () => (calls.push(what), what), staleTime: staleFor(lg, 60_000) });
-
-    expect(await fetchWeeks(live, 'weeks 1-15 played')).toBe('weeks 1-15 played');
-    expect(await fetchWeeks(done, 'all 17 final')).toBe('all 17 final');
-    expect(await fetchWeeks(done, 'not fetched again')).toBe('all 17 final');
-    expect(calls).toEqual(['weeks 1-15 played', 'all 17 final']);
+    fetched.length = 0;
+    await run(client, optionsOf(() => useSeasonWeeks(live)));
+    expect(fetched).toHaveLength(17);
+    await run(client, optionsOf(() => useSeasonWeeks(done)));
+    expect(fetched).toHaveLength(34); // the complete season was fetched, not served from the live snapshot
+    await run(client, optionsOf(() => useSeasonWeeks(done)));
+    expect(fetched).toHaveLength(34); // and is then kept
   });
 
-  it('every season-scoped key carries the phase', () => {
-    const keys = [qk.users, qk.rosters, qk.weeks, qk.lineups, qk.moves, qk.draft, qk.brackets, qk.seasonBundle];
-    for (const k of keys) expect(k(live)).not.toEqual(k(done));
-    expect(qk.liveWeek(live, 3)).not.toEqual(qk.liveWeek(done, 3));
-    expect(qk.matchupDetail(live, 3)).not.toEqual(qk.matchupDetail(done, 3));
-    expect(qk.stats('2024', live)).not.toEqual(qk.stats('2024', done));
+  it('useSeasonStats waits for the league, so a cold load fetches once, under the final key', () => {
+    const before = optionsOf(() => useSeasonStats('2024', undefined));
+    expect(before.enabled).toBe(false);
+    const after = optionsOf(() => useSeasonStats('2024', done));
+    expect(after.enabled).toBe(true);
+    expect(after.staleTime).toBe(Infinity);
   });
 });
