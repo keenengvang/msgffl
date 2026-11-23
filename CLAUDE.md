@@ -18,6 +18,14 @@ npm run test       # vitest run (unit tests for pure model/lib functions)
 npm run test:e2e   # playwright smoke: builds, previews, hits every route (live API, system Chrome)
 ```
 
+**Proving a change works** (a fix against its repro, a feature end to end): the
+`verify-msgffl` skill in `.claude/skills/verify-msgffl/` builds the app, serves it with
+the real bets and suggest handlers (GitHub faked, chat off, Sleeper cached on disk), and
+drives visitor journeys that assert end states (`node .claude/skills/verify-msgffl/scripts/verify.mjs
+launch | doctor | drive | cleanup`). Its `features/` map lists what each journey guards
+and what a local pass does not stand for. The smoke spec proves wiring; the skill proves
+behaviour.
+
 Testing philosophy: the league math (record book, H2H, luck/all-play, grades, standings)
 lives in pure functions and is unit-tested — a silent wrong number is this site's worst
 bug. E2E is ONE smoke spec (`e2e/smoke.spec.ts`) asserting every route renders real
