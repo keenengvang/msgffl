@@ -1,9 +1,9 @@
 import type { Snark } from '@/shared/config/constants';
 import { useMutation } from '@tanstack/react-query';
 
-/** Mirrors the limits enforced by netlify/functions/chat.ts — keep in step. */
-export const MAX_TURNS = 40;
-export const MAX_MESSAGE_CHARS = 2000;
+import { MAX_MESSAGE_CHARS, MAX_TURNS } from '@/shared/config/chatLimits';
+
+export { MAX_MESSAGE_CHARS, MAX_TURNS };
 
 /** One turn of the conversation. Mirrors the Messages API shape the function
     forwards to Claude, minus every content type we don't send. */
