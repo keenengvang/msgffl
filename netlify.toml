@@ -1,5 +1,7 @@
 [build]
-  command = "npm run build"
+  # The same gate a session runs before it pushes: types, lint (FSD imports,
+  # swallowed fetch failures, CSS-module keyframes and colours), unit tests.
+  command = "npm run lint && npm run test && npm run build"
   publish = "dist"
 
 # The power index became /analytics — keep old links working.
