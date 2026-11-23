@@ -6,6 +6,9 @@ as a static site. `legacy/` holds the old single-file site — it is the **pixel
 reference only** and must never be imported; `design/DESIGN-SYSTEM.md` is the styling
 source of truth.
 
+Project wiki: `projects/MSGFFL/` in the `keenengvang/edi` checkout attached to this session —
+ask for it if it is missing.
+
 ## Commands
 
 ```
@@ -13,7 +16,8 @@ npm run dev        # Vite dev server
 npm run build      # tsc -b && vite build → dist/
 npm run preview    # serve the production build
 npm run typecheck  # tsc -b
-npm run lint       # eslint src netlify e2e (includes FSD import-boundary rules)
+npm run lint       # eslint src netlify e2e (FSD boundaries, swallowed fetch failures) + scripts/check-css.mjs
+npm run check      # typecheck + lint + unit tests: run before every push; Netlify's build runs the same
 npm run test       # vitest run (unit tests for pure model/lib functions)
 npm run test:e2e   # playwright smoke: builds, previews, hits every route (live API, system Chrome)
 ```
@@ -22,6 +26,31 @@ Testing philosophy: the league math (record book, H2H, luck/all-play, grades, st
 lives in pure functions and is unit-tested — a silent wrong number is this site's worst
 bug. E2E is ONE smoke spec (`e2e/smoke.spec.ts`) asserting every route renders real
 content with no error panel; don't grow it into per-page assertions.
+
+## Rules and what enforces them
+
+Each rule here was broken at least once in this repo's history. A correction that repeats
+gets moved up this list's enforcement ladder (architecture → type → lint → test → docs) in
+the same change; a rule whose mistake can no longer happen is dropped.
+
+| Rule | Enforced by | Broken before |
+|---|---|---|
+| Imports flow downward only (FSD layers) | ESLint `no-restricted-imports` zones, `src/` only; `netlify/` → `src/` is convention | — |
+| A failed fetch rejects, never resolves to `[]`/`{}`/`null` | ESLint `no-restricted-syntax` in `entities/`, `features/`, `netlify/` (error names the loader to use); loader tests | #5 ×4, #22, #30/#31; still live in brackets, draft, stats, season bundle until the corrections PR |
+| A season seen live is refetched once complete | Type: season keys take `LeagueRef`, the key carries the phase; `entities/league/lib/seasonKeys.test.ts` | Codex P1 on #31, open until the corrections PR |
+| Chat turn and message limits are the same on both sides | Architecture: one module, `shared/config/chatLimits.ts` | #5 ×3 |
+| A CSS module's animation uses `@keyframes` defined in that module | `scripts/check-css.mjs` (in `npm run lint`) | 947cb9d (3 modules) |
+| No raw hex in a `.module.css` | `scripts/check-css.mjs` | — |
+| Champion comes from the winners-bracket `p=1` game | One function, `titleGame()`; the verify skill's `champion` journey (PR #40) | #19 (Career Ledger used standings) |
+| The live week never counts as final (records, H2H, analytics, chat) | Partly: `analyticsThrough`, `liveWeek` and analytics tests; nothing stops a new consumer | #5 ×5, #31 |
+| Content that changes on a schedule stays out of the persister | `shouldDehydrateQuery` list (docs only) | #10 |
+| Bump the cache buster when a persisted shape changes | Docs only | — |
+| Every user-facing string ships savage and polite | Docs only | — |
+| Type floor 11px; numerals mono + tabular; entrance motion transform-only | Docs only | — |
+
+Exceptions to an enforced rule go on the offending line with the reason, an expiry date and
+whose approval, e.g. the four deliberate `.catch(() => null)` fallbacks (NFL state twice, the
+chatbot's name index, the chain's per-member lookup).
 
 ## Architecture — Feature-Sliced Design
 
@@ -71,7 +100,14 @@ without it). ESLint's FSD zones only cover `src/`, so the downward-only rule ins
 
 - Base: `https://api.sleeper.app/v1` via `shared/api/sleeper.ts`. `LEAGUE_ID` lives in
   `shared/config/constants.ts`.
-- **Every query key comes from the factory** `shared/api/queryKeys.ts` (`qk.*`).
+- **Every query key comes from the factory** `shared/api/queryKeys.ts` (`qk.*`). Season-scoped
+  keys take the league and carry its phase (`'live'` / `'final'`): a season seen while live is
+  a different entry from the same season once complete, so completion triggers one fresh fetch
+  before `staleFor` keeps it forever. Never key season data by `league_id` alone.
+- **A failed fetch rejects; it never resolves to empty data.** Load through a rejecting loader
+  (`loadSeasonWeeks`, `loadBrackets`, `loadDraft`, `loadSeasonLineups`, `loadSeasonMoves`) and
+  show `<ErrorPanel>` on `error && !data`. A `[]` from a blip is cached as truth, forever for a
+  complete season, and persisted.
 - Dependent flow: `useNflState` (resolves null on failure) → `useLeagueChain`
   (walkChain + next-season auto-discovery via members' leagues) → everything else,
   each hook `enabled: !!league`.
@@ -241,7 +277,8 @@ W, L, WIN%, OPEN, OWES — 0–0 win% always sinks), and clicking a manager filt
 **Chatbot backend**: `netlify/functions/chat.ts` — POST `{messages, snark}` → `{text}`.
 Requires `ANTHROPIC_API_KEY` in the Netlify UI env vars (never a `VITE_` var — those ship
 to the browser). The Messages API is stateless, so the browser owns the transcript and
-replays it every turn, windowed to 40 turns × 2000 chars by `widgets/chatbot`.
+replays it every turn, windowed to 40 turns × 2000 chars by `widgets/chatbot` (both sides import those limits
+from `shared/config/chatLimits.ts`).
 
 The analyst knows the league two ways, both built in `netlify/lib/`:
 
