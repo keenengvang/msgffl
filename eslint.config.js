@@ -28,22 +28,46 @@ const fsdZones = Object.entries(forbidden).map(([layer, uppers]) => ({
   },
 }));
 
-// A failed Sleeper request swallowed into an empty success (`.catch(() => [])`)
-// gets cached as truth — forever for a complete season, and persisted. It has
-// shipped six times (PR #5 ×4, #22, #30/#31) and was still live in three loaders.
+// A failed fetch swallowed into an empty success gets cached as truth: forever
+// for a complete season, and persisted. It shipped six times (PR #5 ×4, #22,
+// #30/#31), was still live in four loaders and the chain's discovery, and the
+// server carried a workaround for it. Every shape below is the same mistake.
+const EMPTY = [
+  'ArrayExpression[elements.length=0]',
+  'ObjectExpression[properties.length=0]',
+  "Literal[raw='null']",
+  "Identifier[name='undefined']",
+  'NewExpression[callee.name=/^(Map|Set|Array)$/][arguments.length=0]',
+];
+const empties = (parentAndField) =>
+  EMPTY.flatMap((e) => {
+    const [parent, field] = parentAndField;
+    return [`${parent} > ${e}.${field}`, `${parent} > TSAsExpression.${field} > ${e}.expression`];
+  });
+const HANDLER = ':matches(ArrowFunctionExpression, FunctionExpression)';
+const ON_ERROR = [
+  "CallExpression[callee.property.name='catch']",
+  "CallExpression[callee.property.name='then'][arguments.length=2]",
+];
+const SWALLOW_SELECTORS = [
+  // .catch(() => []) and .then(ok, () => [])
+  ...ON_ERROR.flatMap((c) => empties([`${c} > ArrowFunctionExpression`, 'body'])),
+  // .catch(() => { return []; }) and .catch(function () { return []; })
+  ...ON_ERROR.flatMap((c) => empties([`${c} > ${HANDLER} ReturnStatement`, 'argument'])),
+  // .catch(fallbackToEmpty)
+  "CallExpression[callee.property.name='catch'] > Identifier.arguments",
+  // try { … } catch { return []; }
+  ...empties(['CatchClause ReturnStatement', 'argument']),
+  // try { … } catch { /* best-effort */ }
+  'CatchClause > BlockStatement.body[body.length=0]',
+];
+const SWALLOW_MESSAGE =
+  "A failed fetch must reject, not resolve to empty data: the query caches it as truth (forever for a complete season, and persisted). Let it throw and load through a rejecting loader like loadSeasonWeeks (src/entities/matchup/lib/loadSeasonWeeks.ts); consumers show <ErrorPanel> on `error && !data`. A deliberate fallback takes an eslint-disable-next-line with the reason it is needed.";
 const emptyFallback = {
-  files: ['src/entities/**/*.{ts,tsx}', 'src/features/**/*.{ts,tsx}', 'netlify/lib/**/*.ts', 'netlify/functions/**/*.ts'],
-  ignores: ['**/*.test.ts'],
+  files: ['src/**/*.{ts,tsx}', 'netlify/**/*.ts'],
+  ignores: ['**/*.test.ts', 'src/routeTree.gen.ts'],
   rules: {
-    'no-restricted-syntax': [
-      'error',
-      {
-        selector:
-          "CallExpression[callee.property.name='catch'] > ArrowFunctionExpression:matches([body.type='ArrayExpression'], [body.type='ObjectExpression'], [body.type='TSAsExpression'][body.expression.type=/^(ArrayExpression|ObjectExpression)$/], [body.type='Literal'][body.raw='null'], [body.type='Identifier'][body.name='undefined'])",
-        message:
-          "A failed fetch must reject, not resolve to empty data: the query caches it as truth (forever for a complete season, and persisted). Let it throw and load through a rejecting loader like loadSeasonWeeks (src/entities/matchup/lib/loadSeasonWeeks.ts); consumers show <ErrorPanel> on `error && !data`. A deliberate fallback takes an eslint-disable-next-line with its reason, an expiry date and who approved it.",
-      },
-    ],
+    'no-restricted-syntax': ['error', ...SWALLOW_SELECTORS.map((selector) => ({ selector, message: SWALLOW_MESSAGE }))],
   },
 };
 

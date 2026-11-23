@@ -41,6 +41,7 @@ export function useSendChat() {
         body: JSON.stringify({ messages: windowTurns(messages), snark }),
       });
       if (!r.ok) {
+        // eslint-disable-next-line no-restricted-syntax -- parses an error body that may not be JSON; the request still throws on the next line (reviewed 2026-11-23)
         const body = (await r.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? `the analyst said no (${r.status})`);
       }

@@ -231,6 +231,7 @@ async function getTeam(snap: Snapshot, team: string): Promise<ToolOutcome> {
       })
       // Best projection first, so a start/sit question reads off the top.
       .sort((x, y) => (y.projectedThisWeek ?? -1) - (x.projectedThisWeek ?? -1));
+  // eslint-disable-next-line no-restricted-syntax -- the roster is a nice-to-have beside the history the tool answers; nothing caches the empty roster (reviewed 2026-11-23)
   } catch {
     // A players-db hiccup shouldn't sink the whole answer — the history above
     // is the part that matters, so it goes back with an empty roster.
@@ -413,6 +414,7 @@ async function searchPlayers(
     const { rosters, users } = await rostersFor(snap.current);
     const teamOf = new Map(users.map((u) => [u.user_id, u.metadata?.team_name || u.display_name]));
     rosters.forEach((r) => (r.players ?? []).forEach((id) => owned.set(id, teamOf.get(r.owner_id) ?? 'unknown')));
+  // eslint-disable-next-line no-restricted-syntax -- ownership is a nice-to-have beside the stat line; nothing caches it (reviewed 2026-11-23)
   } catch {
     // Ownership is a nice-to-have; the stat line is the answer.
   }
@@ -483,7 +485,7 @@ async function getTransactions(snap: Snapshot, args: TxArgs): Promise<ToolOutcom
     Promise.all(leagues.map(movesFor)),
     // Names are what make a move readable, but a players-db failure shouldn't
     // sink the FAAB numbers — those don't need a single name.
-    // eslint-disable-next-line no-restricted-syntax -- names only; the FAAB totals stand without them, and nothing caches this null. Expires 2027-11-23; approval pending Keeneng on the corrections PR.
+    // eslint-disable-next-line no-restricted-syntax -- names only make moves readable; the FAAB totals stand without them, and nothing caches this null (reviewed 2026-11-23)
     playerIndex().catch(() => null),
   ]);
   // A week Sleeper failed to return is indistinguishable from a quiet week, so

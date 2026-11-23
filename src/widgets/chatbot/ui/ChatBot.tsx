@@ -82,6 +82,7 @@ export function ChatBot() {
     try {
       const reply = await send.mutateAsync({ messages: next, snark });
       setTurns([...next, { role: 'assistant', content: reply }]);
+    // eslint-disable-next-line no-restricted-syntax -- the mutation's error renders below the thread; nothing is cached (reviewed 2026-11-23)
     } catch {
       // The thrown message renders below; the user's turn stays in the thread
       // so they can retry without retyping.

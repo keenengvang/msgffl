@@ -175,6 +175,7 @@ export default async function handler(req: Request): Promise<Response> {
   const snap = await withTimeout(snapshot(), deadline - Date.now() - MIN_CALL_MS, 'snapshot').catch(
     (err) => {
       console.error('league snapshot unavailable', err);
+      // eslint-disable-next-line no-restricted-syntax -- no snapshot means the analyst answers that the data is missing (documented in CLAUDE.md); nothing caches the null (reviewed 2026-11-23)
       return null;
     },
   );

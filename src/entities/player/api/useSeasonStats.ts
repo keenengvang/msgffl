@@ -10,7 +10,8 @@ import { staleFor } from '@/entities/league/lib/activeLeague';
 export function useSeasonStats(season: string | undefined, league: League | undefined, enabled = true) {
   return useQuery({
     queryKey: qk.stats(season ?? '', league),
-    enabled: enabled && !!season,
+    // Wait for the league: keyed without it, a cold load fetches under 'live', then again under 'final'.
+    enabled: enabled && !!season && !!league,
     queryFn: () => api<SeasonStats>(`/stats/nfl/regular/${season}`),
     staleTime: staleFor(league, 6 * 60 * 60_000),
   });

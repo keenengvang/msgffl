@@ -104,6 +104,7 @@ export function weekProjections(season: string, week: number): Promise<Projectio
     // the slot so the next request retries instead of serving the blank.
     .catch(() => {
       projSlots.delete(key);
+      // eslint-disable-next-line no-restricted-syntax -- a missing projection only thins one answer, and the slot is evicted so the next call retries (reviewed 2026-11-23)
       return {} as Projections;
     });
 
@@ -123,6 +124,7 @@ export function seasonStats(season: string, complete: boolean): Promise<SeasonSt
   // the warm instance because one request happened to fail.
   const p = api<SeasonStats>(`/stats/nfl/regular/${season}`).catch(() => {
     statSlots.delete(season);
+    // eslint-disable-next-line no-restricted-syntax -- degrades this one call and evicts the slot, so a failure is never kept (reviewed 2026-11-23)
     return {} as SeasonStats;
   });
   statSlots.set(season, { at: Date.now(), p });
