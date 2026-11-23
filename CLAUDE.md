@@ -29,28 +29,26 @@ content with no error panel; don't grow it into per-page assertions.
 
 ## Rules and what enforces them
 
-Each rule here was broken at least once in this repo's history. A correction that repeats
-gets moved up this list's enforcement ladder (architecture → type → lint → test → docs) in
-the same change; a rule whose mistake can no longer happen is dropped.
+A rule lands here once its mistake has happened twice. A correction that repeats is moved
+up the enforcement ladder (architecture → type → lint → test → docs) in the same change; a
+rule whose mistake can no longer happen is dropped.
 
 | Rule | Enforced by | Broken before |
 |---|---|---|
-| Imports flow downward only (FSD layers) | ESLint `no-restricted-imports` zones, `src/` only; `netlify/` → `src/` is convention | — |
-| A failed fetch rejects, never resolves to `[]`/`{}`/`null` | ESLint `no-restricted-syntax` in `entities/`, `features/`, `netlify/` (error names the loader to use); loader tests | #5 ×4, #22, #30/#31; still live in brackets, draft, stats, season bundle until the corrections PR |
-| A season seen live is refetched once complete | Type: season keys take `LeagueRef`, the key carries the phase; `entities/league/lib/seasonKeys.test.ts` | Codex P1 on #31, open until the corrections PR |
-| Chat turn and message limits are the same on both sides | Architecture: one module, `shared/config/chatLimits.ts` | #5 ×3 |
-| A CSS module's animation uses `@keyframes` defined in that module | `scripts/check-css.mjs` (in `npm run lint`) | 947cb9d (3 modules) |
-| No raw hex in a `.module.css` | `scripts/check-css.mjs` | — |
-| Champion comes from the winners-bracket `p=1` game | One function, `titleGame()`; the verify skill's `champion` journey (PR #40) | #19 (Career Ledger used standings) |
-| The live week never counts as final (records, H2H, analytics, chat) | Partly: `analyticsThrough`, `liveWeek` and analytics tests; nothing stops a new consumer | #5 ×5, #31 |
-| Content that changes on a schedule stays out of the persister | `shouldDehydrateQuery` list (docs only) | #10 |
-| Bump the cache buster when a persisted shape changes | Docs only | — |
-| Every user-facing string ships savage and polite | Docs only | — |
-| Type floor 11px; numerals mono + tabular; entrance motion transform-only | Docs only | — |
+| A failed fetch rejects, never resolves to empty data | ESLint `no-restricted-syntax` across `src/` and `netlify/`: `.catch`/`.then(_, onRejected)` returning `[]`/`{}`/`null`/`undefined`/`new Map()` (arrow, block or function body), `.catch(namedFallback)`, `catch { return [] }`, an empty `catch {}`; loader tests. **Partly**: a non-empty or named fallback value (`() => DEFAULTS`) and `Promise.allSettled` still pass | #5 ×4, #22, #30/#31; live in the season bundle, brackets, draft, stats and the chain's discovery (plus a server workaround for it) until the corrections PR |
+| A CSS module's animation uses `@keyframes` defined in that module | `scripts/check-css.mjs` (in `npm run lint`) | 947cb9d: the ticker, the header's live dot, the loading pulse and the radar |
+| Chat turn and message limits are the same on both sides | Architecture: one module, `shared/config/chatLimits.ts` | #5 ×3 ([41st turn](https://github.com/keenengvang/msgffl/pull/5#discussion_r3994263072), [long paste](https://github.com/keenengvang/msgffl/pull/5#discussion_r3994263076), [long reply replayed](https://github.com/keenengvang/msgffl/pull/5#discussion_r3994381095)) |
+| The live week never counts as final (records, H2H, analytics, chat) | **Partly**: `analyticsThrough`, `liveWeek` and analytics tests; nothing stops a new consumer | #5 ×5, #31 |
 
-Exceptions to an enforced rule go on the offending line with the reason, an expiry date and
-whose approval, e.g. the four deliberate `.catch(() => null)` fallbacks (NFL state twice, the
-chatbot's name index, the chain's per-member lookup).
+Exceptions to an enforced rule go on the offending line with the reason it is needed, e.g.
+`useNflState`'s null (load-bearing: `useLeagueChain` waits for it to resolve).
+
+Also enforced, but each broken once or never, so not yet a repeat class: season query keys
+carry the phase (a type, `entities/league/lib/seasonKeys.test.ts`; once, Codex P1 on #31);
+the champion comes from `titleGame()` (once, #19); no raw hex in a `.module.css`
+(`scripts/check-css.mjs`); imports flow downward (ESLint zones, `src/` only). Judgment rules
+with nothing enforcing them live in their sections below: the persister list, the cache
+buster, savage and polite copy, the type floor.
 
 ## Architecture — Feature-Sliced Design
 
