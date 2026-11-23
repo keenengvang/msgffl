@@ -68,7 +68,8 @@ Driving conventions, also for ad-hoc scripts (`import { openBrowser, newContext 
 
 Per run, in `~/.cache/verify-msgffl/runs/<run>/`:
 
-- `results.json`: sha, whether the tree was dirty, each journey's pass/fail, the failure text, Sleeper live calls and replay misses.
+- `results.json`: the sha, the **tree fingerprint** and whether the build had uncommitted changes (`dirty`), so evidence for an uncommitted fix never reads as evidence for the commit; each journey's pass/fail and failure text; Sleeper live calls and replay misses for **both** processes, the browser's and the server's (the functions' own requests, read from `/__verify/sleeper`).
+- Each `steps.log` opens with `<journey> @ <sha>[+dirty] tree=<fingerprint>`, and the drive's last line repeats it.
 - `journeys/<name>/steps.log` (every action, the URL after it, and observed values), `final.png`, `final.aria.txt`, plus side-effect reads: `bets-stored.json` (the stored row, read back through the function), `github-outbox.json` (the issue suggest would have filed).
 - `github-outbox.jsonl` and `server.log` for the run.
 

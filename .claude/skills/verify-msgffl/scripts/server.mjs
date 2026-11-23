@@ -16,7 +16,7 @@ import { readFileSync, existsSync, statSync, appendFileSync, mkdirSync } from 'n
 import { join, extname, normalize } from 'node:path';
 import { createServer as createVite } from 'vite';
 import { BlobsServer } from '@netlify/blobs/server';
-import { patchNodeFetch, setMode, SLEEPER } from './sleeper-cache.mjs';
+import { patchNodeFetch, setMode, SLEEPER, liveCallCount, misses } from './sleeper-cache.mjs';
 import { runDir } from './paths.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/, '').split('=')));
@@ -125,6 +125,9 @@ createHttp(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   try {
     if (url.pathname === '/__verify/health') return json(res, 200, { app: 'msgffl', pid: process.pid, run: args.run, sleeper: args.sleeper, bets: 'netlify/functions/bets.ts over BlobsServer' });
+    // The functions' own Sleeper traffic (sleeperFacts) is counted here, in the
+    // server's process; drives read it so their summary covers both sides.
+    if (url.pathname === '/__verify/sleeper') return json(res, 200, { liveCalls: liveCallCount(), replayMisses: misses() });
     if (url.pathname === '/__verify/github') {
       githubDown = url.searchParams.get('down') === '1';
       return json(res, 200, { githubDown });

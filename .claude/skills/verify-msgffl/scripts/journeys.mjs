@@ -229,10 +229,17 @@ export const JOURNEYS = {
   },
 };
 
+/** The server's own Sleeper counters (the functions' requests), so a drive's
+    summary covers both processes. */
+async function serverSleeper(state) {
+  return (await fetch(`${state.url}/__verify/sleeper`)).json();
+}
+
 export async function run(state, names, { headed }) {
   const list = names.includes('all') ? Object.keys(JOURNEYS) : names;
   const unknown = list.filter((n) => !JOURNEYS[n]);
   if (unknown.length) { console.error(`unknown journey: ${unknown.join(', ')} (have: ${Object.keys(JOURNEYS).join(', ')})`); return false; }
+  const serverBefore = await serverSleeper(state);
   const browser = await openBrowser({ headed });
   const results = [];
   for (const name of list) {
@@ -259,16 +266,23 @@ export async function run(state, names, { headed }) {
       await page.screenshot({ path: join(dir, 'final.png') });
       writeFileSync(join(dir, 'final.aria.txt'), await page.locator('body').ariaSnapshot());
     } catch { /* page gone */ }
-    writeFileSync(join(dir, 'steps.log'), `${name} @ ${state.sha}${state.dirty ? '+dirty' : ''} ${new Date().toISOString()}\n${log.join('\n')}\n`);
+    writeFileSync(join(dir, 'steps.log'), `${name} @ ${state.sha}${state.dirty ? '+dirty' : ''} tree=${state.tree} ${new Date().toISOString()}\n${log.join('\n')}\n`);
     await ctx.close();
     const r = { name, ok: !error, ms: Date.now() - t0, error, evidence: dir };
     results.push(r);
     console.log(`${r.ok ? 'PASS' : 'FAIL'} ${name} (${(r.ms / 1000).toFixed(1)}s)${error ? `\n  ${error.replace(/\n/g, '\n  ')}` : ''}`);
   }
   await browser.close();
-  const summary = { sha: state.sha, dirty: state.dirty, at: new Date().toISOString(), sleeper: { replayMisses: misses(), liveCalls: liveCallCount() }, results };
+  const serverAfter = await serverSleeper(state);
+  const server = {
+    liveCalls: serverAfter.liveCalls - serverBefore.liveCalls,
+    replayMisses: serverAfter.replayMisses.filter((u) => !serverBefore.replayMisses.includes(u)),
+  };
+  const inBrowser = { liveCalls: liveCallCount(), replayMisses: misses() };
+  const summary = { sha: state.sha, dirty: state.dirty, tree: state.tree, at: new Date().toISOString(), sleeper: { mode: state.sleeper, browser: inBrowser, server }, results };
   writeFileSync(join(runDir(state.id), 'results.json'), JSON.stringify(summary, null, 2));
-  console.log(`${results.filter((r) => r.ok).length}/${results.length} passed · sleeper live calls ${liveCallCount()}${misses().length ? ` · replay misses ${misses().length}` : ''} · evidence ${runDir(state.id)}`);
+  const missed = inBrowser.replayMisses.length + server.replayMisses.length;
+  console.log(`${results.filter((r) => r.ok).length}/${results.length} passed · sleeper live calls: browser ${inBrowser.liveCalls}, server ${server.liveCalls}${missed ? ` · replay misses ${missed}` : ''} · ${state.sha}${state.dirty ? '+dirty' : ''} tree=${state.tree} · evidence ${runDir(state.id)}`);
   return results.every((r) => r.ok);
 }
 

@@ -62,7 +62,10 @@ async function launch() {
     } catch (e) {
       die(`npm run build failed:\n${String(e.stdout).split('\n').slice(-25).join('\n')}${e.stderr}`);
     }
-    stamp = { sha: shortSha(), tree, builtAt: new Date().toISOString() };
+    // dirty: the build includes uncommitted app changes, so its evidence is for
+    // the tree fingerprint, not for the commit alone.
+    const dirty = git(`status --porcelain -- ${APP}`).trim() !== '';
+    stamp = { sha: shortSha(), tree, dirty, builtAt: new Date().toISOString() };
     writeFileSync(stampPath(), JSON.stringify(stamp));
   } else {
     // dist/ says what it was built from; HEAD is not evidence of that.
@@ -75,14 +78,14 @@ async function launch() {
   const log = join(runDir(id), 'server.log');
   const child = spawn(process.execPath, [join(import.meta.dirname, 'server.mjs'), `--root=${root}`, `--port=${port}`, `--run=${id}`, `--sleeper=${sleeper}`], { detached: true, stdio: ['ignore', openSync(log, 'a'), openSync(log, 'a')], env: process.env });
   child.unref();
-  const state = { id, pid: child.pid, port, url: `http://127.0.0.1:${port}`, sha: stamp.sha, tree: stamp.tree, startedAt: new Date().toISOString(), sleeper };
+  const state = { id, pid: child.pid, port, url: `http://127.0.0.1:${port}`, sha: stamp.sha, tree: stamp.tree, dirty: !!stamp.dirty, startedAt: new Date().toISOString(), sleeper };
   writeFileSync(statePath(id), JSON.stringify(state, null, 2));
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 500));
     try {
       const h = await (await fetch(`${state.url}/__verify/health`)).json();
       const b = await fetch(`${state.url}/.netlify/functions/bets?season=2024`);
-      if (h.pid === child.pid && b.ok) { console.log(`✓ ready ${state.url}  run=${id}  pid=${child.pid}  sha=${stamp.sha}  tree=${stamp.tree}  sleeper=${sleeper}`); return; }
+      if (h.pid === child.pid && b.ok) { console.log(`✓ ready ${state.url}  run=${id}  pid=${child.pid}  sha=${stamp.sha}${state.dirty ? '+dirty' : ''}  tree=${stamp.tree}  sleeper=${sleeper}`); return; }
     } catch { /* not up yet */ }
     if (!alive(child.pid)) break;
   }
